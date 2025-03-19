@@ -16,19 +16,45 @@ import AddIcon from '@mui/icons-material/Add';
 
 export default function AccountMenu() {
   const [anchorEl, setAnchorEl] = React.useState(null);
+  const [createAnchorEl, setCreateAnchorEl] = React.useState(null);
   const open = Boolean(anchorEl);
+  const openCreate = Boolean(createAnchorEl);
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
   };
   const handleClose = () => {
     setAnchorEl(null);
   };
+
+  const handleClickCreate = (event) => {
+    setCreateAnchorEl(event.currentTarget);
+  };
+  const handleCloseCreate = () => {
+    setCreateAnchorEl(null);
+  };
   return (
     <React.Fragment>
       <Box sx={{ display: 'flex', alignItems: 'center', textAlign: 'center' }}>
-        <Box sx={{display: "flex", alignItems: "center", gap: "0.2rem", paddingY: 1, paddingX: 1.5, borderRadius: "50px", backgroundColor: "hsla(0,0%,100%,.08)"}}>
-            <AddIcon/>
-        <Typography sx={{ minWidth: 50, fontSize: "0.9rem", fontWeight: "bold" }}>Create</Typography>
+        <Box sx={{display: "flex", alignItems: "center", gap: "0.2rem", paddingY: 1, paddingX: 0.3, borderRadius: "50px", backgroundColor: "hsla(0,0%,100%,.08)", cursor: "pointer",
+             "&:hover": {
+              backgroundColor: "hsl(0,0%,18.82%)"
+            }
+        }}>
+          <IconButton 
+             onClick={handleClickCreate}
+             size="small"
+             aria-controls={openCreate ? 'create-menu' : undefined}
+             aria-haspopup="true"
+             aria-expanded={openCreate ? 'true' : undefined}
+             sx={{paddingX: "10px", paddingY: "0", 
+           
+             }}
+     >
+          <AddIcon sx={{color: "#fff"}}  />
+          <Typography color="#fff" sx={{ minWidth: 50, fontSize: "0.9rem", fontWeight: "bold" }}>Create</Typography>
+          </IconButton>
+       
+     
         </Box>
         <IconButton sx={{ minWidth: 50,paddingY: 1, paddingX: 1.5 }}><NotificationsNoneOutlinedIcon sx={{color: "#fff"}}/></IconButton>
         <Tooltip title="Account settings">
@@ -105,6 +131,62 @@ export default function AccountMenu() {
           </ListItemIcon>
           Logout
         </MenuItem>
+      </Menu>
+      
+      <Menu
+        anchorEl={createAnchorEl}
+        id="create-menu"
+        open={openCreate}
+        onClose={handleCloseCreate}
+        onClick={handleCloseCreate}
+        slotProps={{
+          paper: {
+            elevation: 0,
+            sx: {
+              overflow: 'visible',
+              filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
+              mt: 1.5,
+              bgcolor: "hsl(0,0%,18.82%)",
+              color: "#fff",
+              '& .MuiAvatar-root': {
+                width: 32,
+                height: 32,
+                ml: -0.5,
+                mr: 1,
+              },
+              '&::before': {
+                content: '""',
+                display: 'block',
+                position: 'absolute',
+                top: 0,
+                right: 14,
+                width: 10,
+                height: 10,
+                bgcolor: 'hsl(0,0%,18.82%)',
+                transform: 'translateY(-50%) rotate(45deg)',
+                zIndex: 0,
+              },
+            },
+          },
+        }}
+        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+      >
+        <MenuItem 
+        onClick={handleCloseCreate}>
+          <Avatar /> Upload Video
+        </MenuItem>
+        <MenuItem onClick={handleCloseCreate}>
+          <Avatar /> Go Live
+        </MenuItem>
+        <Divider />
+        <MenuItem onClick={handleCloseCreate}>
+          <ListItemIcon>
+            <PersonAdd fontSize="small" />
+          </ListItemIcon>
+          Create Post
+        </MenuItem>
+       
       </Menu>
     </React.Fragment>
   );
