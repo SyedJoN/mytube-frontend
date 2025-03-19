@@ -78,7 +78,7 @@ export default function VideoCard({
     <Card
       sx={{
         position: "relative",
-        width: open ? 300 : 350,
+        width: open ? 300 : 345,
         transition: "0.3s ease-in-out",
         padding: 0,
         cursor: "pointer",

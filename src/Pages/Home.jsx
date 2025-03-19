@@ -48,7 +48,7 @@ function Home({ open }) {
                 xs: "span 12",
                 sm: "span 6",
                 md: "span 4",
-                lg: open ? "span 3" : "span 4",
+                lg: open ? "span 3" : "span 12",
               },
             }}
           >
