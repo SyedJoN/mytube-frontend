@@ -13,21 +13,30 @@ import Settings from '@mui/icons-material/Settings';
 import Logout from '@mui/icons-material/Logout';
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
 import AddIcon from '@mui/icons-material/Add';
+import SlideshowOutlinedIcon from '@mui/icons-material/SlideshowOutlined';
+import PodcastsIcon from '@mui/icons-material/Podcasts';
+import BorderColorIcon from '@mui/icons-material/BorderColor';
 
 export default function AccountMenu() {
   const [anchorEl, setAnchorEl] = React.useState(null);
   const [createAnchorEl, setCreateAnchorEl] = React.useState(null);
   const open = Boolean(anchorEl);
   const openCreate = Boolean(createAnchorEl);
+
+  const root = document.getElementById("root");
+  
   const handleClick = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
+    setAnchorEl((prev) => (prev ? null : event.currentTarget));
+    setCreateAnchorEl(null)
+};
   const handleClose = () => {
+
     setAnchorEl(null);
   };
 
   const handleClickCreate = (event) => {
-    setCreateAnchorEl(event.currentTarget);
+    setCreateAnchorEl((prev) => (prev ? null : event.currentTarget));
+    setAnchorEl(null);
   };
   const handleCloseCreate = () => {
     setCreateAnchorEl(null);
@@ -47,6 +56,7 @@ export default function AccountMenu() {
              aria-haspopup="true"
              aria-expanded={openCreate ? 'true' : undefined}
              sx={{paddingX: "10px", paddingY: "0", 
+              
            
              }}
      >
@@ -69,125 +79,153 @@ export default function AccountMenu() {
           </IconButton>
         </Tooltip>
       </Box>
-      <Menu
-        anchorEl={anchorEl}
+      {
+        anchorEl && 
+        <Box
         id="account-menu"
-        open={open}
-        onClose={handleClose}
-        onClick={handleClose}
-        slotProps={{
-          paper: {
-            elevation: 0,
-            sx: {
-              overflow: 'visible',
-              filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
-              mt: 1.5,
-              '& .MuiAvatar-root': {
-                width: 32,
-                height: 32,
-                ml: -0.5,
-                mr: 1,
-              },
-              '&::before': {
-                content: '""',
-                display: 'block',
-                position: 'absolute',
-                top: 0,
-                right: 14,
-                width: 10,
-                height: 10,
-                bgcolor: 'background.paper',
-                transform: 'translateY(-50%) rotate(45deg)',
-                zIndex: 0,
-              },
-            },
-          },
+        sx={{
+          position: 'absolute',
+          right: '27px',
+          top: '50px',
+          borderRadius: '10px',
+          backgroundColor: '#282828'
         }}
-        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-      >
-        <MenuItem onClick={handleClose}>
-          <Avatar /> Profile
-        </MenuItem>
-        <MenuItem onClick={handleClose}>
-          <Avatar /> My account
-        </MenuItem>
-        <Divider />
-        <MenuItem onClick={handleClose}>
-          <ListItemIcon>
-            <PersonAdd fontSize="small" />
-          </ListItemIcon>
-          Add another account
-        </MenuItem>
-        <MenuItem onClick={handleClose}>
-          <ListItemIcon>
-            <Settings fontSize="small" />
-          </ListItemIcon>
-          Settings
-        </MenuItem>
-        <MenuItem onClick={handleClose}>
-          <ListItemIcon>
-            <Logout fontSize="small" />
-          </ListItemIcon>
-          Logout
-        </MenuItem>
-      </Menu>
-      
-      <Menu
-        anchorEl={createAnchorEl}
-        id="create-menu"
-        open={openCreate}
-        onClose={handleCloseCreate}
-        onClick={handleCloseCreate}
-        slotProps={{
-          paper: {
-            elevation: 0,
-            sx: {
-              overflow: 'visible',
-              filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
-              mt: 1.5,
-              bgcolor: "hsl(0,0%,18.82%)",
-              color: "#fff",
-              '& .MuiAvatar-root': {
-                width: 32,
-                height: 32,
-                ml: -0.5,
-                mr: 1,
-              },
-              '&::before': {
-                content: '""',
-                display: 'block',
-                position: 'absolute',
-                top: 0,
-                right: 14,
-                width: 10,
-                height: 10,
-                bgcolor: 'hsl(0,0%,18.82%)',
-                transform: 'translateY(-50%) rotate(45deg)',
-                zIndex: 0,
-              },
-            },
-          },
-        }}
-        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
       >
         <MenuItem 
-        onClick={handleCloseCreate}>
-          <Avatar /> Upload Video
+        sx={{
+          "&:hover": {
+            backgroundColor: "rgba(255,255,255,0.1)"
+          }
+        }}
+        onClick={handleClose}>
+          <Avatar /> 
+          <Typography variant='body1'>
+          Profile
+          </Typography>
         </MenuItem>
-        <MenuItem onClick={handleCloseCreate}>
-          <Avatar /> Go Live
+        <MenuItem 
+         sx={{
+          "&:hover": {
+            backgroundColor: "rgba(255,255,255,0.1)"
+          }
+        }}
+        onClick={handleClose}>
+          <Avatar /> 
+          <Typography variant='body1'>
+          My account
+          </Typography>
         </MenuItem>
         <Divider />
-        <MenuItem onClick={handleCloseCreate}>
-          <ListItemIcon>
+        <MenuItem 
+         sx={{
+          "&:hover": {
+            backgroundColor: "rgba(255,255,255,0.1)"
+          }
+        }}
+        onClick={handleClose}>
+          <ListItemIcon sx={{color: "#f1f1f1"}}>
             <PersonAdd fontSize="small" />
           </ListItemIcon>
-          Create Post
+          <Typography variant='body1'>
+          Add another account
+          </Typography>
         </MenuItem>
-       
-      </Menu>
+        <MenuItem 
+         sx={{
+          "&:hover": {
+            backgroundColor: "rgba(255,255,255,0.1)"
+          }
+        }}
+        onClick={handleClose}>
+          <ListItemIcon sx={{color: "#f1f1f1"}}>
+            <Settings fontSize="small" />
+          </ListItemIcon>
+          <Typography variant='body1'>
+          Settings
+          </Typography>
+        </MenuItem>
+        <MenuItem 
+         sx={{
+          "&:hover": {
+            backgroundColor: "rgba(255,255,255,0.1)"
+          }
+        }}
+        onClick={handleClose}>
+          <ListItemIcon sx={{color: "#f1f1f1"}}>
+            <Logout fontSize="small" />
+          </ListItemIcon>
+          <Typography variant='body1'>
+          Sign out
+          </Typography>
+        </MenuItem>
+      </Box>
+      }
+  
+      {
+          createAnchorEl && 
+          <Box
+          id="create-menu"
+          sx={{
+            position: 'absolute',
+            right: '60px',
+            top: '50px',
+            borderRadius: '10px',
+            backgroundColor: '#282828',
+            paddingY: 1
+          }}
+        >
+          <MenuItem 
+       sx={{
+        paddingTop: 1,
+        paddingLeft: '16px',
+        paddingRight: '36px',
+        gap: '3px',
+        "&:hover": {
+          backgroundColor: "rgba(255,255,255,0.1)"
+        },
+       }}
+         >
+            <SlideshowOutlinedIcon/> 
+            <Typography variant="body2" marginLeft='10px'>
+              Upload video
+            </Typography>
+          </MenuItem>
+          <MenuItem
+              sx={{
+                paddingTop: 1,
+                paddingLeft: '16px',
+                paddingRight: '36px',
+                gap: '3px',
+                "&:hover": {
+                  backgroundColor: "rgba(255,255,255,0.1)"
+                },
+               }} 
+          >
+          <PodcastsIcon/>
+          <Typography variant="body2" marginLeft='10px'>
+              Go live
+            </Typography>
+          </MenuItem>
+          <MenuItem 
+              sx={{
+                paddingTop: 1,
+                paddingLeft: '16px',
+                paddingRight: '36px',
+                gap: '3px',
+                "&:hover": {
+                  backgroundColor: "rgba(255,255,255,0.1)"
+                },
+               }}>
+     
+              <BorderColorIcon/>
+            <Typography variant="body2" marginLeft='10px'>
+              Create post
+            </Typography>
+          </MenuItem>
+         
+        </Box>
+      }
+    
     </React.Fragment>
   );
 }

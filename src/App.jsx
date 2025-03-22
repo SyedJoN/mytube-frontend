@@ -6,7 +6,6 @@ import Header from "./Components/Header/Header";
 import Home from "./Pages/Home";
 
 const drawerWidth = 240;
-const miniDrawerWidth = 65;
 
 function App() {
   const [open, setOpen] = useState(true);
@@ -14,7 +13,6 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <Box sx={{ display: "flex" }}>
-        {/* Pass `open` and `setOpen` to Header */}
         <Header open={open} setOpen={setOpen} />
 
         <Box
