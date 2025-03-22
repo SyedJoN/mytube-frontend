@@ -8,6 +8,8 @@ import { AspectRatio } from "@mui/icons-material";
 import VideoCard from "./VideoCard";
 import Grid from '@mui/material/Grid2';
 import { Link } from "@tanstack/react-router";
+import Skeleton from "@mui/material/Skeleton";
+
 
 function VideoPlayer({ videoId }) {
   const { data, isLoading, isError, error } = useQuery({
@@ -67,9 +69,9 @@ function VideoPlayer({ videoId }) {
   };
 
   return (
-    <Grid container spacing={2} sx={{flexWrap: "noWrap", paddingTop: "80px", paddingLeft: "48px", justifyContent: "center"}}  
+    <Grid container spacing={0} sx={{flexWrap: "noWrap", paddingTop: "80px", justifyContent: "center"}}  
   >
-       <Grid size={{xs: 12, md: 8}} >
+       <Grid size={{xs: 12, md: 8}} sx={{paddingRight: "24px"}}>
 
     <video
         width="100%"
@@ -78,7 +80,7 @@ function VideoPlayer({ videoId }) {
         key={data.data.videoFile} 
         autoPlay
         onTimeUpdate={handleTimeUpdate}
-        style={{ aspectRatio: "16/9" }} // Correct way to set aspect ratio
+        style={{ aspectRatio: "16/9", borderRadius: "8px" }} // Correct way to set aspect ratio
       >
         <source src={data.data.videoFile} type="video/mp4" />
       </video>
@@ -90,11 +92,10 @@ function VideoPlayer({ videoId }) {
       minWidth: "300px!important"
     }} >
     {isErrorList && <Typography>Error: {errorList.message}</Typography>}
-      {isLoadingList && <Typography>Loading videos...</Typography>}
 
       {videos.length > 0 ? (
     <Grid
-    container spacing={2}>
+    container spacing={0}>
     {videos.map((video) => (
       <Grid 
       sx={{
@@ -123,7 +124,69 @@ function VideoPlayer({ videoId }) {
   </Grid>
   
 ) : (
-  <Typography>No videos available.</Typography>
+  isLoadingList && Array.from(new Array(12)).map((_, index) => (
+    <Grid
+      key={index}
+      sx={{
+        gridColumn: {
+          xs: "span 12",
+          sm: "span 6",
+          md: "span 4",
+          lg: "span 2"
+        },
+      }}
+    >
+     <Box sx={{display: "flex"}}>
+      <Skeleton
+        variant="rectangular"
+        width={160}
+        height={100}
+        sx={{ bgcolor: "rgba(255,255,255,0.1)", borderRadius: "8px", marginBottom: 1 }}
+      />
+  
+      
+        <Box sx={{ flex: 1, paddingLeft: "6px" }}>
+          <Skeleton
+            sx={{
+              bgcolor: "rgba(255,255,255,0.1)",
+       
+            }}
+            width="90%"
+            height={20}
+          />
+          <Skeleton
+            sx={{
+              bgcolor: "rgba(255,255,255,0.1)",
+       
+            }}
+            width="30%"
+            height={20}
+          />
+          <Box sx={{marginTop: 2}}>
+          <Skeleton
+            sx={{
+              bgcolor: "rgba(255,255,255,0.1)",
+       
+            }}
+            width="40%"
+            height={20}
+          />
+       <Skeleton
+            sx={{
+              bgcolor: "rgba(255,255,255,0.1)",
+       
+            }}
+            width="40%"
+            height={20}
+          />
+          </Box>
+           
+          </Box>
+        </Box>
+     
+    
+    </Grid>
+  ))
 )}
   </Grid>
     

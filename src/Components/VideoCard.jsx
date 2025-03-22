@@ -346,8 +346,9 @@ export default function VideoCard({
                     WebkitLineClamp: 2, // Ensures 2 lines max
                     overflow: "hidden",
                     textOverflow: "ellipsis",
-
+                    paddingRight: "36px",
                     fontWeight: 600,
+                    lineHeight: 1.5
                   }}
                 >
                   {title}
@@ -356,28 +357,18 @@ export default function VideoCard({
               
               subheader={
                 <>
-                  <Tooltip
-                    title={fullName}
-                    placement="top-start"
-                    slotProps={{
-                      popper: {
-                        disablePortal: true,
-                      },
-                    }}
-                  >
-                    
+            
                     <Typography
                       fontSize="0.75rem"
                       color="#aaa"
                       sx={{
-                        "&:hover": {
-                          color: "#ccc",
-                        },
+                        marginTop: "2px",
+                        
                       }}
                     >
                       {fullName}
                     </Typography>
-                  </Tooltip>
+                 
 
                   <Typography fontSize="0.75rem" color="#aaa">
                     <span>
@@ -388,18 +379,24 @@ export default function VideoCard({
                   
                 </>
               }
-            
-            />
-           <IconButton
-                sx={{
-                  position: "absolute",
-                  right: 0,
-                  top: "0",
-                }}
-                aria-label="settings"
-              >
-                <MoreVertIcon sx={{ color: "#fff" }} />
-              </IconButton>
+            action={
+          <IconButton
+          sx={{
+            position: "absolute",
+            width: "36px",
+            height: "36px",
+            right: "-12px",
+            top: "-6px",
+          }}
+              aria-label="settings"
+            >
+              <MoreVertIcon sx={{ color: "#fff" }} />
+            </IconButton>
+         
+            }
+            /> 
+        
+         
           </CardContent>
         </Card>
       )}

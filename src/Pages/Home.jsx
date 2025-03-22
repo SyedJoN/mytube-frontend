@@ -105,7 +105,7 @@ function Home({ open }) {
                   },
                 }}
               >
-                <Link to={`/watch/${video._id}`}>
+                <Link to={`/watch/${video._id}`} style={{textDecoration: "none"}}>
                 <VideoCard
                   thumbnail={video.thumbnail}
                   title={video.title}
