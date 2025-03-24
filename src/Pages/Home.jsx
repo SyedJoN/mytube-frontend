@@ -18,11 +18,11 @@ function Home({ open }) {
 
   return (
     <Box sx={{ flexGrow: 1, padding: "73px 16px", }}>
-      {isLoading && (
+      {/* {isLoading && (
         <Typography variant="body1" sx={{ textAlign: "center" }}>
           Loading...
         </Typography>
-      )}
+      )} */}
 
       {isError && (
         <Typography variant="body1" color="error" sx={{ textAlign: "center" }}>

@@ -20,6 +20,8 @@
     "@tanstack/router-plugin": "^1.114.27",
     "axios": "^1.8.3",
     "dayjs": "^1.11.13",
+    "emoji-picker-react": "^4.12.2",
+    "lodash": "^4.17.21",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-redux": "^9.2.0",

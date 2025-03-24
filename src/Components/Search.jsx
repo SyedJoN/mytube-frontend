@@ -11,7 +11,7 @@ export default function Search() {
   return (
     <Paper
       component="form"
-      sx={{ p: '0px 4px', display: 'flex', alignItems: 'center', width: 500, ml: 'auto', borderRadius: 100, border: "1px solid hsl(0,0%,18.82%)", backgroundColor: "transparent" }}
+      sx={{ p: '0px 4px', display: 'flex', alignItems: 'center', width: 600, ml: 'auto', borderRadius: 100, border: "1px solid hsl(0,0%,18.82%)", backgroundColor: "transparent" }}
     >
   
       <InputBase
