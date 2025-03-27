@@ -1,12 +1,10 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
-import {debounce} from "lodash"
-import { Box, Divider, Typography } from "@mui/material";
+import React, { useState, useRef} from "react";
+import { Box,Typography } from "@mui/material";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { fetchVideos, fetchVideoById } from "../apis/videoFn";
 import { getUserChannelProfile } from "../apis/userFn";
 import formatDate from "../utils/dayjs";
 import { videoView } from "../apis/videoFn";
-import { AspectRatio } from "@mui/icons-material";
 import VideoCard from "./VideoCard";
 import Grid from "@mui/material/Grid2";
 import { Link } from "@tanstack/react-router";
@@ -18,14 +16,7 @@ import Button from "@mui/material/Button";
 import ButtonGroup from "@mui/material/ButtonGroup";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import Avatar from "@mui/material/Avatar";
-import Input from '@mui/material/Input';
-import InputLabel from '@mui/material/InputLabel';
-import InputAdornment from '@mui/material/InputAdornment';
-import FormHelperText from '@mui/material/FormHelperText';
-import FormControl from '@mui/material/FormControl';
-import EmojiPicker from "emoji-picker-react";
-import SentimentSatisfiedAltIcon from "@mui/icons-material/SentimentSatisfiedAlt"; 
-import TextField from '@mui/material/TextField';
+
 import {
   deepPurple,
   indigo,
@@ -36,12 +27,15 @@ import {
   orange,
   red,
 } from "@mui/material/colors";
-import IconButton from "@mui/material/IconButton";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
+
 import { toggleSubscription } from "../apis/subscriptionFn";
 import ThumbUpOffAltIcon from "@mui/icons-material/ThumbUpOffAlt";
 import ThumbDownOffAltIcon from "@mui/icons-material/ThumbDownOffAlt";
 import { getVideoLikes } from "../apis/likeFn";
+import { getVideoComments } from "../apis/commentFn";
+import  CommentReply  from "./CommentReply";
+import Comment from "./Comment";
+import CommentReplies from "./CommentReplies";
 
 function VideoPlayer({ videoId }) {
   const { data, isLoading, isError, error } = useQuery({
@@ -49,8 +43,9 @@ function VideoPlayer({ videoId }) {
     queryFn: () => fetchVideoById(videoId),
     enabled: !!videoId, // ✅ Fetch only if videoId exists
   });
-  const user = data?.data?.owner?.username;
-  const channelId = data?.data?.owner?._id;
+  const user = data?.data?.owner?.username || "";
+
+  const channelId = data?.data?.owner?._id || "";
 
   const {
     data: likesData,
@@ -63,7 +58,19 @@ function VideoPlayer({ videoId }) {
     enabled: !!videoId, // ✅ Fetch only if videoId exists
   });
 
-  const likes = likesData?.data;
+  const likes = likesData?.data || "";
+
+  const {
+    data: commentsData,
+    isLoading: isCommentLoading,
+    isError: isCommentError,
+    error: commentError,
+  } = useQuery({
+    queryKey: ["commentsData", videoId],
+    queryFn: () => getVideoComments(videoId),
+    enabled: !!videoId, // ✅ Fetch only if videoId exists
+  });
+
 
   const {
     data: listVideoData,
@@ -98,16 +105,11 @@ function VideoPlayer({ videoId }) {
     },
   });
 
-  useEffect(() => {
-    console.log(userData?.data[0].subscriberCount);
-  }, [userData]);
   const videos = listVideoData?.data?.docs || [];
 
   const [viewCounted, setViewCounted] = useState(false);
-  const [isVideoVisible, setIsVideoVisible] = useState(true);
   const [expanded, setExpanded] = useState(false);
-  const [addComment, setAddComment] = useState(false);
-  const [comment, setComment] = useState("");
+  const [activeEmojiPickerId, setActiveEmojiPickerId] = useState(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
 
@@ -123,16 +125,10 @@ function VideoPlayer({ videoId }) {
     setExpanded(!expanded);
   };
 
-  const handleInputChange = (e) => {
-    setComment(e.target.value)
-  }
-  
-  const handleEmojiClick = (emojiData) => {
-    setComment((prev) => prev + emojiData.emoji); // Add emoji to input
-  };
  
+
   const handleTimeUpdate = (event) => {
-    if (viewCounted || !isVideoVisible) return;
+    if (viewCounted) return;
 
     const video = event.target;
     const duration = video.duration;
@@ -291,7 +287,6 @@ function VideoPlayer({ videoId }) {
           </Box>
           <Box>
             <ButtonGroup
-              onClick={() => handleSubscription()}
               disableElevation
               variant="contained"
               color="rgba(255,255,255,0.1)"
@@ -304,51 +299,54 @@ function VideoPlayer({ videoId }) {
                 color: "#0f0f0f",
                 fontWeight: "600",
                 marginLeft: 2,
-           
               }}
             >
-              <Box sx={{
-                borderRadius: "50px 0 0 50px",
+              <Box
+                sx={{
+                  borderRadius: "50px 0 0 50px",
                   "&:hover": {
                     background: "rgba(255,255,255,0.1)",
                   },
-              }}>
-              <Button
-                sx={{
-                  paddingX: "12px",
-                
-                  "&.MuiButtonGroup-firstButton": {
-                    borderRight: "1px solid rgba(255,255,255,0.2)",
-                    marginY: 1,
-                    paddingY: 0,
-                  },
                 }}
               >
-                <ThumbUpOffAltIcon
-                  sx={{ color: "rgb(255,255,255)", marginRight: "8px" }}
-                />
+                <Button
+                  sx={{
+                    paddingX: "12px",
 
-                <span style={{ color: "rgb(255,255,255)" }}>{likes}</span>
-              </Button>
+                    "&.MuiButtonGroup-firstButton": {
+                      borderRight: "1px solid rgba(255,255,255,0.2)",
+                      marginY: 1,
+                      paddingY: 0,
+                    },
+                  }}
+                >
+                  <ThumbUpOffAltIcon
+                    sx={{ color: "rgb(255,255,255)", marginRight: "8px" }}
+                  />
+
+                  <span style={{ color: "rgb(255,255,255)" }}>{likes}</span>
+                </Button>
               </Box>
-            
-              <Box sx={{
-                borderRadius: "0 50px 50px 0",
+
+              <Box
+                sx={{
+                  borderRadius: "0 50px 50px 0",
                   "&:hover": {
                     background: "rgba(255,255,255,0.1)",
                   },
-              }}>
-              <Button
-                sx={{
-                  paddingX: "12px",
-                  paddingY: 0,
-                  marginY: 1,
                 }}
               >
-                <ThumbDownOffAltIcon
-                  sx={{ color: "rgb(255,255,255)", marginRight: "8px" }}
-                />
-              </Button>
+                <Button
+                  sx={{
+                    paddingX: "12px",
+                    paddingY: 0,
+                    marginY: 1,
+                  }}
+                >
+                  <ThumbDownOffAltIcon
+                    sx={{ color: "rgb(255,255,255)", marginRight: "8px" }}
+                  />
+                </Button>
               </Box>
             </ButtonGroup>
           </Box>
@@ -435,112 +433,19 @@ function VideoPlayer({ videoId }) {
             </span>
           ) : null}
         </Card>
-        <Box marginTop="12px">
-          <Typography variant="h3" color="rgb(255,255,255)">
-            1,962 Comments
-          </Typography>
-          <Box sx={{display: "flex", alignItems: "center"}}>
-          <CardHeader
-              sx={{
-                alignItems: "flex-start",
-                alignSelf: "flex-end",
-                padding: 0,
-                "& .MuiCardHeader-content": {
-                  overflow: "hidden",
-                  minWidth: 0,
-                },
-                "& .css-1r9wl67-MuiCardHeader-avatar": {
-                  marginRight: "12px",
-                },
-              }}
-              avatar={
-                <Avatar
-                  src={data.data.owner.avatar ? data.data.owner.avatar : null}
-                  sx={{ bgcolor: getColor(data.data?.owner.fullName)}}
-                >
-                  {data.data.owner.fullName
-                    ? data.data.owner.fullName.charAt(0).toUpperCase()
-                    : "?"}
-                </Avatar>
-              }>
-              </CardHeader>
-          <FormControl fullWidth sx={{ m: 1 }} variant="standard">
-          <InputLabel
-          disabled = {comment !== ""}
-          shrink
-           sx={{
-            color: "rgba(255,255,255,0.7)",
-            fontSize: "1.1rem",
-            transform: "translate(0, 23.5px) scale(0.75)",
-            "&.MuiInputLabel-root.Mui-focused": {
-              color: "#fff !important", // Label color when focused
-            },
-            
-          }} htmlFor="standard-adornment-amount">Add a comment...</InputLabel>
-          <Input
-          value={comment}
-          onChange={handleInputChange} 
-          onClick={()=> setAddComment(true)}
-  id="standard-adornment-amount"
-  sx={{
-    "&::before": {
-      borderBottom: "1px solid rgb(255,255,255) !important",
-    },
-    "&::after": {
-      borderBottom: "2px solid rgb(255,255,255) !important"
-    },
-    input: {
-      color: "white",
-     
-    },
-  "& input:-webkit-autofill": {
-      WebkitBoxShadow: "0 0 0px 1000px #0f0f0f inset",
-      WebkitTextFillColor: "#fff !important",
-    },
-    "& input:-webkit-autofill:hover": {
-      WebkitTextFillColor: "#fff !important",
-    },
-  }}
-/>
-        </FormControl>
-       
-        </Box>
-    
-        <Box sx={{display: "flex", justifyContent: "space-between", color: "#fff", marginTop: "6px"}}>
-           {addComment && 
-<Box sx={{position: "relative", marginLeft: "48px"}}>
-  <IconButton onClick={() => setShowEmojiPicker(!showEmojiPicker)} sx={{color: "#fff" }}>
-        <SentimentSatisfiedAltIcon />
-      </IconButton>
-
-     
-      <Box sx={{ position: "absolute", left: "10px", zIndex: 100, display: showEmojiPicker ? "block" : "none" }}>
-  <EmojiPicker onEmojiClick={handleEmojiClick} />
-</Box>
-</Box>
-}
-
-{addComment && 
-  <Box sx={{display: "flex", gap:"8px"}}>
-  <Button onClick={()=> setAddComment(false)} variant="outlined" sx={{color: "rgb(255,255,255)", borderRadius: "50px", textTransform: "capitalize", paddingY: 1,
-    "&:hover": {
-      background: "rgba(255,255,255,0.1)"
-    }
-  }}>Cancel</Button>
-  <Button  disabled={comment === ""} variant="outlined" sx={{color: "#0f0f0f", fontWeight: "550", borderRadius: "50px", textTransform: "capitalize", paddingY: 1,
-  background: "#3ea6ff",
-    "&:hover": {
-      background: "#65b8ff"
-    },
-   "&.Mui-disabled": {
-      background: "rgba(255, 255, 255, 0.1) !important",
-      color: "rgba(255, 255, 255, 0.4) !important",
-    },
-  }}>Comment</Button>
-</Box>}
-
-        </Box>
-        </Box>
+      <Comment data={data} activeEmojiPickerId={activeEmojiPickerId} setActiveEmojiPickerId={setActiveEmojiPickerId} showEmojiPicker={showEmojiPicker} setShowEmojiPicker={setShowEmojiPicker} />
+      <Box>
+    {commentsData?.data?.map((data) => (
+    <CommentReply
+    key={data._id}
+    data={data}
+    showEmojiPicker={showEmojiPicker}
+    setShowEmojiPicker={setShowEmojiPicker}
+    activeEmojiPickerId={activeEmojiPickerId} setActiveEmojiPickerId={setActiveEmojiPickerId}
+    />
+   
+  ))}
+    </Box>
       </Grid>
 
       <Grid

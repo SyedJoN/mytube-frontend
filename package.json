@@ -21,12 +21,14 @@
     "axios": "^1.8.3",
     "dayjs": "^1.11.13",
     "emoji-picker-react": "^4.12.2",
+    "frimousse": "^0.1.0",
     "lodash": "^4.17.21",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-redux": "^9.2.0",
     "react-router": "^7.3.0",
-    "react-router-dom": "^7.3.0"
+    "react-router-dom": "^7.3.0",
+    "react-use": "^17.6.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",
