@@ -2,14 +2,13 @@ import axios from "axios";
 
 const BASE_URL = "http://localhost:3000/api/v1/videos"
 
-const fetchVideos = async () => {
-  return new Promise((resolve) => {
-    setTimeout(async () => {
-      const res = await axios.get(`${BASE_URL}/all-videos`);
-      resolve(res.data);
-    }, 3000); // ⏳ Adds a 3-second delay
-  });
+
+const fetchVideos = async ({ queryKey }) => {
+  const [, query] = queryKey; // Extract only the query string
+  const res = await axios.get(`${BASE_URL}/all-videos?query=${query || ""}`);
+  return res.data;
 };
+
 
 const videoView = async (videoId) => {
   const res = await axios.post(`${BASE_URL}/${videoId}/view`, {})

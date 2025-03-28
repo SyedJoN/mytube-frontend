@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useState } from "react";
 import PropTypes from "prop-types";
 import AppBar from "@mui/material/AppBar";
 import {
@@ -33,27 +34,35 @@ import Search from "../Search";
 import { Link } from "@tanstack/react-router";
 import AccountMenu from "../AccountMenu";
 import { useLocation } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 
 
 
 const drawerWidth = 240;
 const miniDrawerWidth = 65; // Collapsed drawer width
-function Header({ open, onClose, home, ...props }) { 
+function Header({ open, onClose, watch, search, home, ...props }) { 
   const location = useLocation();
-
+const [searchQuery, setSearchQuery] = useState("");
   const theme = useTheme();
   const { window } = props;
-
+  const navigate = useNavigate()
 
 
   const container =
     window !== undefined ? () => window().document.body : undefined;
 
+const handleSearch = (e) => {
+  e.preventDefault();
+  if (searchQuery.trim()) {
+    navigate({ to: `/search/${searchQuery}` }); 
+  }
+}
+
   return (
-    <Box sx={{ display: "flex" }}>
+    <Box sx={{ display: "flex", }}>
       <CssBaseline />
 
-      <AppBar position="fixed" open={open} sx={{boxShadow: 'none'}}>
+      <AppBar position="fixed"  sx={{boxShadow: 'none'}}>
         <Toolbar  sx={{
           minHeight: 73
         }}>
@@ -67,10 +76,18 @@ function Header({ open, onClose, home, ...props }) {
           >
             <MenuIcon />
           </IconButton>
+          <Link style={{color: "#fff", textDecoration: "none"}} to="/">
           <Typography variant="h6" noWrap component="div">
             VTube
           </Typography>
-<Search/>
+          
+          </Link>
+       
+          <Search 
+      handleSearch={handleSearch} 
+      searchQuery={searchQuery || ""} // Ensure it's always a string
+      setSearchQuery={setSearchQuery} 
+    />
 <IconButton sx={{padding: '10px', borderRadius: '50px', backgroundColor: 'hsla(0,0%,100%,.08)', marginLeft: '10px', marginRight: 'auto',
   "&:hover": {
     backgroundColor: "hsl(0,0%,18.82%)"
@@ -85,16 +102,17 @@ function Header({ open, onClose, home, ...props }) {
 <Box>
 </Box>
 
-    {home && 
+    {(home || search) && 
     <Drawer
     container={container}
     variant="permanent"
-    open={false}
+    open={open}
     sx={{
-      width: open && home ? drawerWidth : miniDrawerWidth,
+      width: open && (home || search) ? drawerWidth : miniDrawerWidth,
       flexShrink: 0,
       "& .MuiDrawer-paper": {
-        width: open && home ? drawerWidth : miniDrawerWidth,
+        width: open && (home || search) ? drawerWidth : miniDrawerWidth,
+
         transition: "width 0.3s ease",
         overflowX: "hidden",
         zIndex: 0,
@@ -114,6 +132,7 @@ function Header({ open, onClose, home, ...props }) {
             <ListItem key={text} disablePadding sx={{ display: "block" }}>
         
             <ListItemButton
+            to={route}
              selected={location.pathname === route}
               sx={{
                 display: "flex",
@@ -177,7 +196,7 @@ function Header({ open, onClose, home, ...props }) {
       <Divider sx={{ bgcolor: "rgba(255, 255, 255, 0.2)", my: 1 }} />
     )}
 
-    {open && (
+    {open &&  (
       <List sx={{ color: "#fff" }}>
         <ListItem disablePadding sx={{ display: "flex" }}>
           <ListItemButton
@@ -258,7 +277,7 @@ function Header({ open, onClose, home, ...props }) {
       </List>
     )}
   </Drawer>}  
-  {!home && 
+  {!(home || search) && 
     <Drawer
     container={container}
     variant="permanent"
@@ -281,7 +300,7 @@ function Header({ open, onClose, home, ...props }) {
     <Toolbar />
 
     <List sx={{ color: "#fff" }}>
-      {["Home", "Shorts", "Subscriptions"]
+      {["Home", "Shorts", "Subscriptions",]
         .filter(Boolean)
         .map((text, index) => {
           const paths = ["/", "/shorts", "/subscriptions"];
@@ -348,14 +367,12 @@ function Header({ open, onClose, home, ...props }) {
 })}
     </List>
 
-    {!home && (
+ 
       <Divider sx={{ bgcolor: "rgba(255, 255, 255, 0.2)", my: 1 }} />
-    )}
- {home && (
-      <Divider sx={{ bgcolor: "rgba(255, 255, 255, 0.2)", my: 1 }} />
-    )}
+   
+   
 
-    {open && home && (
+    {open && !(home || search) && (
       <List sx={{ color: "#fff" }}>
         <ListItem disablePadding sx={{ display: "flex" }}>
           <ListItemButton
@@ -435,86 +452,7 @@ function Header({ open, onClose, home, ...props }) {
         ))}
       </List>
     )}
-     {!home && (
-      <List sx={{ color: "#fff" }}>
-        <ListItem disablePadding sx={{ display: "flex" }}>
-          <ListItemButton
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "flex-start", // ✅ Fix for icons when collapsed
-              borderRadius: "10px",
-              paddingX: 2,
-              paddingY: 1,
-              gap: "0.5rem",
-              marginX: 1,
-              transition: "background-color 0.3s ease",
-              "&:hover": {
-                backgroundColor: "rgba(255, 255, 255, 0.1)",
-              },
-            }}
-          >
-            <Typography sx={{ fontSize: "0.9rem" }}>You</Typography>
-
-            <ListItemIcon
-              sx={{ color: "#fff", minWidth: 0, justifyContent: "center" }}
-            >
-              <ArrowForwardIosOutlinedIcon sx={{ fontSize: "0.9rem" }} />
-            </ListItemIcon>
-          </ListItemButton>
-        </ListItem>
-
-        {[
-          "History",
-          "Playlists",
-          "Your videos",
-          "Watch Later",
-          "Liked Videos",
-        ].map((text, index) => (
-          <ListItem key={text} disablePadding sx={{ display: "block" }}>
-            <ListItemButton
-              sx={{
-                display: "flex",
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "flex-start",
-                paddingY: 1,
-                paddingX: 2,
-                borderRadius: "10px",
-                marginX: 1,
-                transition: "background-color 0.3s ease",
-                "&:hover": {
-                  backgroundColor: "rgba(255, 255, 255, 0.1)",
-                },
-              }}
-            >
-              <ListItemIcon
-                sx={{
-                  color: "#fff",
-                  minWidth: 0,
-                  justifyContent: "center",
-                }}
-              >
-                {index === 0 ? (
-                  <HistoryOutlinedIcon />
-                ) : index === 1 ? (
-                  <PlaylistPlayOutlinedIcon />
-                ) : index === 2 ? (
-                  <SmartDisplayOutlinedIcon />
-                ) : index === 3 ? (
-                  <WatchLaterOutlinedIcon />
-                ) : (
-                  <ThumbUpOutlinedIcon />
-                )}
-              </ListItemIcon>
-              <Typography sx={{ marginLeft: 2, fontSize: "0.9rem" }}>
-                {text}
-              </Typography>
-            </ListItemButton>
-          </ListItem>
-        ))}
-      </List>
-    )}
+  
   </Drawer>
   }  
     </Box>

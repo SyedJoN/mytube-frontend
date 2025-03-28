@@ -16,6 +16,6 @@ function Index() {
   const { open, setOpen } = context;
 
   return (
-    <Home open={open}/>
+    <Home open={open} setOpen={setOpen}/>
   )
 }

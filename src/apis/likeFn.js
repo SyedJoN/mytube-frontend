@@ -8,5 +8,10 @@ const getVideoLikes = async (videoId) => {
     return res.data; 
   };
 
+  const toggleCommentLike = async (commentId) => {
+    const res = await axios.patch(`${BASE_URL}/comment/${commentId}/toggle`)
+    return res.data;
+  }
 
-export {getVideoLikes}
+
+export {getVideoLikes, toggleCommentLike}

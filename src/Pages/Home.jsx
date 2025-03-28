@@ -107,6 +107,7 @@ function Home({ open }) {
               >
                 <Link to={`/watch/${video._id}`} style={{textDecoration: "none"}}>
                 <VideoCard
+                  home={true}
                   thumbnail={video.thumbnail}
                   title={video.title}
                   avatar={video.owner.avatar}

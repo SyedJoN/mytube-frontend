@@ -324,7 +324,7 @@ function VideoPlayer({ videoId }) {
                     sx={{ color: "rgb(255,255,255)", marginRight: "8px" }}
                   />
 
-                  <span style={{ color: "rgb(255,255,255)" }}>{likes}</span>
+                  <span style={{ color: "rgb(255,255,255)" }}>{data.data?.likesCount}</span>
                 </Button>
               </Box>
 
@@ -435,10 +435,10 @@ function VideoPlayer({ videoId }) {
         </Card>
       <Comment data={data} activeEmojiPickerId={activeEmojiPickerId} setActiveEmojiPickerId={setActiveEmojiPickerId} showEmojiPicker={showEmojiPicker} setShowEmojiPicker={setShowEmojiPicker} />
       <Box>
-    {commentsData?.data?.map((data) => (
+    {commentsData?.data?.map((replyData) => (
     <CommentReply
-    key={data._id}
-    data={data}
+    key={replyData._id}
+    data={replyData}
     showEmojiPicker={showEmojiPicker}
     setShowEmojiPicker={setShowEmojiPicker}
     activeEmojiPickerId={activeEmojiPickerId} setActiveEmojiPickerId={setActiveEmojiPickerId}
@@ -477,7 +477,7 @@ function VideoPlayer({ videoId }) {
                   <VideoCard
                     thumbnail={video.thumbnail}
                     title={video.title}
-                    avatar={false}
+                    video={true}
                     fullName={video.owner.fullName}
                     views={video.views}
                     duration={video.duration}
