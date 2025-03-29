@@ -18,7 +18,7 @@ import AddIcon from "@mui/icons-material/Add";
 import SlideshowOutlinedIcon from "@mui/icons-material/SlideshowOutlined";
 import PodcastsIcon from "@mui/icons-material/Podcasts";
 import BorderColorIcon from "@mui/icons-material/BorderColor";
-import AccountCircleOutlinedIcon from '@mui/icons-material/AccountCircleOutlined';
+import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
 import Signup from "./Signup";
 
 export default function AccountMenu(props) {
@@ -45,7 +45,7 @@ export default function AccountMenu(props) {
 
   const handleDialogueOpen = () => {
     setDialogue(true);
-  }
+  };
 
   const handleDialogueClose = (value) => {
     setDialogue(false);
@@ -113,49 +113,41 @@ export default function AccountMenu(props) {
           sx={{ display: "flex", alignItems: "center", textAlign: "center" }}
         >
           <Button
-          variant="outlined"
+            variant="outlined"
+            onClick={handleDialogueOpen}
+            size="small"
+            aria-controls={openCreate ? "create-menu" : undefined}
+            aria-haspopup="true"
+            aria-expanded={openCreate ? "true" : undefined}
             sx={{
               border: "1px solid rgba(255,255,255,0.6)",
               display: "flex",
               alignItems: "center",
-              gap: "0.2rem",
-              paddingY: 0.5,
-              paddingX: 0,
+              paddingX: "10px",
               height: "36px",
+              lineHeight: "36px",
               borderRadius: "50px",
               backgroundColor: "transparent",
               cursor: "pointer",
+              textTransform: "none",
               transition: "none",
               "&:hover": {
                 backgroundColor: "hsl(0,0%,18.82%)",
-                borderColor: "unset"
+                borderColor: "unset",
               },
             }}
           >
-            <IconButton
-              
-              onClick={handleDialogueOpen}
-              size="small"
-              aria-controls={openCreate ? "create-menu" : undefined}
-              aria-haspopup="true"
-              aria-expanded={openCreate ? "true" : undefined}
-              sx={{ display: "flex", justifyContent: "center", alignItems: "center", paddingX: "10px", paddingY: "0", lineHeight: "36px" }}
+            <AccountCircleOutlinedIcon sx={{ color: "#fff" }} />
+            <Typography
+              sx={{ color: "#fff", fontSize: "0.85rem", paddingLeft: 1 }}
             >
-              <AccountCircleOutlinedIcon sx={{color: "#fff",}}/>
-<Typography sx={{color: "#fff", fontSize: "0.85rem", paddingLeft: 1}}>
-Sign in
-</Typography>
-            </IconButton>
+              Sign in
+            </Typography>
           </Button>
         </Box>
       )}
-      {dialogue && 
-        <Signup
-        open={handleDialogueOpen}
-        onClose={handleDialogueClose}
-      />
-      }
- 
+      {dialogue && <Signup open={dialogue} onClose={handleDialogueClose} />}
+
       {anchorEl && (
         <Box
           id="account-menu"

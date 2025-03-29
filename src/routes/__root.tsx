@@ -60,7 +60,7 @@ function RouteComponent() {
       <ThemeProvider theme={theme}>
         <OpenContext.Provider value={{ open, setOpen }}>
           <CssBaseline />
-          <Box sx={{ display: "flex" }}>
+          <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
             <Header open={open} onClose={toggleDrawer} home={home} search={search} watch={watch} />
             <Box component="main" sx={{ flexGrow: 1, backgroundColor: theme.palette.primary.main }}>
               <Outlet />

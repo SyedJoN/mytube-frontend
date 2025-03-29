@@ -184,6 +184,11 @@ const Signup = (props) => {
                     // Border on focus
                     borderColor: "rgba(168, 199, 250 , 1)",
                   },
+                  "&:-webkit-autofill": {
+                    WebkitBoxShadow: "0 0 0 100px rgba(14, 14, 14, 1) inset", // Force background color
+                    WebkitTextFillColor: "#fff", // Ensure text color remains white
+                    transition: "background-color 5000s ease-in-out 0s", // Prevents flashing
+                  },
                 },
               }}
               label="Email"
@@ -250,7 +255,7 @@ const Signup = (props) => {
           </form>
         </Box>
         <CloseOutlinedIcon
-        onClick={handleClose}
+          onClick={handleClose}
           sx={{
             color: "#fff",
             position: "absolute", // ✅ Directly apply absolute positioning
