@@ -2,6 +2,7 @@ import { createTheme, ThemeProvider } from "@mui/material";
 
 
 const theme = createTheme({
+    
     palette: {
         primary: {
             main: "#0f0f0f"
@@ -23,8 +24,8 @@ const theme = createTheme({
         h3: {
             fontSize: '1.5rem',
             fontWeight: 600
-        }
-
+        },
+      
     }
 })
 

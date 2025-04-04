@@ -24,7 +24,7 @@ import {
 import IconButton from "@mui/material/IconButton";
 
 
-function Comment( {data, activeEmojiPickerId, setActiveEmojiPickerId, showEmojiPicker, setShowEmojiPicker} ) {
+function AddComment( {data, activeEmojiPickerId, setActiveEmojiPickerId, showEmojiPicker, setShowEmojiPicker} ) {
 
   const emojiPickerRef = useRef(null);
     const [addComment, setAddComment] = useState(false);
@@ -218,4 +218,4 @@ const toggleEmojiPicker = () => {
   )
 }
 
-export default Comment
+export default AddComment

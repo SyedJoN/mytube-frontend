@@ -1,10 +1,16 @@
-import React, { useState, useRef} from "react";
-import { Box,Typography } from "@mui/material";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import React, { useState, useRef, useEffect, useContext } from "react";
+import { keyframes } from "@mui/system";
+import { Box, Typography } from "@mui/material";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchVideos, fetchVideoById } from "../apis/videoFn";
 import { getUserChannelProfile } from "../apis/userFn";
 import formatDate from "../utils/dayjs";
 import { videoView } from "../apis/videoFn";
+import confetti from "canvas-confetti";
+import { OpenContext } from "../routes/__root";
+
+import { toggleVideoLike } from "../apis/likeFn";
+import { toggleVideoDislike } from "../apis/dislikeFn";
 import VideoCard from "./VideoCard";
 import Grid from "@mui/material/Grid2";
 import { Link } from "@tanstack/react-router";
@@ -30,35 +36,104 @@ import {
 
 import { toggleSubscription } from "../apis/subscriptionFn";
 import ThumbUpOffAltIcon from "@mui/icons-material/ThumbUpOffAlt";
+import ThumbUpAltIcon from "@mui/icons-material/ThumbUpAlt";
 import ThumbDownOffAltIcon from "@mui/icons-material/ThumbDownOffAlt";
-import { getVideoLikes } from "../apis/likeFn";
+import ThumbDownAltIcon from "@mui/icons-material/ThumbDownAlt";
+
 import { getVideoComments } from "../apis/commentFn";
-import  CommentReply  from "./CommentReply";
-import Comment from "./Comment";
-import CommentReplies from "./CommentReplies";
+import Comments from "./Comments";
+import AddComment from "./AddComment";
 
 function VideoPlayer({ videoId }) {
-  const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["video", videoId],
-    queryFn: () => fetchVideoById(videoId),
-    enabled: !!videoId, // ✅ Fetch only if videoId exists
+  const queryClient = useQueryClient();
+
+  const context = useContext(OpenContext);
+  let { data: dataContext } = context;
+
+  const rotateAnimation = keyframes`
+  0% { transform: rotate(0deg); }
+  10% { transform: rotate(-15deg); }  /* Move left */
+  20% { transform: rotate(15deg); }   /* Move right */
+  30% { transform: rotate(-10deg); }  /* Move left */
+  40% { transform: rotate(10deg); }   /* Move right */
+  50% { transform: rotate(-8deg); }  /* Move left */
+  60% { transform: rotate(8deg); }   /* Move right */
+  70% { transform: rotate(0deg); }  /* Move left */
+  80% { transform: rotate(0deg); }   /* Move right */
+  90% { transform: rotate(0deg); }  /* Move left */
+  100% { transform: rotate(0deg); }   /* Back to center */
+`;
+
+  const launchFireworks = () => {
+    if (!buttonRef.current) return;
+
+    const { left, top, width, height } =
+      buttonRef.current.getBoundingClientRect();
+
+    const steps = 10; // Number of steps from left to right
+    let currentStep = 0;
+
+    const animateFireworks = () => {
+      if (currentStep > steps) return; // Stop animation when reaching the right side
+
+      const originX =
+        (left + (width / steps) * currentStep) / window.innerWidth;
+      const originY = (top + height + 5) / window.innerHeight; // Just below the button
+
+      confetti({
+        particleCount: 1,
+        startVelocity: 2,
+        spread: 260,
+        ticks: 10,
+        gravity: 0,
+        scalar: 0.8,
+        shapes: ["star"],
+        colors: ["#C71585"], // Yellow Star
+        origin: { x: originX, y: originY },
+      });
+
+      confetti({
+        particleCount: 1,
+        startVelocity: 4,
+        spread: 260,
+        ticks: 10,
+        gravity: 0,
+        scalar: 1,
+        shapes: ["square"],
+        colors: ["#FFD700"],
+        origin: { x: originX, y: originY },
+      });
+
+      currentStep++;
+      setTimeout(animateFireworks, 10); // Delay before next step
+    };
+
+    animateFireworks(); // Start animation
+  };
+
+ const { data, isLoading, isError, error } = useQuery({
+  queryKey: ['video', videoId],
+  queryFn: () => fetchVideoById(videoId),
+  enabled: !!videoId,
+});
+
+
+// useEffect(() => {
+//   console.log("Query triggered:", videoId);
+// }, [videoId]);
+  console.log("Query triggered:", videoId);  // ✅ Debugging ke liye
+  
+
+  const [isLike, setIsLike] = useState({
+    isLiked: data?.data?.likedBy.includes(dataContext?.data?._id) || false,
+    likeCount: data?.data.likesCount || 0,
   });
-  const user = data?.data?.owner?.username || "";
-
-  const channelId = data?.data?.owner?._id || "";
-
-  const {
-    data: likesData,
-    isLoading: isLikeLoading,
-    isError: isLikeError,
-    error: likeError,
-  } = useQuery({
-    queryKey: ["videoLikes", videoId],
-    queryFn: () => getVideoLikes(videoId),
-    enabled: !!videoId, // ✅ Fetch only if videoId exists
+  const [isDislike, setIsDislike] = useState({
+    isDisliked:data?.data?.disLikedBy.includes(dataContext?.data?._id) || false,
   });
+  const user = data?.data?.owner?.username;
 
-  const likes = likesData?.data || "";
+  const channelId = data?.data?.owner?._id;
 
   const {
     data: commentsData,
@@ -71,7 +146,6 @@ function VideoPlayer({ videoId }) {
     enabled: !!videoId, // ✅ Fetch only if videoId exists
   });
 
-
   const {
     data: listVideoData,
     isLoading: isLoadingList,
@@ -81,37 +155,131 @@ function VideoPlayer({ videoId }) {
     queryKey: ["videos"],
     queryFn: fetchVideos,
   });
-
   const {
     data: userData,
     isLoading: isUserLoading,
     isError: isUserError,
     error: userError,
   } = useQuery({
-    queryKey: ["userData", user],
+    queryKey: ["channelProfile", user],
     queryFn: () => getUserChannelProfile(user),
-    enabled: !!user, // ✅ Fetch only if videoId exists
+    enabled: Boolean(user),
   });
 
   const {
-    mutate: handleSubscription,
-    isSubscription,
-    isSubscriptionError,
-    subscriptionError,
+    mutate: mutateSubscription,
+    isLoading: isSubscriptionLoading,
+    isPending: isSubscriptionPending,
   } = useMutation({
     mutationFn: () => toggleSubscription(channelId),
+    onMutate: () => {
+      setIsSubscribed((prev) => !prev);
+      if (isSubscribed) {
+        setSubscriberCount((prev) => prev - 1);
+      } else {
+        setSubscriberCount((prev) => prev + 1);
+      }
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries(["toggleSubscription", channelId]);
+      queryClient.invalidateQueries(["channelProfile", user]); // Refetch data after success
+      launchFireworks(); //
+    },
+    onError: () => {
+      setIsSubscribed((prev) => !prev);
     },
   });
 
-  const videos = listVideoData?.data?.docs || [];
+  const [isSubscribed, setIsSubscribed] = useState(
+    userData?.data[0]?.isSubscribedTo ?? false
+  );
 
+  const [subscriberCount, setSubscriberCount] = useState(
+    userData?.data[0]?.subscribersCount ?? 0
+  );
   const [viewCounted, setViewCounted] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [activeEmojiPickerId, setActiveEmojiPickerId] = useState(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const buttonRef = useRef(null);
 
+  useEffect(() => {
+    if (!userData?.data?.length) return;
+    const newValue = userData?.data[0]?.isSubscribedTo ?? false;
+    if (isSubscribed !== newValue) {
+      setIsSubscribed(newValue); // ✅ Only update if different
+    }
+
+    const newCount = userData.data[0]?.subscribersCount ?? 0;
+    if (subscriberCount !== newCount) {
+      setSubscriberCount(newCount);
+    }
+  }, [userData]);
+
+
+  useEffect(() => {
+    if (data?.data) {
+      setIsLike({
+        isLiked: data.data.likedBy.includes(dataContext?.data?._id) || false,
+        likeCount: data.data.likesCount || 0,
+      });
+      setIsDislike({
+        isDisliked: data.data.disLikedBy.includes(dataContext?.data?._id) || false,
+      });
+    }
+  }, [data?.data, dataContext?.data?._id]);  
+  
+  
+  const {
+    mutate: toggleLikeMutation,
+    isLoading: isLikeLoading,
+    isPending: isLikePending,
+  } = useMutation({
+    mutationFn: () => toggleVideoLike(videoId),
+    onMutate: () => {
+      setIsLike((prev) => ({
+        isLiked: !prev.isLiked,
+        likeCount: prev.isLiked ? prev.likeCount - 1 : prev.likeCount + 1,
+      }));
+      setIsDislike((prev) => {
+        if (prev.isDisliked) {
+          return {
+            ...prev,
+            isDisliked: false,
+          };
+        }
+        return prev;
+      });
+    },
+
+  });
+
+  const {
+    mutate: toggleDislikeMutation,
+    isLoading: isDisLikeLoading,
+    isPending: isDisLikePending,
+  } = useMutation({
+    mutationFn: () => toggleVideoDislike(videoId),
+    onMutate: () => {
+      setIsDislike((prev) => ({
+        isDisliked: !prev.isDisliked,
+      }));
+      setIsLike((prev) => {
+        if (prev.isLiked) {
+          return {
+            ...prev,
+            isLiked: false,
+            likeCount: Math.max(prev.likeCount - 1, 0),
+          };
+        }
+        return prev;
+      });
+    },
+  });
+
+  const handleSubscription = () => {
+    mutateSubscription();
+  };
+  const videos = listVideoData?.data?.docs || [];
 
   const watchTimeRef = useRef(0);
   const { mutate } = useMutation({
@@ -125,7 +293,13 @@ function VideoPlayer({ videoId }) {
     setExpanded(!expanded);
   };
 
- 
+  const toggleLike = () => {
+    toggleLikeMutation();
+  };
+
+  const toggleDislike = () => {
+    toggleDislikeMutation();
+  };
 
   const handleTimeUpdate = (event) => {
     if (viewCounted) return;
@@ -152,7 +326,6 @@ function VideoPlayer({ videoId }) {
         setViewCounted(true);
       }
     }
-    console.log(data.data);
   };
 
   function getColor(name = "") {
@@ -206,7 +379,14 @@ function VideoPlayer({ videoId }) {
             alignItems: "center",
           }}
         >
-          <Box sx={{ display: "flex", alignItems: "center", marginTop: 1 }}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              marginTop: 1,
+              position: "relative",
+            }}
+          >
             <CardHeader
               sx={{
                 alignItems: "flex-start",
@@ -243,47 +423,96 @@ function VideoPlayer({ videoId }) {
                 <>
                   <Typography variant="body2" color="#aaa" fontSize="0.8rem">
                     <span>
-                      {userData?.data[0].subscribersCount}{" "}
-                      {userData?.data[0].subscribersCount === 1
-                        ? "subscriber"
-                        : "subscribers"}
+                      {subscriberCount}{" "}
+                      {subscriberCount === 1 ? "subscriber" : "subscribers"}
                     </span>
                   </Typography>
                 </>
               }
             />
-            <Button
-              onClick={() => handleSubscription()}
-              variant="contained"
-              sx={{
-                background: userData?.data[0].isSubscribedTo
-                  ? "rgb(255,255,255)"
-                  : "rgba(255,255,255,0.1)",
-                borderRadius: "50px",
-                padding: "6px 16px",
-                fontSize: "0.8rem",
-                textTransform: "capitalize",
-                color: "#0f0f0f",
-                fontWeight: "600",
-                marginLeft: 2,
-              }}
-              color="rgba(255,255,255,0.1)"
-            >
-              {!userData?.data[0].isSubscribedTo ? (
-                <>
-                  <NotificationsNoneIcon
-                    sx={{ color: "rgb(255,255,255)", fontSize: "1.6rem" }}
-                  />{" "}
-                  <span
-                    style={{ color: "rgb(255,255,255)", paddingLeft: "4px" }}
-                  >
-                    Subscribed
-                  </span>
-                </>
-              ) : (
-                "Subscribe"
-              )}
-            </Button>
+
+            {isSubscribed ? (
+              <Button
+                ref={buttonRef}
+                disableRipple
+                onClick={() => handleSubscription()}
+                variant="contained"
+                sx={{
+                  position: "relative",
+                  background: "rgba(255,255,255,0.1)",
+                  "&:hover": {
+                    background: "rgba(255,255,255,0.2)",
+                  },
+                  borderRadius: "50px",
+                  width: !isSubscribed ? "0" : "130px",
+                  height: "36px",
+                  fontSize: "0.8rem",
+                  padding: 0,
+                  textTransform: "capitalize",
+                  fontWeight: "600",
+                  transition: "all 1s ease",
+                  overflow: "hidden",
+                  marginLeft: 2,
+                  "&::before": {
+                    content: "''",
+                    position: "absolute",
+                    height: "100%",
+                    zIndex: 0,
+                    width: userData?.data[0]?.isSubscribedTo ? "0" : "130px",
+                    background:
+                      "linear-gradient(135deg, rgba(252, 38, 173, 0.99), rgba(255, 0, 187, 0.71))",
+                  },
+                }}
+              >
+                <NotificationsNoneIcon
+                  sx={{
+                    position: "relative",
+                    color: "#f1f1f1",
+                    marginLeft: "-6px",
+                    marginRight: "6px",
+                    fontSize: "1.6rem",
+                    animation: userData?.data[0]?.isSubscribedTo
+                      ? `${rotateAnimation} 1.4s ease-in-out forwards`
+                      : "none",
+                    transformOrigin: "top",
+                  }}
+                />{" "}
+                <span
+                  style={{
+                    textOverflow: "ellipsis",
+                    overflow: "hidden",
+                    color: "#f1f1f1",
+                    position: "relative",
+                  }}
+                >
+                  Subscribed
+                </span>
+              </Button>
+            ) : (
+              <Button
+                disableRipple
+                onClick={() => handleSubscription()}
+                variant="contained"
+                sx={{
+                  background: "#f1f1f1",
+
+                  "&:hover": {
+                    background: "#d9d9d9",
+                  },
+                  borderRadius: "50px",
+                  width: "100px",
+                  height: "36px",
+                  fontSize: "0.8rem",
+                  textTransform: "capitalize",
+                  overflow: "hidden",
+                  fontWeight: "600",
+                  marginLeft: 2,
+                  padding: "0 16px",
+                }}
+              >
+                <span style={{ color: "#0f0f0f" }}>Subscribe</span>
+              </Button>
+            )}
           </Box>
           <Box>
             <ButtonGroup
@@ -310,6 +539,8 @@ function VideoPlayer({ videoId }) {
                 }}
               >
                 <Button
+                  disableRipple
+                  onClick={toggleLike}
                   sx={{
                     paddingX: "12px",
 
@@ -320,11 +551,19 @@ function VideoPlayer({ videoId }) {
                     },
                   }}
                 >
-                  <ThumbUpOffAltIcon
-                    sx={{ color: "rgb(255,255,255)", marginRight: "8px" }}
-                  />
+                  {isLike.isLiked ? (
+                    <ThumbUpAltIcon
+                      sx={{ color: "rgb(255,255,255)", marginRight: "8px" }}
+                    />
+                  ) : (
+                    <ThumbUpOffAltIcon
+                      sx={{ color: "rgb(255,255,255)", marginRight: "8px" }}
+                    />
+                  )}
 
-                  <span style={{ color: "rgb(255,255,255)" }}>{data.data?.likesCount}</span>
+                  <span style={{ color: "rgb(255,255,255)" }}>
+                    {isLike.likeCount || "0"}
+                  </span>
                 </Button>
               </Box>
 
@@ -337,15 +576,23 @@ function VideoPlayer({ videoId }) {
                 }}
               >
                 <Button
+                  disableRipple
+                  onClick={toggleDislike}
                   sx={{
                     paddingX: "12px",
                     paddingY: 0,
                     marginY: 1,
                   }}
                 >
-                  <ThumbDownOffAltIcon
-                    sx={{ color: "rgb(255,255,255)", marginRight: "8px" }}
-                  />
+                  {isDislike.isDisliked ? (
+                    <ThumbDownAltIcon
+                      sx={{ color: "rgb(255,255,255)", marginRight: "8px" }}
+                    />
+                  ) : (
+                    <ThumbDownOffAltIcon
+                      sx={{ color: "rgb(255,255,255)", marginRight: "8px" }}
+                    />
+                  )}
                 </Button>
               </Box>
             </ButtonGroup>
@@ -410,10 +657,8 @@ function VideoPlayer({ videoId }) {
             }
             subheader={
               <Typography variant="body2" color="#aaa" fontSize="0.8rem">
-                {userData?.data[0].subscribersCount}{" "}
-                {userData?.data[0].subscribersCount === 1
-                  ? "subscriber"
-                  : "subscribers"}
+                {subscriberCount}{" "}
+                {subscriberCount === 1 ? "subscriber" : "subscribers"}
               </Typography>
             }
           />
@@ -433,19 +678,26 @@ function VideoPlayer({ videoId }) {
             </span>
           ) : null}
         </Card>
-      <Comment data={data} activeEmojiPickerId={activeEmojiPickerId} setActiveEmojiPickerId={setActiveEmojiPickerId} showEmojiPicker={showEmojiPicker} setShowEmojiPicker={setShowEmojiPicker} />
-      <Box>
-    {commentsData?.data?.map((replyData) => (
-    <CommentReply
-    key={replyData._id}
-    data={replyData}
-    showEmojiPicker={showEmojiPicker}
-    setShowEmojiPicker={setShowEmojiPicker}
-    activeEmojiPickerId={activeEmojiPickerId} setActiveEmojiPickerId={setActiveEmojiPickerId}
-    />
-   
-  ))}
-    </Box>
+        <AddComment
+          data={data}
+          activeEmojiPickerId={activeEmojiPickerId}
+          setActiveEmojiPickerId={setActiveEmojiPickerId}
+          showEmojiPicker={showEmojiPicker}
+          setShowEmojiPicker={setShowEmojiPicker}
+        />
+        <Box>
+          {commentsData?.map((comments) => (
+            <Comments
+              key={comments._id}
+              videoId={videoId}
+              data={comments}
+              showEmojiPicker={showEmojiPicker}
+              setShowEmojiPicker={setShowEmojiPicker}
+              activeEmojiPickerId={activeEmojiPickerId}
+              setActiveEmojiPickerId={setActiveEmojiPickerId}
+            />
+          ))}
+        </Box>
       </Grid>
 
       <Grid

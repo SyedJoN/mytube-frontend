@@ -1,25 +1,44 @@
 import * as React from "react";
-import { useState } from "react";
-import Box from "@mui/material/Box";
-import Avatar from "@mui/material/Avatar";
-import Menu from "@mui/material/Menu";
-import MenuItem from "@mui/material/MenuItem";
-import ListItemIcon from "@mui/material/ListItemIcon";
-import Divider from "@mui/material/Divider";
-import IconButton from "@mui/material/IconButton";
-import Typography from "@mui/material/Typography";
-import Tooltip from "@mui/material/Tooltip";
-import { Button } from "@mui/material";
-import PersonAdd from "@mui/icons-material/PersonAdd";
-import Settings from "@mui/icons-material/Settings";
-import Logout from "@mui/icons-material/Logout";
+import { OpenContext } from "../routes/__root";
+import { useContext, useState } from "react";
+import {  
+  Avatar,  
+  MenuItem,  
+  ListItemIcon,  
+  Divider,  
+  IconButton,  
+  Typography,  
+  Tooltip,  
+  Button,
+  Box 
+} from "@mui/material";  
+import { useNavigate } from "@tanstack/react-router";
+import { useMutation, useQueryClient} from "@tanstack/react-query";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
 import AddIcon from "@mui/icons-material/Add";
 import SlideshowOutlinedIcon from "@mui/icons-material/SlideshowOutlined";
 import PodcastsIcon from "@mui/icons-material/Podcasts";
 import BorderColorIcon from "@mui/icons-material/BorderColor";
 import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
-import Signup from "./Signup";
+import PersonAdd from "@mui/icons-material/PersonAdd";
+import Settings from "@mui/icons-material/Settings";
+import Logout from "@mui/icons-material/Logout";
+import {
+  deepPurple,
+  indigo,
+  blue,
+  teal,
+  green,
+  amber,
+  orange,
+  red,
+} from "@mui/material/colors";
+
+
+
+import Signin from "./Signin";
+import { logoutUser } from "../apis/userFn";
+
 
 export default function AccountMenu(props) {
   const [anchorEl, setAnchorEl] = React.useState(null);
@@ -28,7 +47,13 @@ export default function AccountMenu(props) {
   const openCreate = Boolean(createAnchorEl);
   const [dialogue, setDialogue] = useState(false);
 
-  const { authenticated } = props;
+
+  const context = useContext(OpenContext);
+
+  let { data } = context;
+
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const handleClick = (event) => {
     setAnchorEl((prev) => (prev ? null : event.currentTarget));
@@ -53,9 +78,51 @@ export default function AccountMenu(props) {
   const handleCloseCreate = () => {
     setCreateAnchorEl(null);
   };
+
+  const handleLogout = () => {
+   mutate();
+   setAnchorEl(null);
+  }
+
+    const { mutate, isLoading, isError, error } = useMutation({
+      mutationFn: logoutUser,
+        onSuccess: () => {
+          queryClient.invalidateQueries(["user"]); // ✅ Clears and refetches user data
+          queryClient.setQueryData(["user"], null); // 🧹 Resets user data to null
+          navigate({ to: "/" }); 
+        },
+      onError: (error) => {
+        console.error(
+          "Registration failed:",
+          error.response?.data?.message || error.message
+        );
+      },
+    });
+
+  function getColor(name = "") {
+    const colors = [
+      deepPurple[500],
+      indigo[500],
+      blue[500],
+      teal[500],
+      green[500],
+      amber[500],
+      orange[500],
+      red[500],
+    ];
+
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+
+    const index = Math.abs(hash) % colors.length;
+    return colors[index] || blue[500];
+
+  }
   return (
     <React.Fragment>
-      {authenticated ? (
+      {data ? (
         <Box
           sx={{ display: "flex", alignItems: "center", textAlign: "center" }}
         >
@@ -102,9 +169,14 @@ export default function AccountMenu(props) {
               aria-haspopup="true"
               aria-expanded={open ? "true" : undefined}
             >
-              <Avatar sx={{ width: 32, height: 32, backgroundColor: "green" }}>
-                M
-              </Avatar>
+             <Avatar
+                              src={data?.data.avatar ? data.data.avatar : null}
+                              sx={{ bgcolor: getColor(data.data.fullName) }}
+                            >
+                              {data.fullName
+                                ? data.data.fullName.charAt(0).toUpperCase()
+                                : "?"}
+                            </Avatar>
             </IconButton>
           </Tooltip>
         </Box>
@@ -146,7 +218,7 @@ export default function AccountMenu(props) {
           </Button>
         </Box>
       )}
-      {dialogue && <Signup open={dialogue} onClose={handleDialogueClose} />}
+      {dialogue && <Signin open={dialogue} onClose={handleDialogueClose} />}
 
       {anchorEl && (
         <Box
@@ -167,7 +239,14 @@ export default function AccountMenu(props) {
             }}
             onClick={handleClose}
           >
-            <Avatar />
+              <Avatar
+                              src={data?.data.avatar ? data.data.avatar : null}
+                              sx={{ bgcolor: getColor(data?.data?.fullName), marginRight: 1 }}
+                            >
+                              {data?.fullName
+                                ? data?.data?.fullName.charAt(0).toUpperCase()
+                                : "?"}
+                            </Avatar>
             <Typography variant="body1">Profile</Typography>
           </MenuItem>
           <MenuItem
@@ -178,7 +257,14 @@ export default function AccountMenu(props) {
             }}
             onClick={handleClose}
           >
-            <Avatar />
+             <Avatar
+                              src={data?.data?.avatar ? data.data.avatar : null}
+                              sx={{ bgcolor: getColor(data?.data?.fullName), marginRight: 1 }}
+                            >
+                              {data?.fullName
+                                ? data?.data.fullName.charAt(0).toUpperCase()
+                                : "?"}
+                            </Avatar>
             <Typography variant="body1">My account</Typography>
           </MenuItem>
           <Divider />
@@ -214,7 +300,7 @@ export default function AccountMenu(props) {
                 backgroundColor: "rgba(255,255,255,0.1)",
               },
             }}
-            onClick={handleClose}
+            onClick={handleLogout}
           >
             <ListItemIcon sx={{ color: "#f1f1f1" }}>
               <Logout fontSize="small" />

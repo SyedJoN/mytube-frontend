@@ -8,13 +8,12 @@ import theme from "../assets/Theme";
 import Header from "../Components/Header/Header";
 import { getCurrentUser } from "../apis/userFn";
 
-// ✅ Create QueryClient instance
-const queryClient = new QueryClient();
 
 // Context for managing drawer state
 type OpenContextType = {
   open: boolean;
   setOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  data?: any; 
 };
 export const OpenContext = createContext<OpenContextType | undefined>(undefined);
 
@@ -58,8 +57,9 @@ function RouteComponent() {
   return (
     // ✅ Wrap everything inside QueryClientProvider
       <ThemeProvider theme={theme}>
-        <OpenContext.Provider value={{ open, setOpen }}>
+        <OpenContext.Provider value={{ open, setOpen, data }}>
           <CssBaseline />
+          
           <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
             <Header open={open} onClose={toggleDrawer} home={home} search={search} watch={watch} />
             <Box component="main" sx={{ flexGrow: 1, backgroundColor: theme.palette.primary.main }}>

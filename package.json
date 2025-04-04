@@ -19,7 +19,10 @@
     "@tanstack/react-router": "^1.114.27",
     "@tanstack/react-router-devtools": "^1.114.27",
     "@tanstack/router-plugin": "^1.114.27",
+    "@tsparticles/preset-fireworks": "^3.2.0",
+    "@tsparticles/react": "^3.0.0",
     "axios": "^1.8.3",
+    "canvas-confetti": "^1.9.3",
     "dayjs": "^1.11.13",
     "emoji-picker-react": "^4.12.2",
     "frimousse": "^0.1.0",
@@ -30,7 +33,10 @@
     "react-redux": "^9.2.0",
     "react-router": "^7.3.0",
     "react-router-dom": "^7.3.0",
+    "react-tsparticles": "^2.12.2",
     "react-use": "^17.6.0",
+    "tsparticles": "^3.8.1",
+    "tsparticles-engine": "^2.12.0",
     "yup": "^1.6.1"
   },
   "devDependencies": {

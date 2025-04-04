@@ -8,8 +8,35 @@ const BASE_URL = "http://localhost:3000/api/v1/dislikes";
 // };
 
 const toggleCommentDislike = async (commentId) => {
-  const res = await axios.patch(`${BASE_URL}/comment/${commentId}/toggle`);
-  return res.data;
+  try {
+    const res = await axios.patch(
+      `${BASE_URL}/comment/${commentId}/toggle`,
+      {}, // Send an empty body if needed
+      {
+        withCredentials: true, // Ensure cookies are sent
+      }
+    );
+    return res.data;
+  } catch (error) {
+    console.error("Axios Error:", error.response?.data);
+    throw new Error(error.response?.data?.message || "Something went wrong!");
+  }
 };
 
-export {toggleCommentDislike}
+const toggleVideoDislike = async (videoId) => {
+  try {
+    const res = await axios.patch(
+      `${BASE_URL}/video/${videoId}/toggle`,
+      {}, // Send an empty body if needed
+      {
+        withCredentials: true, // Ensure cookies are sent
+      }
+    );
+    return res.data;
+  } catch (error) {
+    console.error("Axios Error:", error.response?.data);
+    throw new Error(error.response?.data?.message || "Something went wrong!");
+  }
+};
+
+export {toggleCommentDislike, toggleVideoDislike}
