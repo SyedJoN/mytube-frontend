@@ -26,14 +26,15 @@ const rootElement = document.getElementById("root")!;
 if (!rootElement.innerHTML) {
   const root = ReactDOM.createRoot(rootElement);
   root.render(
-<>
+<StrictMode>
 {/* ✅ Wrap everything inside QueryClientProvider */}
 <QueryClientProvider client={queryClient}>
         <ThemeProvider theme={theme}>
           <RouterProvider router={router}>
           </RouterProvider>
         </ThemeProvider>
-      </QueryClientProvider></>
+      </QueryClientProvider>
+      </StrictMode>
       
 
   );

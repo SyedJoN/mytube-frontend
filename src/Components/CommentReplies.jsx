@@ -3,8 +3,7 @@ import React, {
   useRef,
   lazy,
   Suspense,
-  useContext,
-  useEffect,
+  useCallback,
 } from "react";
 
 import {
@@ -26,39 +25,65 @@ import ThumbUpAltIcon from "@mui/icons-material/ThumbUpAlt";
 import ThumbDownOffAltIcon from "@mui/icons-material/ThumbDownOffAlt";
 import { toggleCommentLike } from "../apis/likeFn";
 import { toggleCommentDislike } from "../apis/dislikeFn";
+import EmojiPickerWrapper from "./EmojiPickerWrapper";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import ThumbDownAltIcon from "@mui/icons-material/ThumbDownAlt";
 import formatDate from "../utils/dayjs";
+import { getColor } from "../utils/getColor";
 import { useClickAway } from "react-use";
 
-import {
-  deepPurple,
-  indigo,
-  blue,
-  teal,
-  green,
-  amber,
-  orange,
-  red,
-} from "@mui/material/colors";
+;
 
-function CommentReplies({ data, reply, dataContext, addReply, setAddReply, replies, setReplies, activeEmojiPickerId, toggleEmojiPicker, showEmojiPicker, setActiveEmojiPickerId, handleCancelReplyButton }) {
+function CommentReplies({
+  data,
+  reply,
+  dataContext,
+  toggleEmojiPicker,
+  showEmojiPicker,
+  setShowEmojiPicker,
+  activeEmojiPickerId,
+  setActiveEmojiPickerId
+
+}) {
   const queryClient = useQueryClient();
   const emojiPickerRef = useRef(null);
+  const [isEmojiButtonClicked, setIsEmojiButtonClicked] = useState(false);
+  const [addReply, setAddReply] = useState(null);
+  const [replies, setReplies] = useState({});
+   
 
   const [isLike, setIsLike] = useState({
-      isLiked: reply.LikedBy?.includes(dataContext?.data?._id) || false,
-      likeCount: reply.likesCount || 0, 
-    });
-    const [isDislike, setIsDislike] = useState({
-      isDisliked: reply.DislikedBy?.includes(dataContext?.data?._id) || false,
+    isLiked: reply.LikedBy?.includes(dataContext?.data?._id) || false,
+    likeCount: reply.likesCount || 0,
+  });
+  const [isDislike, setIsDislike] = useState({
+    isDisliked: reply.DislikedBy?.includes(dataContext?.data?._id) || false,
+  });
+
+  useClickAway(emojiPickerRef, () => {
+    if (!isEmojiButtonClicked) {
+      setShowEmojiPicker(false);
+      setActiveEmojiPickerId(null);
     }
-    );
+    setIsEmojiButtonClicked(false);
+  });
 
-    console.log(reply.LikedBy);
 
-  useClickAway(emojiPickerRef, () => setActiveEmojiPickerId(null));
+  //  const toggleEmojiPicker = useCallback((id) => {
+  //     setIsEmojiButtonClicked(true);
+  //     setActiveEmojiPickerId((prev) => (prev === id ? null : id));
+  //     setShowEmojiPicker(false);
+  //   }, []);
 
+    const handleCancelReplyButton = useCallback((id) => {
+      setAddReply(null);
+      setActiveEmojiPickerId(null);
+      setReplies((prev) => ({
+        ...prev,
+        [id]: "",
+      }));
+    }, []);
+  
 
   const {
     mutate: toggleLikeMutation,
@@ -78,19 +103,14 @@ function CommentReplies({ data, reply, dataContext, addReply, setAddReply, repli
             isDisliked: false,
           };
         }
-        return prev; 
+        return prev;
       });
-    },
-  
-    onSuccess: () => {
-      queryClient.invalidateQueries(["commentsData", videoId]);
     },
     onError: () => {
       console.error("error", error);
     },
   });
 
-  
   const {
     mutate: toggleDislikeMutation,
     isLoading: isDisLikeLoading,
@@ -98,12 +118,10 @@ function CommentReplies({ data, reply, dataContext, addReply, setAddReply, repli
   } = useMutation({
     mutationFn: (commentId) => toggleCommentDislike(commentId),
     onMutate: () => {
-    
       setIsDislike((prev) => ({
         isDisliked: !prev.isDisliked,
       }));
       setIsLike((prev) => {
-       
         if (prev.isLiked) {
           return {
             ...prev,
@@ -123,34 +141,14 @@ function CommentReplies({ data, reply, dataContext, addReply, setAddReply, repli
   });
 
   const toggleLike = (id) => {
-
     toggleLikeMutation(id);
   };
 
   const toggleDislike = (id) => {
-
     toggleDislikeMutation(id);
   };
 
- 
 
-  function getColor(name = "") {
-    const colors = [
-      deepPurple[500],
-      indigo[500],
-      blue[500],
-      teal[500],
-      green[500],
-      amber[500],
-      orange[500],
-      red[500],
-    ];
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) {
-      hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return colors[Math.abs(hash) % colors.length] || blue[500];
-  }
 
   return (
     <>
@@ -224,7 +222,7 @@ function CommentReplies({ data, reply, dataContext, addReply, setAddReply, repli
                   paddingRight: "16px",
                 }}
               >
-                {  isLike.likeCount || "0"}
+                {isLike.likeCount || "0"}
               </span>
               {isDislike.isDisliked ? (
                 <ThumbDownAltIcon
@@ -326,17 +324,20 @@ function CommentReplies({ data, reply, dataContext, addReply, setAddReply, repli
                           zIndex: 100,
                         }}
                       >
-                        <Suspense fallback={<div>Loading emojis...</div>}>
-                          <LazyEmojiPicker
-                            onEmojiClick={(emoji) =>
-                              setReplies((prev) => ({
-                                ...prev,
-                                [reply._id]:
-                                  (prev[reply._id] || "") + emoji.emoji,
-                              }))
-                            }
-                          />
-                        </Suspense>
+                      
+                          
+                <EmojiPickerWrapper
+                      onEmojiSelect={(emoji) =>
+                        setReplies((prev) => ({
+                          ...prev,
+                          [reply._id]:
+                            (prev[reply._id] || "") + emoji,
+                        }))
+                      }
+                      id={reply._id}
+                    />
+
+                     
                       </Box>
                     )}
                   </Box>
@@ -389,4 +390,4 @@ function CommentReplies({ data, reply, dataContext, addReply, setAddReply, repli
   );
 }
 
-export default CommentReplies;
+export default React.memo(CommentReplies);

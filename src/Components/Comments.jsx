@@ -5,9 +5,10 @@ import React, {
   Suspense,
   useContext,
   useEffect,
+  useCallback,
 } from "react";
 import { OpenContext } from "../routes/__root";
-
+import MyEmojiPicker from "./EmojiPicker";
 import {
   CardHeader,
   Avatar,
@@ -28,46 +29,37 @@ import ThumbDownOffAltIcon from "@mui/icons-material/ThumbDownOffAlt";
 import { toggleCommentLike } from "../apis/likeFn";
 import { toggleCommentDislike } from "../apis/dislikeFn";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import EmojiPickerWrapper from "./EmojiPickerWrapper";
 import ThumbDownAltIcon from "@mui/icons-material/ThumbDownAlt";
 import formatDate from "../utils/dayjs";
 import { useClickAway } from "react-use";
-
-import {
-  deepPurple,
-  indigo,
-  blue,
-  teal,
-  green,
-  amber,
-  orange,
-  red,
-} from "@mui/material/colors";
+import { getColor } from "../utils/getColor";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import CommentReplies from "./CommentReplies";
 
-const Comments = ({
-  videoId,
-  data,
-  activeEmojiPickerId,
-  setActiveEmojiPickerId,
-  showEmojiPicker,
-  setShowEmojiPicker,
-}) => {
-
+const Comments = ({ data, showEmojiPicker, setShowEmojiPicker, activeEmojiPickerId, setActiveEmojiPickerId }) => {
   const context = useContext(OpenContext);
   let { data: dataContext } = context;
   const [replies, setReplies] = useState({}); // Stores reply text for each comment
   const [showReplies, setShowReplies] = useState(null);
   const [addReply, setAddReply] = useState(null);
+  const [isEmojiButtonClicked, setIsEmojiButtonClicked] = useState(false);
+
   const [isLike, setIsLike] = useState({
     isLiked: data.LikedBy?.includes(dataContext?.data?._id) || false,
-    likeCount: data.likesCount || 0, 
+    likeCount: data.likesCount || 0,
   });
   const [isDislike, setIsDislike] = useState({
     isDisliked: data.DislikedBy?.includes(dataContext?.data?._id) || false,
-  }
-  );
+  });
+
+  // const MemoizedEmojiPickerWrapper = React.memo(({ onEmojiSelect, id }) => (
+  //   <Box sx={{ position: "absolute", left: "10px", zIndex: 100 }}>
+  //     <MyEmojiPicker onEmojiSelect={(emoji) => onEmojiSelect(emoji, id)} />
+  //   </Box>
+  // ));
+
   const emojiPickerRef = useRef(null);
   const queryClient = useQueryClient();
   const {
@@ -88,12 +80,8 @@ const Comments = ({
             isDisliked: false,
           };
         }
-        return prev; 
+        return prev;
       });
-    },
-  
-    onSuccess: () => {
-      queryClient.invalidateQueries(["commentsData", videoId]);
     },
     onError: () => {
       console.error("error");
@@ -107,12 +95,10 @@ const Comments = ({
   } = useMutation({
     mutationFn: (commentId) => toggleCommentDislike(commentId),
     onMutate: () => {
-    
       setIsDislike((prev) => ({
         isDisliked: !prev.isDisliked,
       }));
       setIsLike((prev) => {
-       
         if (prev.isLiked) {
           return {
             ...prev,
@@ -123,64 +109,41 @@ const Comments = ({
         return prev;
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries(["commentsData", videoId]);
-    },
     onError: () => {
       console.error("dislike error");
     },
   });
 
-  const toggleEmojiPicker = (id) => {
+  const toggleEmojiPicker = useCallback((id) => {
+    setIsEmojiButtonClicked(true);
     setActiveEmojiPickerId((prev) => (prev === id ? null : id));
     setShowEmojiPicker(false);
-  };
+  }, []);
 
-  const handleCancelReplyButton = (id) => {
+  const handleCancelReplyButton = useCallback((id) => {
     setAddReply(null);
     setActiveEmojiPickerId(null);
     setReplies((prev) => ({
       ...prev,
       [id]: "",
     }));
-  };
+  }, []);
 
   const toggleLike = (id) => {
-
     toggleLikeMutation(id);
   };
 
   const toggleDislike = (id) => {
-
     toggleDislikeMutation(id);
   };
 
 
-  function getColor(name = "") {
-    const colors = [
-      deepPurple[500],
-      indigo[500],
-      blue[500],
-      teal[500],
-      green[500],
-      amber[500],
-      orange[500],
-      red[500],
-    ];
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) {
-      hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return colors[Math.abs(hash) % colors.length] || blue[500];
-  }
-
-  const handleEmojiClick = (emojiObject, id) => {
+  const handleEmojiClick = useCallback((emojiObject, id) => {
     setReplies((prev) => ({
       ...prev,
-      [id]: (prev[id] || "") + emojiObject.emoji,
+      [id]: (prev[id] || "") + emojiObject,
     }));
-  };
-  useClickAway(emojiPickerRef, () => setActiveEmojiPickerId(null));
+  }, []);
 
   return (
     <CardHeader
@@ -329,18 +292,10 @@ const Comments = ({
                     <SentimentSatisfiedAltIcon />
                   </IconButton>
                   {activeEmojiPickerId === data._id && !showEmojiPicker && (
-                    <Box
-                      ref={emojiPickerRef}
-                      sx={{ position: "absolute", left: "10px", zIndex: 100 }}
-                    >
-                      <Suspense fallback={<div>Loading emojis...</div>}>
-                        <LazyEmojiPicker
-                          onEmojiClick={(emojiObject) =>
-                            handleEmojiClick(emojiObject, data._id)
-                          }
-                        />
-                      </Suspense>
-                    </Box>
+                    <EmojiPickerWrapper
+                      onEmojiSelect={handleEmojiClick}
+                      id={data._id}
+                    />
                   )}
                 </Box>
 
@@ -411,11 +366,19 @@ const Comments = ({
             </Box>
           )}
           {data.replies?.length > 0 &&
-           showReplies === data._id &&
+            showReplies === data._id &&
             data.replies?.map((reply) => (
-            
-             <CommentReplies key={reply._id} data={data} dataContext={dataContext} reply={reply} addReply={addReply} setAddReply={setAddReply} replies={replies} setReplies={setReplies} activeEmojiPickerId={activeEmojiPickerId} setActiveEmojiPickerId={setActiveEmojiPickerId} toggleEmojiPicker={toggleEmojiPicker} showEmojiPicker={showEmojiPicker} handleCancelReplyButton={handleCancelReplyButton}/>
-             
+              <CommentReplies
+                key={reply._id}
+                data={data}
+                dataContext={dataContext}
+                reply={reply}
+                toggleEmojiPicker={toggleEmojiPicker}
+                showEmojiPicker={showEmojiPicker}
+                setShowEmojiPicker={setShowEmojiPicker}
+                activeEmojiPickerId={activeEmojiPickerId}
+                setActiveEmojiPickerId={setActiveEmojiPickerId}
+              />
             ))}
         </>
       }
@@ -428,4 +391,4 @@ const Comments = ({
   );
 };
 
-export default Comments;
+export default React.memo(Comments);

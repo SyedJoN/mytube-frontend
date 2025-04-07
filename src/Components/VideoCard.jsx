@@ -51,7 +51,7 @@ const ExpandMore = styled((props) => {
   ],
 }));
 
-export default function VideoCard({
+function VideoCard({
   thumbnail,
   title,
   description,
@@ -581,3 +581,5 @@ export default function VideoCard({
     </>
   );
 }
+
+export default React.memo(VideoCard);

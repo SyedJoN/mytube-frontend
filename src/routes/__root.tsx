@@ -43,21 +43,25 @@ function RouteComponent() {
       setOpen(false);
     }
   }, [home, search, watch]);
-
+  
   const toggleDrawer = () => setOpen((prev) => !prev);
 
-  // ✅ React Query: Fetch current user
   const { data, isLoading, isError } = useQuery({
     queryKey: ["user"],
     queryFn: getCurrentUser,
   });
+  
 
-  console.log(data)
+  
+  
+  console.log(data);
+  
 
   return (
     // ✅ Wrap everything inside QueryClientProvider
       <ThemeProvider theme={theme}>
-        <OpenContext.Provider value={{ open, setOpen, data }}>
+      <OpenContext.Provider value={{ open, setOpen, data: data || null }}>
+
           <CssBaseline />
           
           <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>

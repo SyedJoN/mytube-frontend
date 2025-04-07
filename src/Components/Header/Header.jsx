@@ -463,4 +463,4 @@ Header.propTypes = {
   window: PropTypes.func,
 };
 
-export default Header;
+export default React.memo(Header);
