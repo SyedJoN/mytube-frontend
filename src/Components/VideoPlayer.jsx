@@ -55,6 +55,7 @@ import AddComment from "./AddComment";
 import { SubscribeButton } from "./SubscribeButton";
 import { LikeDislikeButtons } from "./LikeDislikeButton";
 import Description from "./Description";
+import VideoSideBar from "./VideoSideBar";
 
 function VideoPlayer({ videoId }) {
   const queryClient = useQueryClient();
@@ -143,23 +144,10 @@ function VideoPlayer({ videoId }) {
       data?.data?.disLikedBy.includes(dataContext?.data?._id) || false,
   });
 
-
-
   const user = data?.data?.owner?.username;
 
   const channelId = data?.data?.owner?._id;
 
- 
-
-  const {
-    data: listVideoData,
-    isLoading: isLoadingList,
-    isError: isErrorList,
-    error: errorList,
-  } = useQuery({
-    queryKey: ["videos"],
-    queryFn: fetchVideos,
-  });
   const {
     data: userData,
     isLoading: isUserLoading,
@@ -185,9 +173,6 @@ function VideoPlayer({ videoId }) {
       setSubscriberCount(newCount);
     }
   }, [userData]);
-
-  
-  const videos = listVideoData?.data?.docs || [];
 
   const watchTimeRef = useRef(0);
   const { mutate } = useMutation({
@@ -327,11 +312,7 @@ function VideoPlayer({ videoId }) {
           data={data}
           subscriberCount={userData?.data[0]?.subscribersCount}
         />
-        <CommentSection
-        videoId={videoId}
-        data={data}
-         />
-       
+        <CommentSection videoId={videoId} data={data} />
       </Grid>
       //SideBar
       <Grid
@@ -341,100 +322,7 @@ function VideoPlayer({ videoId }) {
           minWidth: "300px!important",
         }}
       >
-        {isErrorList && <Typography>Error: {errorList.message}</Typography>}
-
-        {videos.length > 0 ? (
-          <Grid container spacing={0}>
-            {videos.map((video) => (
-              <Grid
-                sx={{
-                  gridColumn: {
-                    xs: 12,
-                    sm: 6,
-                    md: 4,
-                  },
-                }}
-                key={video._id}
-              >
-                <Link
-                  to={`/watch/${video._id}`}
-                  style={{ textDecoration: "none" }}
-                >
-                  <VideoCard
-                    thumbnail={video.thumbnail}
-                    title={video.title}
-                    video={true}
-                    fullName={video.owner.fullName}
-                    views={video.views}
-                    duration={video.duration}
-                    createdAt={formatDate(video.createdAt)}
-                  />
-                </Link>
-              </Grid>
-            ))}
-          </Grid>
-        ) : (
-          isLoadingList &&
-          Array.from(new Array(12)).map((_, index) => (
-            <Grid
-              key={index}
-              sx={{
-                gridColumn: {
-                  xs: "span 12",
-                  sm: "span 6",
-                  md: "span 4",
-                  lg: "span 2",
-                },
-              }}
-            >
-              <Box sx={{ display: "flex" }}>
-                <Skeleton
-                  variant="rectangular"
-                  width={160}
-                  height={100}
-                  sx={{
-                    bgcolor: "rgba(255,255,255,0.1)",
-                    borderRadius: "8px",
-                    marginBottom: 1,
-                  }}
-                />
-
-                <Box sx={{ flex: 1, paddingLeft: "6px" }}>
-                  <Skeleton
-                    sx={{
-                      bgcolor: "rgba(255,255,255,0.1)",
-                    }}
-                    width="90%"
-                    height={20}
-                  />
-                  <Skeleton
-                    sx={{
-                      bgcolor: "rgba(255,255,255,0.1)",
-                    }}
-                    width="30%"
-                    height={20}
-                  />
-                  <Box sx={{ marginTop: 2 }}>
-                    <Skeleton
-                      sx={{
-                        bgcolor: "rgba(255,255,255,0.1)",
-                      }}
-                      width="40%"
-                      height={20}
-                    />
-                    <Skeleton
-                      sx={{
-                        bgcolor: "rgba(255,255,255,0.1)",
-                      }}
-                      width="40%"
-                      height={20}
-                    />
-                  </Box>
-                </Box>
-              </Box>
-            </Grid>
-          ))
-        )}
+        <VideoSideBar />
       </Grid>
     </Grid>
   );
