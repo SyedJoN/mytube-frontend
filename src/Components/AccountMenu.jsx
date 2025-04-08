@@ -40,7 +40,7 @@ import Signin from "./Signin";
 import { logoutUser } from "../apis/userFn";
 
 
-export default function AccountMenu(props) {
+export default function AccountMenu() {
   const [anchorEl, setAnchorEl] = React.useState(null);
   const [createAnchorEl, setCreateAnchorEl] = React.useState(null);
   const open = Boolean(anchorEl);
@@ -75,16 +75,14 @@ export default function AccountMenu(props) {
   const handleDialogueClose = (value) => {
     setDialogue(false);
   };
-  const handleCloseCreate = () => {
-    setCreateAnchorEl(null);
-  };
+
 
   const handleLogout = () => {
    mutate();
    setAnchorEl(null);
   }
 
-    const { mutate, isLoading, isError, error } = useMutation({
+    const { mutate, isPending, isError, error } = useMutation({
       mutationFn: logoutUser,
         onSuccess: () => {
           queryClient.invalidateQueries(["user"]); // ✅ Clears and refetches user data

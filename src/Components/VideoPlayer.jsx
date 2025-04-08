@@ -135,15 +135,6 @@ function VideoPlayer({ videoId }) {
   // }, [videoId]);
   console.log("Query triggered:", videoId); // ✅ Debugging ke liye
 
-  const [isLike, setIsLike] = useState({
-    isLiked: data?.data?.likedBy.includes(dataContext?.data?._id) || false,
-    likeCount: data?.data.likesCount || 0,
-  });
-  const [isDislike, setIsDislike] = useState({
-    isDisliked:
-      data?.data?.disLikedBy.includes(dataContext?.data?._id) || false,
-  });
-
   const user = data?.data?.owner?.username;
 
   const channelId = data?.data?.owner?._id;
@@ -314,7 +305,6 @@ function VideoPlayer({ videoId }) {
         />
         <CommentSection videoId={videoId} data={data} />
       </Grid>
-      //SideBar
       <Grid
         size={{ xs: 12, md: 4 }}
         sx={{

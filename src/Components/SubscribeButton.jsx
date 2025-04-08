@@ -4,6 +4,7 @@ import { toggleSubscription } from "../apis/subscriptionFn";
 import Button from "@mui/material/Button";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import { keyframes } from "@mui/system";
+import { getUserChannelProfile } from "../apis/userFn";
 
 const rotateAnimation = keyframes`
   0% { transform: rotate(0deg); }

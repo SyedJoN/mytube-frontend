@@ -1,10 +1,4 @@
-import React, {
-  useState,
-  useRef,
-  lazy,
-  Suspense,
-  useCallback,
-} from "react";
+import React, { useState, useRef, lazy, Suspense, useCallback } from "react";
 
 import {
   CardHeader,
@@ -16,8 +10,12 @@ import {
   Typography,
   FormControl,
   Input,
+  Menu,
+  MenuItem
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import SentimentSatisfiedAltIcon from "@mui/icons-material/SentimentSatisfiedAlt";
 const LazyEmojiPicker = lazy(() => import("emoji-picker-react"));
 import ThumbUpOffAltIcon from "@mui/icons-material/ThumbUpOffAlt";
@@ -26,15 +24,17 @@ import ThumbDownOffAltIcon from "@mui/icons-material/ThumbDownOffAlt";
 import { toggleCommentLike } from "../apis/likeFn";
 import { toggleCommentDislike } from "../apis/dislikeFn";
 import EmojiPickerWrapper from "./EmojiPickerWrapper";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import CircularProgress from "@mui/material/CircularProgress";
+
+import {useMutation, useQueryClient } from "@tanstack/react-query";
 import ThumbDownAltIcon from "@mui/icons-material/ThumbDownAlt";
+import { addComment } from "../apis/commentFn";
 import formatDate from "../utils/dayjs";
 import { getColor } from "../utils/getColor";
 import { useClickAway } from "react-use";
 
-;
-
 function CommentReplies({
+  videoId,
   data,
   reply,
   dataContext,
@@ -42,15 +42,16 @@ function CommentReplies({
   showEmojiPicker,
   setShowEmojiPicker,
   activeEmojiPickerId,
-  setActiveEmojiPickerId
-
+  setActiveEmojiPickerId,
+  activeOptionsId,
+  setActiveOptionsId
 }) {
   const queryClient = useQueryClient();
   const emojiPickerRef = useRef(null);
+  
   const [isEmojiButtonClicked, setIsEmojiButtonClicked] = useState(false);
   const [addReply, setAddReply] = useState(null);
   const [replies, setReplies] = useState({});
-   
 
   const [isLike, setIsLike] = useState({
     isLiked: reply.LikedBy?.includes(dataContext?.data?._id) || false,
@@ -60,6 +61,34 @@ function CommentReplies({
     isDisliked: reply.DislikedBy?.includes(dataContext?.data?._id) || false,
   });
 
+  const { mutate, isPending } = useMutation({
+    mutationFn: ({ videoId, content, parentCommentId }) =>
+      addComment(videoId, { content, parentCommentId }),
+
+    onSuccess: ({ data }) => {
+      setReplies((prev) => ({
+        ...prev,
+        [data.parentCommentId]: "",
+      }));
+      setAddReply(false);
+      queryClient.refetchQueries(["commentsData", videoId]);
+    },
+    onError: (error) => {
+      console.error(
+        "Error adding comment:",
+        error.response ? error.response.data : error.message
+      );
+    },
+  });
+
+  const handleAddComment = (commentId) => {
+    mutate({
+      videoId,
+      content: replies[commentId],
+      parentCommentId: commentId,
+    });
+  };
+
   useClickAway(emojiPickerRef, () => {
     if (!isEmojiButtonClicked) {
       setShowEmojiPicker(false);
@@ -68,22 +97,19 @@ function CommentReplies({
     setIsEmojiButtonClicked(false);
   });
 
+  const handleToggleOptions = () => {
+    setActiveOptionsId((prev) => (prev === reply._id ? null : reply._id));
+  };
 
-  //  const toggleEmojiPicker = useCallback((id) => {
-  //     setIsEmojiButtonClicked(true);
-  //     setActiveEmojiPickerId((prev) => (prev === id ? null : id));
-  //     setShowEmojiPicker(false);
-  //   }, []);
 
-    const handleCancelReplyButton = useCallback((id) => {
-      setAddReply(null);
-      setActiveEmojiPickerId(null);
-      setReplies((prev) => ({
-        ...prev,
-        [id]: "",
-      }));
-    }, []);
-  
+  const handleCancelReplyButton = useCallback((id) => {
+    setAddReply(null);
+    setActiveEmojiPickerId(null);
+    setReplies((prev) => ({
+      ...prev,
+      [id]: "",
+    }));
+  }, []);
 
   const {
     mutate: toggleLikeMutation,
@@ -147,8 +173,6 @@ function CommentReplies({
   const toggleDislike = (id) => {
     toggleDislikeMutation(id);
   };
-
-
 
   return (
     <>
@@ -249,7 +273,7 @@ function CommentReplies({
                   setAddReply(reply._id);
                   setReplies((prev) => ({
                     ...prev,
-                    [reply._id]: `@${reply.owner.username} `, // Pre-fill with mention
+                    [data._id]: `@${reply.owner.username} `, // Pre-fill with mention
                   }));
                 }}
                 sx={{
@@ -274,30 +298,42 @@ function CommentReplies({
                   >
                     {reply.owner?.fullName?.charAt(0).toUpperCase() || "?"}
                   </Avatar>
-                  <FormControl fullWidth sx={{ m: 1 }} variant="standard">
-                    <Input
-                      multiline
-                      value={replies[reply._id] || ""} // Use reply._id as the key
-                      onChange={(e) =>
-                        setReplies((prev) => ({
-                          ...prev,
-                          [reply._id]: e.target.value, // Only update this specific reply
-                        }))
-                      }
+                  {isPending ? (
+                    <CircularProgress
                       sx={{
-                        fontSize: "0.875rem",
-                        "& textarea": {
-                          color: "rgb(255,255,255) !important",
-                        },
-                        "&::before": {
-                          borderBottom: "1px solid #717171 !important",
-                        },
-                        "&::after": {
-                          borderBottom: "2px solid rgb(255,255,255) !important",
-                        },
+                        mx: "auto",
+                        textAlign: "center",
+                        color: "rgba(168, 199, 250 , 1)",
                       }}
+                      size={30}
                     />
-                  </FormControl>
+                  ) : (
+                    <FormControl fullWidth sx={{ m: 1 }} variant="standard">
+                      <Input
+                        multiline
+                        value={replies[data._id] || ""} // Use reply._id as the key
+                        onChange={(e) =>
+                          setReplies((prev) => ({
+                            ...prev,
+                            [data._id]: e.target.value, // Only update this specific reply
+                          }))
+                        }
+                        sx={{
+                          fontSize: "0.875rem",
+                          "& textarea": {
+                            color: "rgb(255,255,255) !important",
+                          },
+                          "&::before": {
+                            borderBottom: "1px solid #717171 !important",
+                          },
+                          "&::after": {
+                            borderBottom:
+                              "2px solid rgb(255,255,255) !important",
+                          },
+                        }}
+                      />
+                    </FormControl>
+                  )}
                 </Box>
 
                 <Box
@@ -324,20 +360,15 @@ function CommentReplies({
                           zIndex: 100,
                         }}
                       >
-                      
-                          
-                <EmojiPickerWrapper
-                      onEmojiSelect={(emoji) =>
-                        setReplies((prev) => ({
-                          ...prev,
-                          [reply._id]:
-                            (prev[reply._id] || "") + emoji,
-                        }))
-                      }
-                      id={reply._id}
-                    />
-
-                     
+                        <EmojiPickerWrapper
+                          onEmojiSelect={(emoji) =>
+                            setReplies((prev) => ({
+                              ...prev,
+                              [data._id]: (prev[data._id] || "") + emoji,
+                            }))
+                          }
+                          id={reply._id}
+                        />
                       </Box>
                     )}
                   </Box>
@@ -354,6 +385,7 @@ function CommentReplies({
                       Cancel
                     </Button>
                     <Button
+                      onClick={() => handleAddComment(data._id)}
                       disabled={!reply}
                       variant="outlined"
                       sx={{
@@ -381,9 +413,60 @@ function CommentReplies({
           </>
         }
         action={
-          <IconButton aria-label="settings">
+          <Box sx={{position: "relative"}}>
+          <IconButton onClick={handleToggleOptions} aria-label="settings">
             <MoreVertIcon sx={{ color: "#fff" }} />
           </IconButton>
+          {activeOptionsId === reply._id && 
+           <Box
+           id="create-menu"
+           sx={{
+             position: "absolute",
+             top: "35px",
+             right: "-93px",
+             borderRadius: "12px",
+             backgroundColor: "#282828",
+             zIndex: 2,
+             paddingY: 1,
+           }}
+         >
+           <MenuItem
+             sx={{
+               paddingTop: 1,
+               paddingLeft: "16px",
+               paddingRight: "36px",
+               gap: "3px",
+               "&:hover": {
+                 backgroundColor: "rgba(255,255,255,0.1)",
+               },
+             }}
+           >
+            <EditOutlinedIcon sx={{color: "#f1f1f1"}} />
+             <Typography variant="body2" marginLeft="10px" color="#f1f1f1">
+               Edit
+             </Typography>
+           </MenuItem>
+           <MenuItem
+             sx={{
+               paddingTop: 1,
+               paddingLeft: "16px",
+               paddingRight: "36px",
+               gap: "3px",
+               "&:hover": {
+                 backgroundColor: "rgba(255,255,255,0.1)",
+               },
+             }}
+           >
+             <DeleteOutlinedIcon sx={{color: "#f1f1f1"}} />
+             <Typography variant="body2" marginLeft="10px" color="#f1f1f1">
+               Delete
+             </Typography>
+           </MenuItem>
+        
+         </Box>
+          }
+            
+           </Box>
         }
       />
     </>

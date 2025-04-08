@@ -10,8 +10,11 @@ import React, {
 import { Box, Typography } from "@mui/material";
 import CardHeader from "@mui/material/CardHeader";
 import EmojiPickerWrapper from "./EmojiPickerWrapper";
+import CircularProgress from '@mui/material/CircularProgress';
 import Button from "@mui/material/Button";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
 import Avatar from "@mui/material/Avatar";
+import { addComment } from "../apis/commentFn";
 import Input from "@mui/material/Input";
 import InputLabel from "@mui/material/InputLabel";
 import FormControl from "@mui/material/FormControl";
@@ -36,18 +39,19 @@ const preloadEmojiPicker = () => {
   import("emoji-picker-react");
 };
 function AddComment({
+  videoId,
   data,
   activeEmojiPickerId,
   setActiveEmojiPickerId,
   showEmojiPicker,
-  setShowEmojiPicker
-
+  setShowEmojiPicker,
 }) {
+
+  const queryClient = useQueryClient();
   const emojiPickerRef = useRef(null);
-  const [addComment, setAddComment] = useState(false);
+  const [addCommentBox, setAddComment] = useState(false);
   const [comment, setComment] = useState("");
   const [isEmojiButtonClicked, setIsEmojiButtonClicked] = useState(false);
-  const MemoizedLazyEmojiPicker = React.memo(LazyEmojiPicker);
 
   const colorPalette = useMemo(
     () => [
@@ -63,11 +67,27 @@ function AddComment({
     []
   );
 
+  const { mutate, isPending } = useMutation({
+    mutationFn: ({ videoId, content }) => addComment(videoId, { content }),
+
+    onSuccess: () => {
+      setComment("");
+      setAddComment(false)
+      queryClient.refetchQueries(["commentsData", videoId])
+    },
+    onError: (error) => {
+      console.error(error);
+    },
+  });
+
   const toggleEmojiPicker = () => {
     setIsEmojiButtonClicked(true);
     setShowEmojiPicker((prev) => !prev);
     setActiveEmojiPickerId(null);
+  };
 
+  const handleAddComment = (comment) => {
+    mutate({ videoId, content: comment });
   };
 
   const handleInputChange = (e) => {
@@ -107,7 +127,7 @@ function AddComment({
       <Typography variant="h3" color="rgb(255,255,255)">
         1,962 Comments
       </Typography>
-      <Box sx={{ display: "flex", alignItems: "center" }}>
+      <Box sx={{ display: "flex", alignItems: "center", mt: 2 }}>
         <CardHeader
           sx={{
             alignItems: "flex-start",
@@ -132,7 +152,12 @@ function AddComment({
             </Avatar>
           }
         ></CardHeader>
-        <FormControl fullWidth sx={{ m: 1 }} variant="standard">
+        {isPending ?   
+      <CircularProgress sx={{ mx: "auto", textAlign: "center", color: "rgba(168, 199, 250 , 1)"
+
+      }} size={30} />
+    : 
+          <FormControl fullWidth sx={{ m: 1 }} variant="standard">
           <InputLabel
             disabled={comment !== ""}
             shrink
@@ -171,6 +196,9 @@ function AddComment({
             }}
           />
         </FormControl>
+        
+        }
+      
       </Box>
 
       <Box
@@ -181,7 +209,7 @@ function AddComment({
           marginTop: "6px",
         }}
       >
-        {addComment && (
+        {addCommentBox && (
           <Box sx={{ position: "relative", marginLeft: "48px" }}>
             <IconButton onClick={toggleEmojiPicker} sx={{ color: "#fff" }}>
               <SentimentSatisfiedAltIcon />
@@ -191,18 +219,16 @@ function AddComment({
                 ref={emojiPickerRef}
                 sx={{ position: "absolute", left: "10px", zIndex: 100 }}
               >
-               
                 <EmojiPickerWrapper
-                      onEmojiSelect={handleEmojiClick}
-                      id={data._id}
-                    />
-           
+                  onEmojiSelect={handleEmojiClick}
+                  id={data._id}
+                />
               </Box>
             )}
           </Box>
         )}
 
-        {addComment && (
+        {addCommentBox && (
           <Box sx={{ display: "flex", gap: "8px" }}>
             <Button
               onClick={handleCancelButton}
@@ -220,6 +246,7 @@ function AddComment({
               Cancel
             </Button>
             <Button
+              onClick={() => handleAddComment(comment)}
               disabled={comment === ""}
               variant="outlined"
               sx={{
