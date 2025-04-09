@@ -13,5 +13,20 @@ const addComment = async (videoId, data) => {
   });
   return res.data;
 };
+const updateComment = async (videoId, data) => {
+  const res = await axios.patch(`${BASE_URL}/update/${videoId}/${data.commentId}`, data, {
+    withCredentials: true,
+  });
+  return res.data;
+};
 
-export { getVideoComments, addComment };
+const deleteComment = async (videoId, data) => {
+  const res = await axios.delete(`${BASE_URL}/delete/${videoId}/${data.commentId}`, {
+    withCredentials: true,
+    data: data,
+  });
+  return res.data;
+};
+
+
+export { getVideoComments, addComment, updateComment, deleteComment };

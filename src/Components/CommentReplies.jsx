@@ -11,11 +11,12 @@ import {
   FormControl,
   Input,
   Menu,
-  MenuItem
+  MenuItem,
 } from "@mui/material";
+import { addComment, updateComment, deleteComment } from "../apis/commentFn";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
-import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
-import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import SentimentSatisfiedAltIcon from "@mui/icons-material/SentimentSatisfiedAlt";
 const LazyEmojiPicker = lazy(() => import("emoji-picker-react"));
 import ThumbUpOffAltIcon from "@mui/icons-material/ThumbUpOffAlt";
@@ -26,9 +27,9 @@ import { toggleCommentDislike } from "../apis/dislikeFn";
 import EmojiPickerWrapper from "./EmojiPickerWrapper";
 import CircularProgress from "@mui/material/CircularProgress";
 
-import {useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import ThumbDownAltIcon from "@mui/icons-material/ThumbDownAlt";
-import { addComment } from "../apis/commentFn";
+
 import formatDate from "../utils/dayjs";
 import { getColor } from "../utils/getColor";
 import { useClickAway } from "react-use";
@@ -44,15 +45,15 @@ function CommentReplies({
   activeEmojiPickerId,
   setActiveEmojiPickerId,
   activeOptionsId,
-  setActiveOptionsId
+  setActiveOptionsId,
 }) {
   const queryClient = useQueryClient();
   const emojiPickerRef = useRef(null);
-  
+
   const [isEmojiButtonClicked, setIsEmojiButtonClicked] = useState(false);
   const [addReply, setAddReply] = useState(null);
   const [replies, setReplies] = useState({});
-
+const [isEditable, setIsEditable] = useState(null);
   const [isLike, setIsLike] = useState({
     isLiked: reply.LikedBy?.includes(dataContext?.data?._id) || false,
     likeCount: reply.likesCount || 0,
@@ -81,12 +82,64 @@ function CommentReplies({
     },
   });
 
+  const { mutate: mutateUpdate, isPending: isMutatePending } = useMutation({
+    mutationFn: ({ videoId, commentId, content }) =>
+      updateComment(videoId, { commentId, content }),
+
+    onSuccess: () => {
+      activeEmojiPickerId && setActiveEmojiPickerId(null);
+      queryClient.refetchQueries(["commentsData", videoId]);
+      setIsEditable(null);
+    },
+    onError: (error) => {
+      console.error(error);
+    },
+  });
+  const { mutate: mutateDelete, isPending: isDeletePending } = useMutation({
+    mutationFn: ({ videoId, commentId, content }) =>
+      deleteComment(videoId, { commentId, content }),
+
+    onSuccess: () => {
+      activeEmojiPickerId && setActiveEmojiPickerId(null);
+      queryClient.refetchQueries(["commentsData", videoId]);
+    },
+    onError: (error) => {
+      console.error(error);
+    },
+  });
+
   const handleAddComment = (commentId) => {
     mutate({
       videoId,
       content: replies[commentId],
       parentCommentId: commentId,
     });
+  };
+
+  const handleUpdateComment = (commentId) => {
+    mutateUpdate({
+      videoId,
+      commentId,
+      content: replies[commentId],
+    });
+  };
+
+  const handleDeleteComment = (commentId) => {
+    mutateDelete({
+      videoId,
+      commentId,
+      content: replies[commentId],
+    });
+    setActiveOptionsId(null);
+  };
+
+  const handleEditBtn = (commentId, content) => {
+    setActiveOptionsId(null);
+    setIsEditable(commentId);
+    setReplies((prev) => ({
+      ...prev,
+      [commentId]: content,
+    }));
   };
 
   useClickAway(emojiPickerRef, () => {
@@ -100,7 +153,6 @@ function CommentReplies({
   const handleToggleOptions = () => {
     setActiveOptionsId((prev) => (prev === reply._id ? null : reply._id));
   };
-
 
   const handleCancelReplyButton = useCallback((id) => {
     setAddReply(null);
@@ -213,10 +265,94 @@ function CommentReplies({
         }
         subheader={
           <>
-            <Typography variant="body2" color="white" whiteSpace="pre-wrap">
-              {reply.content}
-            </Typography>
+            {isEditable === reply._id ? (
+              <>
+                <FormControl fullWidth sx={{ m: 1 }} variant="standard">
+                  <Input
+                    multiline
+                    value={replies[reply._id] || ""}
+                    onChange={(e) =>
+                      setReplies((prev) => ({
+                        ...prev,
+                        [reply._id]: e.target.value,
+                      }))
+                    }
+                    sx={{
+                      fontSize: "0.875rem",
+                      "& textarea": {
+                        color: "rgb(255,255,255) !important",
+                      },
+                      "&::before": {
+                        borderBottom: "1px solid #717171 !important",
+                      },
+                      "&::after": {
+                        borderBottom: "2px solid rgb(255,255,255) !important",
+                      },
+                    }}
+                  />
+                </FormControl>
 
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    color: "#fff",
+                    marginTop: "6px",
+                  }}
+                >
+                  <Box sx={{ position: "relative" }}>
+                    <IconButton
+                      onClick={() => toggleEmojiPicker(reply._id)}
+                      sx={{ color: "#fff" }}
+                    >
+                      <SentimentSatisfiedAltIcon />
+                    </IconButton>
+                    {activeEmojiPickerId === reply._id && !showEmojiPicker && (
+                      <EmojiPickerWrapper
+                        onEmojiSelect={handleEmojiClick}
+                        id={reply._id}
+                      />
+                    )}
+                  </Box>
+
+                  <Box sx={{ display: "flex", gap: "8px" }}>
+                    <Button
+                      onClick={() => setIsEditable(null)}
+                      variant="outlined"
+                      sx={{ color: "white", textTransform: "capitalize" }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={() => handleUpdateComment(reply._id)}
+                      disabled={!replies[reply._id]}
+                      variant="outlined"
+                      sx={{
+                        color: "#0f0f0f",
+                        fontWeight: "550",
+                        borderRadius: "50px",
+                        textTransform: "capitalize",
+                        paddingY: 1,
+                        background: "#3ea6ff",
+                        "&:hover": {
+                          background: "#65b8ff",
+                        },
+                        "&.Mui-disabled": {
+                          background: "rgba(255, 255, 255, 0.1) !important",
+                          color: "rgba(255, 255, 255, 0.4) !important",
+                        },
+                      }}
+                    >
+                      Update
+                    </Button>
+                  </Box>
+                </Box>
+              </>
+            ) : (
+              <Typography variant="body2" color="white" whiteSpace="pre-wrap">
+                {reply.content}
+              </Typography>
+            )}
             <ButtonGroup sx={{ alignItems: "center", marginTop: 0.5 }}>
               {isLike.isLiked ? (
                 <ThumbUpAltIcon
@@ -273,7 +409,7 @@ function CommentReplies({
                   setAddReply(reply._id);
                   setReplies((prev) => ({
                     ...prev,
-                    [data._id]: `@${reply.owner.username} `, // Pre-fill with mention
+                    [reply._id]: `@${reply.owner.username} `, // Pre-fill with mention
                   }));
                 }}
                 sx={{
@@ -311,11 +447,11 @@ function CommentReplies({
                     <FormControl fullWidth sx={{ m: 1 }} variant="standard">
                       <Input
                         multiline
-                        value={replies[data._id] || ""} // Use reply._id as the key
+                        value={replies[reply._id] || ""} // Use reply._id as the key
                         onChange={(e) =>
                           setReplies((prev) => ({
                             ...prev,
-                            [data._id]: e.target.value, // Only update this specific reply
+                            [reply._id]: e.target.value, // Only update this specific reply
                           }))
                         }
                         sx={{
@@ -364,7 +500,7 @@ function CommentReplies({
                           onEmojiSelect={(emoji) =>
                             setReplies((prev) => ({
                               ...prev,
-                              [data._id]: (prev[data._id] || "") + emoji,
+                              [reply._id]: (prev[reply._id] || "") + emoji,
                             }))
                           }
                           id={reply._id}
@@ -385,7 +521,7 @@ function CommentReplies({
                       Cancel
                     </Button>
                     <Button
-                      onClick={() => handleAddComment(data._id)}
+                      onClick={() => handleAddComment(reply._id)}
                       disabled={!reply}
                       variant="outlined"
                       sx={{
@@ -413,60 +549,60 @@ function CommentReplies({
           </>
         }
         action={
-          <Box sx={{position: "relative"}}>
-          <IconButton onClick={handleToggleOptions} aria-label="settings">
-            <MoreVertIcon sx={{ color: "#fff" }} />
-          </IconButton>
-          {activeOptionsId === reply._id && 
-           <Box
-           id="create-menu"
-           sx={{
-             position: "absolute",
-             top: "35px",
-             right: "-93px",
-             borderRadius: "12px",
-             backgroundColor: "#282828",
-             zIndex: 2,
-             paddingY: 1,
-           }}
-         >
-           <MenuItem
-             sx={{
-               paddingTop: 1,
-               paddingLeft: "16px",
-               paddingRight: "36px",
-               gap: "3px",
-               "&:hover": {
-                 backgroundColor: "rgba(255,255,255,0.1)",
-               },
-             }}
-           >
-            <EditOutlinedIcon sx={{color: "#f1f1f1"}} />
-             <Typography variant="body2" marginLeft="10px" color="#f1f1f1">
-               Edit
-             </Typography>
-           </MenuItem>
-           <MenuItem
-             sx={{
-               paddingTop: 1,
-               paddingLeft: "16px",
-               paddingRight: "36px",
-               gap: "3px",
-               "&:hover": {
-                 backgroundColor: "rgba(255,255,255,0.1)",
-               },
-             }}
-           >
-             <DeleteOutlinedIcon sx={{color: "#f1f1f1"}} />
-             <Typography variant="body2" marginLeft="10px" color="#f1f1f1">
-               Delete
-             </Typography>
-           </MenuItem>
-        
-         </Box>
-          }
-            
-           </Box>
+          <Box sx={{ position: "relative" }}>
+            <IconButton onClick={handleToggleOptions} aria-label="settings">
+              <MoreVertIcon sx={{ color: "#fff" }} />
+            </IconButton>
+            {activeOptionsId === reply._id && (
+              <Box
+                id="create-menu"
+                sx={{
+                  position: "absolute",
+                  top: "35px",
+                  right: "-93px",
+                  borderRadius: "12px",
+                  backgroundColor: "#282828",
+                  zIndex: 2,
+                  paddingY: 1,
+                }}
+              >
+                <MenuItem
+                  onClick={() => handleEditBtn(reply._id, reply.content)}
+                  sx={{
+                    paddingTop: 1,
+                    paddingLeft: "16px",
+                    paddingRight: "36px",
+                    gap: "3px",
+                    "&:hover": {
+                      backgroundColor: "rgba(255,255,255,0.1)",
+                    },
+                  }}
+                >
+                  <EditOutlinedIcon sx={{ color: "#f1f1f1" }} />
+                  <Typography variant="body2" marginLeft="10px" color="#f1f1f1">
+                    Edit
+                  </Typography>
+                </MenuItem>
+                <MenuItem
+                  onClick={() => handleDeleteComment(reply._id)}
+                  sx={{
+                    paddingTop: 1,
+                    paddingLeft: "16px",
+                    paddingRight: "36px",
+                    gap: "3px",
+                    "&:hover": {
+                      backgroundColor: "rgba(255,255,255,0.1)",
+                    },
+                  }}
+                >
+                  <DeleteOutlinedIcon sx={{ color: "#f1f1f1" }} />
+                  <Typography variant="body2" marginLeft="10px" color="#f1f1f1">
+                    Delete
+                  </Typography>
+                </MenuItem>
+              </Box>
+            )}
+          </Box>
         }
       />
     </>

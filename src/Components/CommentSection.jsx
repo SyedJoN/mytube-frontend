@@ -35,7 +35,8 @@ function CommentSection({ videoId, data }) {
       <Box>
         {commentsData?.map((comments) => (
           <Comments
-            videoId={videoId}
+          videoId={videoId}
+          commentsData={commentsData}
             key={comments._id}
             data={comments}
             showEmojiPicker={showEmojiPicker}
