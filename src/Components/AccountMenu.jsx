@@ -1,6 +1,7 @@
 import * as React from "react";
 import { OpenContext } from "../routes/__root";
 import { useContext, useState } from "react";
+import { useLocation } from "@tanstack/react-router";
 import {  
   Avatar,  
   MenuItem,  
@@ -15,6 +16,7 @@ import {
 import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient} from "@tanstack/react-query";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
+import PersonIcon from '@mui/icons-material/Person';
 import AddIcon from "@mui/icons-material/Add";
 import SlideshowOutlinedIcon from "@mui/icons-material/SlideshowOutlined";
 import PodcastsIcon from "@mui/icons-material/Podcasts";
@@ -47,10 +49,10 @@ export default function AccountMenu() {
   const openCreate = Boolean(createAnchorEl);
   const [dialogue, setDialogue] = useState(false);
 
-
   const context = useContext(OpenContext);
 
-  let { data } = context;
+  let { data: userData } = context || {};
+
 
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -85,9 +87,9 @@ export default function AccountMenu() {
     const { mutate, isPending, isError, error } = useMutation({
       mutationFn: logoutUser,
         onSuccess: () => {
-          queryClient.invalidateQueries(["user"]); // ✅ Clears and refetches user data
-          queryClient.setQueryData(["user"], null); // 🧹 Resets user data to null
-          navigate({ to: "/" }); 
+          queryClient.invalidateQueries(["userData"]); // ✅ Clears and refetches user data
+          queryClient.setQueryData(["userData"], null); // 🧹 Resets user data to null
+          window.location.href = "/";
         },
       onError: (error) => {
         console.error(
@@ -120,7 +122,7 @@ export default function AccountMenu() {
   }
   return (
     <React.Fragment>
-      {data ? (
+      {userData ? (
         <Box
           sx={{ display: "flex", alignItems: "center", textAlign: "center" }}
         >
@@ -168,12 +170,12 @@ export default function AccountMenu() {
               aria-expanded={open ? "true" : undefined}
             >
              <Avatar
-                              src={data?.data.avatar ? data.data.avatar : null}
-                              sx={{ bgcolor: getColor(data.data.fullName) }}
+                              src={userData?.data.avatar ? userData.data.avatar : null}
+                              sx={{ bgcolor: getColor(userData.data.fullName) }}
                             >
-                              {data.fullName
-                                ? data.data.fullName.charAt(0).toUpperCase()
-                                : "?"}
+                              {userData.fullName
+                                ? userData.data.fullName.charAt(0).toUpperCase()
+                                : <PersonIcon/>}
                             </Avatar>
             </IconButton>
           </Tooltip>
@@ -238,11 +240,11 @@ export default function AccountMenu() {
             onClick={handleClose}
           >
               <Avatar
-                              src={data?.data.avatar ? data.data.avatar : null}
-                              sx={{ bgcolor: getColor(data?.data?.fullName), marginRight: 1 }}
+                              src={userData?.data.avatar ? userData.data.avatar : null}
+                              sx={{ bgcolor: getColor(userData?.data?.fullName), marginRight: 1 }}
                             >
-                              {data?.fullName
-                                ? data?.data?.fullName.charAt(0).toUpperCase()
+                              {userData?.fullName
+                                ? userData?.data?.fullName.charAt(0).toUpperCase()
                                 : "?"}
                             </Avatar>
             <Typography variant="body1">Profile</Typography>
@@ -256,12 +258,12 @@ export default function AccountMenu() {
             onClick={handleClose}
           >
              <Avatar
-                              src={data?.data?.avatar ? data.data.avatar : null}
-                              sx={{ bgcolor: getColor(data?.data?.fullName), marginRight: 1 }}
+                              src={userData?.data?.avatar ? userData.data.avatar : null}
+                              sx={{ bgcolor: getColor(userData?.data?.fullName), marginRight: 1 }}
                             >
-                              {data?.fullName
-                                ? data?.data.fullName.charAt(0).toUpperCase()
-                                : "?"}
+                              {userData?.fullName
+                                ? userData?.data.fullName.charAt(0).toUpperCase()
+                                : <PersonIcon/>}
                             </Avatar>
             <Typography variant="body1">My account</Typography>
           </MenuItem>

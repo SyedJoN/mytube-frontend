@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getVideoComments } from "../apis/commentFn";
 import Box from "@mui/material/Box";
 
-function CommentSection({ videoId, data }) {
+function CommentSection({ videoId }) {
   const [activeOptionsId, setActiveOptionsId] = useState(null);
   const [activeEmojiPickerId, setActiveEmojiPickerId] = useState(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -25,7 +25,7 @@ function CommentSection({ videoId, data }) {
     <>
       <AddComment
         videoId={videoId}
-        data={data}
+        commentsData={commentsData}
         showEmojiPicker={showEmojiPicker}
         setShowEmojiPicker={setShowEmojiPicker}
         activeEmojiPickerId={activeEmojiPickerId}
@@ -33,12 +33,11 @@ function CommentSection({ videoId, data }) {
       />
 
       <Box>
-        {commentsData?.map((comments) => (
+        {commentsData?.map((comment) => (
           <Comments
           videoId={videoId}
-          commentsData={commentsData}
-            key={comments._id}
-            data={comments}
+            key={comment._id}
+            comment={comment}
             showEmojiPicker={showEmojiPicker}
             setShowEmojiPicker={setShowEmojiPicker}
             activeEmojiPickerId={activeEmojiPickerId}

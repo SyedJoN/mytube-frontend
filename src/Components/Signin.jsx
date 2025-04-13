@@ -7,7 +7,7 @@ import Box from "@mui/material/Box";
 import { yupResolver } from "@hookform/resolvers/yup";
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-
+import CircularProgress from "@mui/material/CircularProgress";
 import * as yup from "yup";
 import { TextField, Button, Typography } from "@mui/material";
 import Signup from "./Signup";
@@ -29,13 +29,11 @@ function Signin(props) {
       .required("Password is required"),
   });
 
-  const { mutate, isLoading, isFetching, isError, error } = useMutation({
+  const { mutate, isPending, isError, error } = useMutation({
     mutationFn: loginUser,
     onSuccess: () => {
-      setTimeout(() => {
-        onClose();
-        queryClient.invalidateQueries(["userData"]);
-      }, 900); // Delay navigation for 500ms
+      onClose();
+      queryClient.invalidateQueries(["userData"]);
     },
     onError: (error) => {
       console.error(
@@ -195,7 +193,8 @@ function Signin(props) {
                 </span>
               }
             />
-               {isError && <Typography color="red">{error.message}</Typography> }  
+            {isError && <Typography color="red">{error.message}</Typography>}
+
             <Button
               type="submit"
               variant="contained"
@@ -214,7 +213,18 @@ function Signin(props) {
                 },
               }}
             >
-              Sign In
+              {isPending ? (
+                <CircularProgress
+                  sx={{
+                    mx: "auto",
+                    textAlign: "center",
+                    color: "inherit",
+                  }}
+                  size={30}
+                />
+              ) : (
+                <Typography>Sign In</Typography>
+              )}
             </Button>
 
             <Box sx={{ paddingY: 4 }}>
@@ -233,7 +243,18 @@ function Signin(props) {
             </Box>
           </form>
 
-          {isFetching && <LinearProgress />}
+          {isPending && (
+            <LinearProgress
+              sx={{
+                position: "fixed",
+                top: "485px",
+                left: "0",
+                bottom: "0",
+                right: "0",
+                background: "rgb(180, 207, 248)",
+              }}
+            />
+          )}
         </Box>
 
         <Signup firstPage={firstPage} setFirstPage={setFirstPage} />

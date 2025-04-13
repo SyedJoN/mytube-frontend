@@ -138,6 +138,7 @@ function VideoPlayer({ videoId }) {
   const user = data?.data?.owner?.username;
 
   const channelId = data?.data?.owner?._id;
+  const channelName = data?.data?.owner?.fullName;
 
   const {
     data: userData,
@@ -282,6 +283,7 @@ function VideoPlayer({ videoId }) {
             />
 
             <SubscribeButton
+            channelName={channelName}
               channelId={channelId}
               initialSubscribed={userData?.data[0]?.isSubscribedTo}
               initialSubscribers={userData?.data[0]?.subscribersCount}

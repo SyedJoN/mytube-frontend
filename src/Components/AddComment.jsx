@@ -6,17 +6,20 @@ import React, {
   useMemo,
   useEffect,
   useCallback,
+  useContext
 } from "react";
 import { Box, Typography } from "@mui/material";
 import CardHeader from "@mui/material/CardHeader";
 import EmojiPickerWrapper from "./EmojiPickerWrapper";
-import CircularProgress from '@mui/material/CircularProgress';
+import CircularProgress from "@mui/material/CircularProgress";
 import Button from "@mui/material/Button";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import Avatar from "@mui/material/Avatar";
 import { addComment } from "../apis/commentFn";
+import { OpenContext } from "../routes/__root";
 import Input from "@mui/material/Input";
 import InputLabel from "@mui/material/InputLabel";
+import PersonIcon from '@mui/icons-material/Person';
 import FormControl from "@mui/material/FormControl";
 const LazyEmojiPicker = lazy(() => import("emoji-picker-react"));
 import { useClickAway } from "react-use";
@@ -40,14 +43,14 @@ const preloadEmojiPicker = () => {
 };
 function AddComment({
   videoId,
-  data,
+  commentsData,
   activeEmojiPickerId,
-  setActiveEmojiPickerId,
   showEmojiPicker,
   setShowEmojiPicker,
 }) {
-
   const queryClient = useQueryClient();
+    const context = useContext(OpenContext);
+    let { data: userData } = context;
   const emojiPickerRef = useRef(null);
   const [addCommentBox, setAddComment] = useState(false);
   const [comment, setComment] = useState("");
@@ -72,8 +75,8 @@ function AddComment({
 
     onSuccess: () => {
       setComment("");
-      setAddComment(false)
-      queryClient.refetchQueries(["commentsData", videoId])
+      setAddComment(false);
+      queryClient.refetchQueries(["commentsData", videoId]);
     },
     onError: (error) => {
       console.error(error);
@@ -81,13 +84,12 @@ function AddComment({
   });
 
   const toggleEmojiPicker = () => {
-    setIsEmojiButtonClicked(true);
     setShowEmojiPicker((prev) => !prev);
-    setActiveEmojiPickerId(null);
   };
 
   const handleAddComment = (comment) => {
     mutate({ videoId, content: comment });
+    setShowEmojiPicker(false);
   };
 
   const handleInputChange = (e) => {
@@ -113,19 +115,16 @@ function AddComment({
     return colorPalette[index] || blue[500]; // Default to blue if something goes wrong
   }
 
-  useClickAway(emojiPickerRef, () => {
-    if (!isEmojiButtonClicked) {
-      // Only close if emoji button was not clicked
-      setShowEmojiPicker(false);
-      setActiveEmojiPickerId(null); // Reset active emoji picker ID
-    }
-    setIsEmojiButtonClicked(false); // Reset the button click state
-  });
+  // useClickAway(emojiPickerRef, (e) => {
+  //   e.stopPropagation();
+  //   setShowEmojiPicker(false);
+  // setActiveEmojiPickerId(null);
+  // });
 
   return (
     <Box marginTop="12px">
-      <Typography variant="h3" color="rgb(255,255,255)">
-        1,962 Comments
+      <Typography variant="h6" color="rgb(255,255,255)" fontWeight={600}>
+        {commentsData?.length} Comments
       </Typography>
       <Box sx={{ display: "flex", alignItems: "center", mt: 2 }}>
         <CardHeader
@@ -143,62 +142,65 @@ function AddComment({
           }}
           avatar={
             <Avatar
-              src={data?.data?.owner?.avatar ? data?.data?.owner?.avatar : null}
-              sx={{ bgcolor: getColor(data?.data?.owner?.fullName) }}
+              src={userData?.data?.avatar ? userData?.data?.avatar : null}
+              sx={{ bgcolor: userData ? getColor(userData?.data?.fullName) : "rgba(168, 199, 250 , 1)", overflow: "hidden"}}
             >
-              {data?.data?.owner?.fullName
-                ? data?.data?.owner?.fullName.charAt(0).toUpperCase()
-                : "?"}
+              {userData?.data?.fullName
+                ? userData?.data?.fullName.charAt(0).toUpperCase()
+                : <PersonIcon sx={{color: "rgb(38, 121, 254)" ,width: "35px", height: "35px"}}/>}
             </Avatar>
           }
         ></CardHeader>
-        {isPending ?   
-      <CircularProgress sx={{ mx: "auto", textAlign: "center", color: "rgba(168, 199, 250 , 1)"
-
-      }} size={30} />
-    : 
-          <FormControl fullWidth sx={{ m: 1 }} variant="standard">
-          <InputLabel
-            disabled={comment !== ""}
-            shrink
+        {isPending ? (
+          <CircularProgress
             sx={{
-              color: "rgba(255,255,255,0.7)",
-              fontSize: "1.1rem",
-              transform: "translate(0, 23.5px) scale(0.75)",
+              mx: "auto",
+              textAlign: "center",
+              color: "rgba(168, 199, 250 , 1)",
             }}
-            htmlFor="standard-adornment-amount"
-          >
-            Add a comment...
-          </InputLabel>
-          <Input
-            multiline
-            value={comment}
-            onChange={handleInputChange}
-            onClick={() => setAddComment(true)}
-            id="standard-adornment-amount"
-            sx={{
-              "&::before": {
-                borderBottom: "1px solid #717171 !important",
-              },
-              "&::after": {
-                borderBottom: "2px solid rgb(255,255,255) !important",
-              },
-              "& textarea": {
-                color: "rgb(255,255,255) !important",
-              },
-              "&input:-webkit-autofill": {
-                WebkitBoxShadow: "0 0 0px 1000px #0f0f0f inset",
-                WebkitTextFillColor: "#fff !important",
-              },
-              "& input:-webkit-autofill:hover": {
-                WebkitTextFillColor: "#fff !important",
-              },
-            }}
+            size={30}
           />
-        </FormControl>
-        
-        }
-      
+        ) : (
+          <FormControl fullWidth sx={{ m: 1 }} variant="standard">
+            <InputLabel
+              disabled={comment !== ""}
+              shrink
+              sx={{
+                color: "rgba(255,255,255,0.7)",
+                fontSize: "1.1rem",
+                transform: "translate(0, 23.5px) scale(0.75)",
+              }}
+              htmlFor="standard-adornment-amount"
+            >
+              Add a comment...
+            </InputLabel>
+            <Input
+              multiline
+              value={comment}
+              onChange={handleInputChange}
+              onClick={() => setAddComment(true)}
+              id="standard-adornment-amount"
+              sx={{
+                "&::before": {
+                  borderBottom: "1px solid #717171 !important",
+                },
+                "&::after": {
+                  borderBottom: "2px solid rgb(255,255,255) !important",
+                },
+                "& textarea": {
+                  color: "rgb(255,255,255) !important",
+                },
+                "&input:-webkit-autofill": {
+                  WebkitBoxShadow: "0 0 0px 1000px #0f0f0f inset",
+                  WebkitTextFillColor: "#fff !important",
+                },
+                "& input:-webkit-autofill:hover": {
+                  WebkitTextFillColor: "#fff !important",
+                },
+              }}
+            />
+          </FormControl>
+        )}
       </Box>
 
       <Box
@@ -210,18 +212,17 @@ function AddComment({
         }}
       >
         {addCommentBox && (
-          <Box sx={{ position: "relative", marginLeft: "48px" }}>
+          <Box
+            ref={emojiPickerRef}
+            sx={{ position: "relative", marginLeft: "48px" }}
+          >
             <IconButton onClick={toggleEmojiPicker} sx={{ color: "#fff" }}>
               <SentimentSatisfiedAltIcon />
             </IconButton>
             {showEmojiPicker && !activeEmojiPickerId && (
-              <Box
-                ref={emojiPickerRef}
-                sx={{ position: "absolute", left: "10px", zIndex: 100 }}
-              >
+              <Box sx={{ position: "absolute", left: "10px", zIndex: 100 }}>
                 <EmojiPickerWrapper
                   onEmojiSelect={handleEmojiClick}
-                  id={data._id}
                 />
               </Box>
             )}
@@ -238,6 +239,7 @@ function AddComment({
                 borderRadius: "50px",
                 textTransform: "capitalize",
                 paddingY: 1,
+                transition: "none",
                 "&:hover": {
                   background: "rgba(255,255,255,0.1)",
                 },

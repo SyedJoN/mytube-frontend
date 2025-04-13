@@ -11,7 +11,7 @@ import formatDate from '../utils/dayjs';
 import Button from "@mui/material/Button";
 import { useQuery } from '@tanstack/react-query';
 import ButtonGroup from "@mui/material/ButtonGroup";
-import { Box } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 
 function VideoSideBar() {
 
