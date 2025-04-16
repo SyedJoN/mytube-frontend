@@ -56,9 +56,13 @@ function CommentReplies({
   activeAlertId,
   setActiveAlertId,
 }) {
-
   const currentAlertId = `replies-${reply._id}`;
   const paperOpen = activeAlertId === currentAlertId;
+  const likeAlertId = `reply-like-${reply._id}`;
+  const dislikeAlertId = `reply-dislike-${reply._id}`;
+  const isLikeAlertOpen = activeAlertId === likeAlertId;
+  const isDislikeAlertOpen = activeAlertId === dislikeAlertId;
+
   const queryClient = useQueryClient();
   const emojiPickerRefs = useRef({});
   const userId = userData?.data?._id;
@@ -223,12 +227,24 @@ function CommentReplies({
     },
   });
 
-  const toggleLike = (id) => {
-    toggleLikeMutation(id);
+  const toggleLike = (e, id) => {
+    e.stopPropagation(e);
+    if (isAuthenticated) {
+      toggleLikeMutation(id);
+
+    } else {
+      setActiveAlertId(isLikeAlertOpen ? null : likeAlertId);
+    }
   };
 
-  const toggleDislike = (id) => {
-    toggleDislikeMutation(id);
+  const toggleDislike = (e, id) => {
+    e.stopPropagation(e);
+    if (isAuthenticated) {
+      toggleDislikeMutation(id);
+    } else {
+      setActiveAlertId(isDislikeAlertOpen ? null : dislikeAlertId);
+    }
+   
   };
 
   const handleToggleOptions = () => {
@@ -237,14 +253,19 @@ function CommentReplies({
   const handleCloseAlert = () => {
     if (paperOpen) setActiveAlertId(null);
   };
+
   const handleReplyClick = (e, reply) => {
     e.stopPropagation();
     if (isAuthenticated) {
+      setSubReplies((prev) => ({
+        ...prev,
+        [reply._id]: `@${reply.owner.username} `, // Pre-fill with mention
+      }));
       setAddReply(reply._id);
     } else {
       setActiveAlertId(paperOpen ? null : currentAlertId);
     }
-  }
+  };
 
   return (
     <>
@@ -400,6 +421,7 @@ function CommentReplies({
             <ButtonGroup
               sx={{ alignItems: "center", marginTop: 0.5, marginLeft: "-8px" }}
             >
+              <Box sx={{ position: "relative"}}>
               {isLike.isLiked ? (
                 <Tooltip title="Unlike">
                   <IconButton
@@ -413,10 +435,10 @@ function CommentReplies({
                     }}
                   >
                     <ThumbUpAltIcon
-                      onClick={() => toggleLike(reply._id)}
+                      onClick={(e) => toggleLike(e, reply._id)}
                       sx={{
                         cursor: "pointer",
-                        color: "#fff",
+                        color: "#f1f1f1",
                         fontSize: "1.3rem",
                       }}
                     />
@@ -435,7 +457,7 @@ function CommentReplies({
                     }}
                   >
                     <ThumbUpOffAltIcon
-                      onClick={() => toggleLike(reply._id)}
+                      onClick={(e) => toggleLike(e, reply._id)}
                       sx={{
                         cursor: "pointer",
                         color: "#fff",
@@ -445,7 +467,17 @@ function CommentReplies({
                   </IconButton>
                 </Tooltip>
               )}
-
+               <SignInAlert
+              title="Like this video?"
+              desc="Sign in to make your opinion count"
+              isOpen={isLikeAlertOpen}
+              setIsOpen={handleCloseAlert}
+              setActiveAlertId={setActiveAlertId}
+              onConfirm={() => setIsSignIn(true)}
+              handleClose={handleCloseAlert}
+              leftVal="0px"
+            />
+</Box>
               {isLike.likeCount && (
                 <span
                   style={{
@@ -457,6 +489,7 @@ function CommentReplies({
                   {isLike.likeCount}
                 </span>
               )}
+              <Box sx={{ position: "relative"}}>
               {isDislike.isDisliked ? (
                 <Tooltip title="Remove dislike">
                   <IconButton
@@ -470,7 +503,7 @@ function CommentReplies({
                     }}
                   >
                     <ThumbDownAltIcon
-                      onClick={() => toggleDislike(reply._id)}
+                      onClick={(e) => toggleDislike(e, reply._id)}
                       sx={{
                         cursor: "pointer",
                         color: "#fff",
@@ -492,7 +525,7 @@ function CommentReplies({
                     }}
                   >
                     <ThumbDownOffAltIcon
-                      onClick={() => toggleDislike(reply._id)}
+                      onClick={(e) => toggleDislike(e, reply._id)}
                       sx={{
                         cursor: "pointer",
                         color: "#fff",
@@ -502,18 +535,20 @@ function CommentReplies({
                   </IconButton>
                 </Tooltip>
               )}
+                <SignInAlert
+              title="Don’t like this video?"
+              desc="Sign in to make your opinion count"
+              isOpen={isDislikeAlertOpen}
+              setIsOpen={handleCloseAlert}
+              setActiveAlertId={setActiveAlertId}
+              onConfirm={() => setIsSignIn(true)}
+              handleClose={handleCloseAlert}
+              leftVal="0px"
+            />
+              </Box>
               <Box sx={{ position: "relative", padding: 0, marginLeft: "8px" }}>
                 <Button
-                  onClick={(e) => {
-
-                    handleReplyClick(e, reply);
-                    setSubReplies((prev) => ({
-                      ...prev,
-                      [reply._id]: `@${reply.owner.username} `, // Pre-fill with mention
-                    }));
-                  }
-                   
-                  }
+                  onClick={(e) => handleReplyClick(e, reply)}
                   sx={{
                     fontSize: "0.75rem",
                     color: "#fff",
@@ -528,15 +563,14 @@ function CommentReplies({
                 >
                   Reply
                 </Button>
-                   <SignInAlert
-                                  height="140"
-                                  title="Sign in to continue"
-                                  isOpen={paperOpen}
-                                  handleClose={handleCloseAlert}
-                                  setActiveAlertId={setActiveAlertId}
-                                  onConfirm={() => setIsSignIn(true)}
-                                  leftVal="128px"
-                                />
+                <SignInAlert
+                  height="140"
+                  title="Sign in to continue"
+                  isOpen={paperOpen}
+                  handleClose={handleCloseAlert}
+                  setActiveAlertId={setActiveAlertId}
+                  onConfirm={() => setIsSignIn(true)}
+                />
               </Box>
             </ButtonGroup>
             {addReply === reply._id && (

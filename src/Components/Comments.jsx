@@ -35,6 +35,7 @@ import { toggleCommentLike } from "../apis/likeFn";
 import CircularProgress from "@mui/material/CircularProgress";
 import { toggleCommentDislike } from "../apis/dislikeFn";
 import SignInAlert from "./SignInAlert";
+import Signin from "./Signin";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import EmojiPickerWrapper from "./EmojiPickerWrapper";
 import ThumbDownAltIcon from "@mui/icons-material/ThumbDownAlt";
@@ -63,8 +64,12 @@ const Comments = ({
 }) => {
   const queryClient = useQueryClient();
   const emojiPickerRef = useRef(null);
-  const currentAlertId = `comments-${videoId}`;
+  const currentAlertId = `comments-${comment._id}`;
   const paperOpen = activeAlertId === currentAlertId;
+  const likeAlertId = `comment-like-${comment._id}`;
+  const dislikeAlertId = `comment-dislike-${comment._id}`;
+  const isLikeAlertOpen = activeAlertId === likeAlertId;
+  const isDislikeAlertOpen = activeAlertId === dislikeAlertId;
 
   const context = useContext(OpenContext);
   let { data: userData } = context;
@@ -138,7 +143,7 @@ const Comments = ({
   });
 
   const handleCloseAlert = () => {
-    if (paperOpen) setActiveAlertId(null);
+    setActiveAlertId(null);
   };
 
   const handleReplyClick = (e, commentId) => {
@@ -244,11 +249,19 @@ const Comments = ({
   }, []);
 
   const toggleLike = (id) => {
-    toggleLikeMutation(id);
+    if (isAuthenticated) {
+      toggleLikeMutation(id);
+    } else {
+      setActiveAlertId(isLikeAlertOpen ? null : likeAlertId);
+    }
   };
 
   const toggleDislike = (id) => {
-    toggleDislikeMutation(id);
+    if (isAuthenticated) {
+      toggleDislikeMutation(id);
+    } else {
+      setActiveAlertId(isDislikeAlertOpen ? null : dislikeAlertId);
+    }
   };
 
   const handleEmojiClick = useCallback((emojiObject, id) => {
@@ -404,6 +417,7 @@ const Comments = ({
             <ButtonGroup
               sx={{ alignItems: "center", marginTop: 0.5, marginLeft: "-8px" }}
             >
+              <Box sx={{ position: "relative"}}>
               {isLike.isLiked ? (
                 <Tooltip title="Unlike">
                   <IconButton
@@ -449,7 +463,17 @@ const Comments = ({
                   </IconButton>
                 </Tooltip>
               )}
-
+               <SignInAlert
+              title="Like this video?"
+              desc="Sign in to make your opinion count"
+              isOpen={isLikeAlertOpen}
+              setIsOpen={handleCloseAlert}
+              setActiveAlertId={setActiveAlertId}
+              onConfirm={() => setIsSignIn(true)}
+              handleClose={handleCloseAlert}
+              leftVal="0px"
+            />
+</Box>
               {isLike.likeCount && (
                 <span
                   style={{
@@ -461,6 +485,7 @@ const Comments = ({
                   {isLike.likeCount}
                 </span>
               )}
+              <Box sx={{ position: "relative"}}>
               {isDislike.isDisliked ? (
                 <Tooltip title="Remove dislike">
                   <IconButton
@@ -506,7 +531,18 @@ const Comments = ({
                   </IconButton>
                 </Tooltip>
               )}
-              <Box sx={{ postion: "relative", padding: 0, marginLeft: "8px" }}>
+                <SignInAlert
+              title="Don’t like this video?"
+              desc="Sign in to make your opinion count"
+              isOpen={isDislikeAlertOpen}
+              setIsOpen={handleCloseAlert}
+              setActiveAlertId={setActiveAlertId}
+              onConfirm={() => setIsSignIn(true)}
+              handleClose={handleCloseAlert}
+              leftVal="0px"
+            />
+              </Box>
+              <Box sx={{ position: "relative", padding: 0, marginLeft: "8px" }}>
                 <Button
                   onClick={(e) => handleReplyClick(e, comment._id)}
                   sx={{
@@ -530,7 +566,6 @@ const Comments = ({
                   handleClose={handleCloseAlert}
                   setActiveAlertId={setActiveAlertId}
                   onConfirm={() => setIsSignIn(true)}
-                  leftVal="128px"
                 />
               </Box>
             </ButtonGroup>
@@ -702,7 +737,7 @@ const Comments = ({
               showReplies === comment._id &&
               comment.replies?.map((reply) => (
                 <CommentReplies
-                isAuthenticated={isAuthenticated}
+                  isAuthenticated={isAuthenticated}
                   videoId={videoId}
                   key={reply._id}
                   comment={comment}

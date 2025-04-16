@@ -78,7 +78,7 @@ function SignInAlert({
                 },
                 justifyContent: "center",
                 width: "80px",
-                borderRadius: "50px",
+                borderRadius: "50px!important",
               }}
               marginTop="24px"
             >

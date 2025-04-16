@@ -79,6 +79,7 @@ function Signin(props) {
           backgroundColor: "rgba(14 14 14 / 1)",
           position: "relative",
           borderRadius: "50px",
+          transition: "max-height 0.3s ease",
           maxHeight: firstPage ? "700px" : "500px",
         }}
         maxWidth="sm"
