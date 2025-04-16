@@ -1,66 +1,27 @@
-import React, {
-  useState,
-  useRef,
-  useEffect,
-  useContext,
-  useCallback,
-} from "react";
+import React, { useState, useRef, useEffect, useContext } from "react";
 import { keyframes } from "@mui/system";
 import { getColor } from "../utils/getColor";
 import { Box, Typography } from "@mui/material";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchVideos, fetchVideoById } from "../apis/videoFn";
+import { fetchVideoById } from "../apis/videoFn";
 import { getUserChannelProfile } from "../apis/userFn";
-import formatDate from "../utils/dayjs";
 import CommentSection from "./CommentSection";
 import { videoView } from "../apis/videoFn";
 import confetti from "canvas-confetti";
 import { OpenContext } from "../routes/__root";
-
-import { toggleVideoLike } from "../apis/likeFn";
-import { toggleVideoDislike } from "../apis/dislikeFn";
-import VideoCard from "./VideoCard";
 import Grid from "@mui/material/Grid2";
-import { Link } from "@tanstack/react-router";
-import Skeleton from "@mui/material/Skeleton";
 import CardHeader from "@mui/material/CardHeader";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
-import Button from "@mui/material/Button";
-import ButtonGroup from "@mui/material/ButtonGroup";
-import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
-
 import Avatar from "@mui/material/Avatar";
 
-import {
-  deepPurple,
-  indigo,
-  blue,
-  teal,
-  green,
-  amber,
-  orange,
-  red,
-} from "@mui/material/colors";
-
-import { toggleSubscription } from "../apis/subscriptionFn";
-import ThumbUpOffAltIcon from "@mui/icons-material/ThumbUpOffAlt";
-import ThumbUpAltIcon from "@mui/icons-material/ThumbUpAlt";
-import ThumbDownOffAltIcon from "@mui/icons-material/ThumbDownOffAlt";
-import ThumbDownAltIcon from "@mui/icons-material/ThumbDownAlt";
-
-import { getVideoComments } from "../apis/commentFn";
-import Comments from "./Comments";
-import AddComment from "./AddComment";
 import { SubscribeButton } from "./SubscribeButton";
 import { LikeDislikeButtons } from "./LikeDislikeButton";
 import Description from "./Description";
 import VideoSideBar from "./VideoSideBar";
 
 function VideoPlayer({ videoId }) {
-  const queryClient = useQueryClient();
   const context = useContext(OpenContext);
   let { data: dataContext } = context;
+  const isAuthenticated = dataContext || null;
 
   const rotateAnimation = keyframes`
   0% { transform: rotate(0deg); }
@@ -155,7 +116,7 @@ function VideoPlayer({ videoId }) {
     userData?.data[0]?.subscribersCount ?? 0
   );
   const [viewCounted, setViewCounted] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const [activeAlertId, setActiveAlertId] = useState(null);
 
   const buttonRef = useRef(null);
 
@@ -283,14 +244,18 @@ function VideoPlayer({ videoId }) {
             />
 
             <SubscribeButton
-            channelName={channelName}
+              isAuthenticated={isAuthenticated}
+              channelName={channelName}
               channelId={channelId}
               initialSubscribed={userData?.data[0]?.isSubscribedTo}
               initialSubscribers={userData?.data[0]?.subscribersCount}
               user={user}
+              activeAlertId={activeAlertId}
+              setActiveAlertId={setActiveAlertId}
             />
           </Box>
           <LikeDislikeButtons
+            isAuthenticated={isAuthenticated}
             videoId={videoId}
             initialLikes={data?.data?.likesCount || 0}
             initialIsLiked={data?.data?.likedBy.includes(
@@ -299,13 +264,21 @@ function VideoPlayer({ videoId }) {
             initialIsDisliked={data?.data?.disLikedBy.includes(
               dataContext?.data?._id
             )}
+            activeAlertId={activeAlertId}
+            setActiveAlertId={setActiveAlertId}
           />
         </Box>
         <Description
           data={data}
           subscriberCount={userData?.data[0]?.subscribersCount}
         />
-        <CommentSection videoId={videoId} data={data} />
+        <CommentSection
+          isAuthenticated={isAuthenticated}
+          videoId={videoId}
+          data={data}
+          activeAlertId={activeAlertId}
+          setActiveAlertId={setActiveAlertId}
+        />
       </Grid>
       <Grid
         size={{ xs: 12, md: 4 }}

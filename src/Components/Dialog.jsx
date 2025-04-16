@@ -63,7 +63,7 @@ export default function AlertDialog({ title, desc, buttonTxt, dialogOpen, setDia
             }
            }}
           onClick={() => {
-            onConfirm(); // <-- Trigger callback directly
+            onConfirm(); 
             handleClose();
           }}
           autoFocus

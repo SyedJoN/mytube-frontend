@@ -3,10 +3,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toggleSubscription } from "../apis/subscriptionFn";
 import Button from "@mui/material/Button";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
-import { keyframes } from "@mui/system";
+import { keyframes, positions } from "@mui/system";
 import { getUserChannelProfile } from "../apis/userFn";
 import AlertDialog from "./Dialog";
 import SimpleSnackbar from "./Snackbar";
+import Box from "@mui/system/Box";
+import Signin from "./Signin";
+import SignInAlert from "./SignInAlert";
 
 const rotateAnimation = keyframes`
   0% { transform: rotate(0deg); }
@@ -23,9 +26,22 @@ const rotateAnimation = keyframes`
 `;
 
 export const SubscribeButton = React.memo(
-  ({ channelName, channelId, initialSubscribed, initialSubscribers, user }) => {
+  ({
+    isAuthenticated,
+    channelName,
+    channelId,
+    initialSubscribed,
+    initialSubscribers,
+    user,
+    activeAlertId,
+    setActiveAlertId,
+  }) => {
+    const currentAlertId = `alert-${channelId}`;
+    const paperOpen = activeAlertId === currentAlertId;
+
     const [isSubscribed, setIsSubscribed] = useState(initialSubscribed);
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [isSignIn, setIsSignIn] = useState(false);
     const [snackbarMessage, setSnackbarMessage] = useState("");
     const [snackbarOpen, setSnackbarOpen] = useState(false);
     const [subscriberCount, setSubscriberCount] = useState(initialSubscribers);
@@ -69,9 +85,18 @@ export const SubscribeButton = React.memo(
       }
     };
 
-    const handleSubscribeBtn = () => {
-      setDialogOpen(true);
+    const handleSubscribeBtn = (e) => {
+      e.stopPropagation();
+    
+      if (isAuthenticated && isSubscribed) {
+        setDialogOpen(true);
+      } else if (isAuthenticated && !isSubscribed) {
+        mutate();
+      } else {
+         setActiveAlertId(paperOpen ? null : currentAlertId);
+      }
     };
+
 
     useEffect(() => {
       if (!isSubscribed) {
@@ -104,8 +129,10 @@ export const SubscribeButton = React.memo(
       },
       onSuccess: (data) => {
         queryClient.invalidateQueries(["channelProfile", user]);
-        !isSubscribed ? setSnackbarMessage("Subscription removed") : setSnackbarMessage("Subscription added")
-       setSnackbarOpen(true);
+        !isSubscribed
+          ? setSnackbarMessage("Subscription removed")
+          : setSnackbarMessage("Subscription added");
+        setSnackbarOpen(true);
       },
     });
     useEffect(() => {
@@ -121,8 +148,19 @@ export const SubscribeButton = React.memo(
       }
     }, [userData]);
 
+
+    const handleCloseAlert = () => {
+      if (paperOpen) setActiveAlertId(null);
+    };
+
     return (
+      
       <>
+    {isSignIn && (
+  <Box sx={{ zIndex: 9999, position: "fixed", top: 0, left: 0 }}>
+    <Signin open={isSignIn} onClose={() => setIsSignIn(false)} />
+  </Box>
+)}
         <AlertDialog
           title={`Unsubscribe from ${channelName}?`}
           buttonTxt="Unsubscribe"
@@ -135,67 +173,66 @@ export const SubscribeButton = React.memo(
           setOpen={setSnackbarOpen}
           message={snackbarMessage}
         />
-
-        {isSubscribed ? (
-          <Button
-            ref={buttonRef}
-            onClick={handleSubscribeBtn}
+<Box>
+        <Button
+        ref={buttonRef}
+        onClick={handleSubscribeBtn}
+        onTransitionEnd={handleTransitionEnd}
+        sx={{
+          borderRadius: "50px",
+          position: "relative",
+          height: "36px",
+          fontSize: "0.8rem",
+          textTransform: "capitalize",
+          overflow: "hidden",
+          fontWeight: "600",
+          marginLeft: "8px",
+          padding: "0 16px",
+          width: isSubscribed ? "140px" : "100px",
+          background: isSubscribed ? "rgba(255,255,255,0.1)" : "#f1f1f1",
+          transition: isSubscribed ? "width 0.5s ease, background 0.3s ease" : "",
+          "&:hover": {
+            background: isSubscribed ? "rgba(255,255,255,0.2)" : "#d9d9d9",
+          },
+          "&::before": {
+            ...buttonStyles.before,
+          },
+        }}
+      >
+        {isSubscribed && (
+          <NotificationsNoneIcon
             sx={{
-              ...buttonStyles.base,
-              "&::before": buttonStyles.before,
-              "&:hover": {
-                background: "rgba(255,255,255,0.2)",
-              },
+              position: "relative",
+              color: "#f1f1f1",
+              marginLeft: "-6px",
+              marginRight: "6px",
+              fontSize: "1.6rem",
+              transformOrigin: "top",
+              animation: shouldAnimate
+                ? `${rotateAnimation} 1.4s ease-in-out`
+                : "none",
             }}
-            onTransitionEnd={handleTransitionEnd}
-          >
-            <NotificationsNoneIcon
-              sx={{
-                position: "relative",
-                color: "#f1f1f1",
-                marginLeft: "-6px",
-                marginRight: "6px",
-                fontSize: "1.6rem",
-                transformOrigin: "top",
-                animation: shouldAnimate
-                  ? `${rotateAnimation} 1.4s ease-in-out`
-                  : "none",
-              }}
-            />
-            <span
-              style={{
-                textOverflow: "ellipsis",
-                overflow: "hidden",
-                color: "#f1f1f1",
-                position: "relative",
-              }}
-            >
-              Subscribed
-            </span>
-          </Button>
-        ) : (
-          <Button
-            onClick={() => mutate()}
-            sx={{
-              background: "#f1f1f1",
-              "&:hover": {
-                background: "#d9d9d9",
-              },
-              borderRadius: "50px",
-              width: "100px",
-              height: "36px",
-              fontSize: "0.8rem",
-              textTransform: "capitalize",
-              overflow: "hidden",
-              fontWeight: "600",
-              marginLeft: 2,
-              padding: "0 16px",
-            }}
-          >
-            <span style={{ color: "#0f0f0f" }}>Subscribe</span>
-          </Button>
+          />
         )}
-      </>
+        <span
+          style={{
+            textOverflow: "ellipsis",
+            overflow: "hidden",
+            position: "relative",
+            color: isSubscribed ? "#f1f1f1" : "#0f0f0f",
+          }}
+        >
+          {isSubscribed ? "Subscribed" : "Subscribe"}
+        </span>
+      </Button>
+      <SignInAlert title="Want to subscribe to this channel?" desc="Sign in to subscribe this channel." isOpen={paperOpen} handleClose={handleCloseAlert} onConfirm={()=> setIsSignIn(true)} setActiveAlertId={setActiveAlertId} leftVal="225px"/>
+           
+      </Box>
+      
+   
+          </>
+     
+  
     );
   }
 );

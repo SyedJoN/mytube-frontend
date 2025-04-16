@@ -17,8 +17,10 @@ import {
 import { addComment, updateComment, deleteComment } from "../apis/commentFn";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import OutlinedFlagOutlinedIcon from "@mui/icons-material/OutlinedFlagOutlined";
+import Signin from "./Signin";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
+import PersonIcon from "@mui/icons-material/Person";
 import SentimentSatisfiedAltIcon from "@mui/icons-material/SentimentSatisfiedAlt";
 const LazyEmojiPicker = lazy(() => import("emoji-picker-react"));
 import ThumbUpOffAltIcon from "@mui/icons-material/ThumbUpOffAlt";
@@ -37,8 +39,10 @@ import { getColor } from "../utils/getColor";
 import { useClickAway } from "react-use";
 import SimpleSnackbar from "./Snackbar";
 import AlertDialog from "./Dialog";
+import SignInAlert from "./SignInAlert";
 
 function CommentReplies({
+  isAuthenticated,
   videoId,
   comment,
   reply,
@@ -49,12 +53,19 @@ function CommentReplies({
   setActiveEmojiPickerId,
   activeOptionsId,
   setActiveOptionsId,
+  activeAlertId,
+  setActiveAlertId,
 }) {
+
+  const currentAlertId = `replies-${reply._id}`;
+  const paperOpen = activeAlertId === currentAlertId;
   const queryClient = useQueryClient();
   const emojiPickerRefs = useRef({});
   const userId = userData?.data?._id;
   const [addReply, setAddReply] = useState(null);
   const [replies, setReplies] = useState({});
+  const [isSignIn, setIsSignIn] = useState(false);
+
   const [subReplies, setSubReplies] = useState({});
   const [deleteTargetId, setDeleteTargetId] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -223,9 +234,25 @@ function CommentReplies({
   const handleToggleOptions = () => {
     setActiveOptionsId((prev) => (prev === reply._id ? null : reply._id));
   };
+  const handleCloseAlert = () => {
+    if (paperOpen) setActiveAlertId(null);
+  };
+  const handleReplyClick = (e, reply) => {
+    e.stopPropagation();
+    if (isAuthenticated) {
+      setAddReply(reply._id);
+    } else {
+      setActiveAlertId(paperOpen ? null : currentAlertId);
+    }
+  }
 
   return (
     <>
+      {isSignIn && (
+        <Box sx={{ zIndex: 9999, position: "fixed", top: 0, left: 0 }}>
+          <Signin open={isSignIn} onClose={() => setIsSignIn(false)} />
+        </Box>
+      )}
       <CardHeader
         sx={{
           alignItems: "flex-start",
@@ -370,7 +397,9 @@ function CommentReplies({
                 {reply.content}
               </Typography>
             )}
-            <ButtonGroup sx={{ alignItems: "center", marginTop: 0.5, marginLeft: "-8px" }}>
+            <ButtonGroup
+              sx={{ alignItems: "center", marginTop: 0.5, marginLeft: "-8px" }}
+            >
               {isLike.isLiked ? (
                 <Tooltip title="Unlike">
                   <IconButton
@@ -473,15 +502,18 @@ function CommentReplies({
                   </IconButton>
                 </Tooltip>
               )}
-              <Box sx={{ padding: 0, marginLeft: "8px" }}>
+              <Box sx={{ position: "relative", padding: 0, marginLeft: "8px" }}>
                 <Button
-                  onClick={() => {
-                    setAddReply(reply._id);
+                  onClick={(e) => {
+
+                    handleReplyClick(e, reply);
                     setSubReplies((prev) => ({
                       ...prev,
                       [reply._id]: `@${reply.owner.username} `, // Pre-fill with mention
                     }));
-                  }}
+                  }
+                   
+                  }
                   sx={{
                     fontSize: "0.75rem",
                     color: "#fff",
@@ -496,20 +528,40 @@ function CommentReplies({
                 >
                   Reply
                 </Button>
+                   <SignInAlert
+                                  height="140"
+                                  title="Sign in to continue"
+                                  isOpen={paperOpen}
+                                  handleClose={handleCloseAlert}
+                                  setActiveAlertId={setActiveAlertId}
+                                  onConfirm={() => setIsSignIn(true)}
+                                  leftVal="128px"
+                                />
               </Box>
             </ButtonGroup>
             {addReply === reply._id && (
               <>
                 <Box sx={{ display: "flex", alignItems: "center" }}>
                   <Avatar
-                    src={userData.data?.avatar || null}
+                    src={userData?.data?.avatar ? userData?.data?.avatar : null}
                     sx={{
-                      bgcolor: getColor(userData.data?.fullName || ""),
+                      bgcolor: userData
+                        ? getColor(userData?.data?.fullName)
+                        : "rgba(168, 199, 250 , 1)",
+                      overflow: "hidden",
                       width: "30px",
                       height: "30px",
                     }}
                   >
-                    {userData.data?.fullName?.charAt(0).toUpperCase() || "?"}
+                    {userData?.data?.fullName ? (
+                      userData?.data?.fullName.charAt(0).toUpperCase()
+                    ) : (
+                      <PersonIcon
+                        sx={{
+                          color: "rgb(38, 121, 254)",
+                        }}
+                      />
+                    )}
                   </Avatar>
                   {isPending ? (
                     <CircularProgress
