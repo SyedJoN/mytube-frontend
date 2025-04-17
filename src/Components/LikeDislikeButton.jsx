@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import React, { useState, useEffect } from "react";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { toggleVideoLike } from "../apis/likeFn";
 import { toggleVideoDislike } from "../apis/dislikeFn";
 import SignInAlert from "./SignInAlert";
@@ -12,42 +12,84 @@ import ThumbDownOffAltIcon from "@mui/icons-material/ThumbDownOffAlt";
 
 export const LikeDislikeButtons = React.memo(
   ({
+    dataContext,
     isAuthenticated,
+    data,
     videoId,
-    initialLikes,
-    initialIsLiked,
-    initialIsDisliked,
     activeAlertId,
     setActiveAlertId,
   }) => {
+      const queryClient = useQueryClient();
+    
     const likeAlertId = `like-alert-${videoId}`;
     const dislikeAlertId = `dislike-alert-${videoId}`;
 
     const isLikeAlertOpen = activeAlertId === likeAlertId;
     const isDislikeAlertOpen = activeAlertId === dislikeAlertId;
 
-    const [isLiked, setIsLiked] = useState(initialIsLiked);
-    const [isDisliked, setIsDisliked] = useState(initialIsDisliked);
-    const [likeCount, setLikeCount] = useState(initialLikes);
+   const [isLike, setIsLike] = useState({
+       isLiked: data?.data?.likedBy.includes(dataContext?.data?._id) || false,
+       likeCount: data?.data.likesCount || 0,
+     });
+     const [isDislike, setIsDislike] = useState({
+       isDisliked:data?.data?.disLikedBy.includes(dataContext?.data?._id) || false,
+     });
     const [isSignIn, setIsSignIn] = useState(false);
+
+     useEffect(() => {
+        if (data?.data) {
+          setIsLike({
+            isLiked: data.data.likedBy.includes(dataContext?.data?._id) || false,
+            likeCount: data.data.likesCount || 0,
+          });
+          setIsDislike({
+            isDisliked: data.data.disLikedBy.includes(dataContext?.data?._id) || false,
+          });
+        }
+      }, [data?.data, dataContext?.data?._id]); 
 
     const { mutate: likeMutate } = useMutation({
       mutationFn: () => toggleVideoLike(videoId),
       onMutate: () => {
-        setIsLiked((prev) => !prev);
-        setLikeCount((prev) => prev + (isLiked ? -1 : 1));
-        if (isDisliked) setIsDisliked(false);
+        setIsLike((prev) => ({
+          isLiked: !prev.isLiked,
+          likeCount: prev.isLiked ? prev.likeCount - 1 : prev.likeCount + 1,
+        }));
+        setIsDislike((prev) => {
+          if (prev.isDisliked) {
+            return {
+              ...prev,
+              isDisliked: false,
+            };
+          }
+          return prev;
+        });
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries(["video", videoId]);
       },
     });
 
     const { mutate: dislikeMutate } = useMutation({
       mutationFn: () => toggleVideoDislike(videoId),
       onMutate: () => {
-        setIsDisliked((prev) => !prev);
-        if (isLiked) {
-          setIsLiked(false);
-          setLikeCount((prev) => Math.max(prev - 1, 0));
-        }
+        setIsDislike((prev) => ({
+          isDisliked: !prev.isDisliked,
+        }));
+        setIsLike((prev) => {
+          if (prev.isLiked) {
+            return {
+              ...prev,
+              isLiked: false,
+              likeCount: Math.max(prev.likeCount - 1, 0),
+            };
+          }
+          return prev;
+        });
+    
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries(["video", videoId]);
       },
     });
 
@@ -107,7 +149,7 @@ export const LikeDislikeButtons = React.memo(
                 },
               }}
             >
-              {isLiked ? (
+              {isLike.isLiked ? (
                 <Tooltip title="Unlike">
                   <ThumbUpAltIcon
                     sx={{ color: "rgb(255,255,255)", marginRight: "8px" }}
@@ -121,7 +163,7 @@ export const LikeDislikeButtons = React.memo(
                 </Tooltip>
               )}
               <span style={{ color: "rgb(255,255,255)", paddingRight: "8px" }}>
-                {likeCount}
+                {isLike.likeCount}
               </span>
             </Button>
             <SignInAlert
@@ -156,7 +198,7 @@ export const LikeDislikeButtons = React.memo(
                 },
               }}
             >
-              {isDisliked ? (
+              {isDislike.isDisliked ? (
                 <Tooltip title="Remove dislike">
                   <ThumbDownAltIcon
                     sx={{ color: "rgb(255,255,255)", marginRight: "8px" }}

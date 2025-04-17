@@ -30,6 +30,7 @@ export const SubscribeButton = React.memo(
     isAuthenticated,
     channelName,
     channelId,
+    userData,
     initialSubscribed,
     initialSubscribers,
     user,
@@ -47,7 +48,10 @@ export const SubscribeButton = React.memo(
     const [subscriberCount, setSubscriberCount] = useState(initialSubscribers);
     const [shouldAnimate, setShouldAnimate] = useState(false);
     const [showGradient, setShowGradient] = useState(false);
+    const [hasLoaded, setHasLoaded] = useState(false);
+
     const buttonRef = useRef(null);
+    const timeoutIdRef = useRef(null); 
     const queryClient = useQueryClient();
 
     const buttonStyles = {
@@ -80,53 +84,63 @@ export const SubscribeButton = React.memo(
 
     const handleTransitionEnd = () => {
       if (isSubscribed) {
-        setShouldAnimate(true);
         setShowGradient(false);
       }
     };
 
     const handleSubscribeBtn = (e) => {
       e.stopPropagation();
-    
+
       if (isAuthenticated && isSubscribed) {
         setDialogOpen(true);
       } else if (isAuthenticated && !isSubscribed) {
         mutate();
       } else {
-         setActiveAlertId(paperOpen ? null : currentAlertId);
+        setActiveAlertId(paperOpen ? null : currentAlertId);
       }
     };
 
-
     useEffect(() => {
-      if (!isSubscribed) {
-        setShouldAnimate(false);
-      }
+      if (!userData?.data?.length) return;
 
-      if (!isSubscribed) {
-        setShowGradient(false);
-      }
-    }, [isSubscribed]);
+      const newValue = userData.data[0]?.isSubscribedTo ?? false;
+      const newCount = userData.data[0]?.subscribersCount ?? 0;
 
-    const {
-      data: userData,
-      isLoading: isUserLoading,
-      isError: isUserError,
-      isFetching: isUserFetching,
-      error: userError,
-    } = useQuery({
-      queryKey: ["channelProfile", user],
-      queryFn: () => getUserChannelProfile(user),
-      enabled: Boolean(user),
-    });
+      setIsSubscribed(newValue);
+      setSubscriberCount(newCount);
+
+      if (!hasLoaded) {
+        setHasLoaded(true); // ✅ Ready to render now
+      }
+    }, [userData]);
 
     const { mutate, isLoading } = useMutation({
       mutationFn: () => toggleSubscription(channelId),
       onMutate: () => {
-        setShowGradient(true);
-        setIsSubscribed((prev) => !prev);
-        setSubscriberCount((prev) => prev + (isSubscribed ? -1 : 1));
+        const isSubscribing = !isSubscribed;
+    
+        if (isSubscribing) {
+          setShowGradient(true);
+        }
+    
+        setIsSubscribed(isSubscribing);
+        setSubscriberCount((prev) => prev + (isSubscribing ? 1 : -1));
+    
+        setShouldAnimate(false);
+    
+        if (timeoutIdRef.current) {
+          clearTimeout(timeoutIdRef.current);
+        }
+    
+        timeoutIdRef.current = setTimeout(() => {
+          setShouldAnimate(true); 
+        }, 500); 
+    
+        if (!isSubscribing) {
+          setShouldAnimate(false);
+        }
       },
+    
       onSuccess: (data) => {
         queryClient.invalidateQueries(["channelProfile", user]);
         !isSubscribed
@@ -135,32 +149,30 @@ export const SubscribeButton = React.memo(
         setSnackbarOpen(true);
       },
     });
+    
     useEffect(() => {
       if (!userData?.data?.length) return;
       const newValue = userData?.data[0]?.isSubscribedTo ?? false;
       if (isSubscribed !== newValue) {
         setIsSubscribed(newValue); // ✅ Only update if different
       }
-
       const newCount = userData.data[0]?.subscribersCount ?? 0;
       if (subscriberCount !== newCount) {
         setSubscriberCount(newCount);
       }
     }, [userData]);
 
-
     const handleCloseAlert = () => {
       if (paperOpen) setActiveAlertId(null);
     };
 
     return (
-      
       <>
-    {isSignIn && (
-  <Box sx={{ zIndex: 9999, position: "fixed", top: 0, left: 0 }}>
-    <Signin open={isSignIn} onClose={() => setIsSignIn(false)} />
-  </Box>
-)}
+        {isSignIn && (
+          <Box sx={{ zIndex: 9999, position: "fixed", top: 0, left: 0 }}>
+            <Signin open={isSignIn} onClose={() => setIsSignIn(false)} />
+          </Box>
+        )}
         <AlertDialog
           title={`Unsubscribe from ${channelName}?`}
           buttonTxt="Unsubscribe"
@@ -173,66 +185,76 @@ export const SubscribeButton = React.memo(
           setOpen={setSnackbarOpen}
           message={snackbarMessage}
         />
-<Box>
-        <Button
-        ref={buttonRef}
-        onClick={handleSubscribeBtn}
-        onTransitionEnd={handleTransitionEnd}
-        sx={{
-          borderRadius: "50px",
-          position: "relative",
-          height: "36px",
-          fontSize: "0.8rem",
-          textTransform: "capitalize",
-          overflow: "hidden",
-          fontWeight: "600",
-          marginLeft: "8px",
-          padding: "0 16px",
-          width: isSubscribed ? "140px" : "100px",
-          background: isSubscribed ? "rgba(255,255,255,0.1)" : "#f1f1f1",
-          transition: isSubscribed ? "width 0.5s ease, background 0.3s ease" : "",
-          "&:hover": {
-            background: isSubscribed ? "rgba(255,255,255,0.2)" : "#d9d9d9",
-          },
-          "&::before": {
-            ...buttonStyles.before,
-          },
-        }}
-      >
-        {isSubscribed && (
-          <NotificationsNoneIcon
-            sx={{
-              position: "relative",
-              color: "#f1f1f1",
-              marginLeft: "-6px",
-              marginRight: "6px",
-              fontSize: "1.6rem",
-              transformOrigin: "top",
-              animation: shouldAnimate
-                ? `${rotateAnimation} 1.4s ease-in-out`
-                : "none",
-            }}
+        <Box>
+          {hasLoaded && (
+            <Button
+              ref={buttonRef}
+              onClick={handleSubscribeBtn}
+              onTransitionEnd={handleTransitionEnd}
+              sx={{
+                borderRadius: "50px",
+                position: "relative",
+                height: "36px",
+                fontSize: "0.8rem",
+                textTransform: "capitalize",
+                overflow: "hidden",
+                fontWeight: "600",
+                marginLeft: "16px",
+                padding: "0 16px",
+                width: isSubscribed ? "140px" : "100px",
+                background: isSubscribed ? "rgba(255,255,255,0.1)" : "#f1f1f1",
+                transition: isSubscribed
+                  ? "width 0.5s ease, background 0.3s ease"
+                  : "",
+                "&:hover": {
+                  background: isSubscribed
+                    ? "rgba(255,255,255,0.2)"
+                    : "#d9d9d9",
+                },
+                "&::before": {
+                  ...buttonStyles.before,
+                  opacity: isSubscribed && showGradient ? 1 : 0,
+                },
+              }}
+            >
+              {isSubscribed && (
+                <NotificationsNoneIcon
+                  sx={{
+                    position: "relative",
+                    color: "#f1f1f1",
+                    marginLeft: "-6px",
+                    marginRight: "6px",
+                    fontSize: "1.6rem",
+                    transformOrigin: "top",
+                    animation: shouldAnimate
+                      ? `${rotateAnimation} 1.4s ease-in-out`
+                      : "none",
+                  }}
+                />
+              )}
+              <span
+                style={{
+                  textOverflow: "ellipsis",
+                  overflow: "hidden",
+                  position: "relative",
+                  color: isSubscribed ? "#f1f1f1" : "#0f0f0f",
+                }}
+              >
+                {isSubscribed ? "Subscribed" : "Subscribe"}
+              </span>
+            </Button>
+          )}
+          <SignInAlert
+            title="Want to subscribe to this channel?"
+            desc="Sign in to subscribe this channel."
+            isOpen={paperOpen}
+            handleClose={handleCloseAlert}
+            onConfirm={() => setIsSignIn(true)}
+            setActiveAlertId={setActiveAlertId}
+            leftVal="225px"
           />
-        )}
-        <span
-          style={{
-            textOverflow: "ellipsis",
-            overflow: "hidden",
-            position: "relative",
-            color: isSubscribed ? "#f1f1f1" : "#0f0f0f",
-          }}
-        >
-          {isSubscribed ? "Subscribed" : "Subscribe"}
-        </span>
-      </Button>
-      <SignInAlert title="Want to subscribe to this channel?" desc="Sign in to subscribe this channel." isOpen={paperOpen} handleClose={handleCloseAlert} onConfirm={()=> setIsSignIn(true)} setActiveAlertId={setActiveAlertId} leftVal="225px"/>
-           
-      </Box>
-      
-   
-          </>
-     
-  
+        </Box>
+      </>
     );
   }
 );

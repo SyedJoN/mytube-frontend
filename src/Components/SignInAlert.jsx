@@ -2,7 +2,6 @@ import React, { useRef } from "react";
 import { Typography, Box, Button } from "@mui/material";
 import Paper from "@mui/material/Paper";
 import ClickAwayListener from '@mui/material/ClickAwayListener';
-import { useClickAway } from "react-use";
 
 function SignInAlert({
   width = 375,

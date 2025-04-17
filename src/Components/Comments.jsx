@@ -229,7 +229,8 @@ const Comments = ({
   });
 
   const toggleEmojiPicker = useCallback(
-    (id) => {
+    (e, id) => {
+      e.stopPropagation();
       setActiveEmojiPickerId((prev) => (prev === id ? null : id));
       setShowEmojiPicker(false);
     },
@@ -352,8 +353,8 @@ const Comments = ({
                   <Box ref={emojiPickerRef} sx={{ position: "relative" }}>
                     <IconButton
                       onClick={(e) => {
-                        e.stopPropagation(); // Stop the event from propagating
-                        toggleEmojiPicker(comment._id); // Toggle the emoji picker
+                       // Stop the event from propagating
+                        toggleEmojiPicker(e, comment._id); // Toggle the emoji picker
                       }}
                       sx={{ color: "#fff" }}
                     >
@@ -362,6 +363,7 @@ const Comments = ({
                     {activeEmojiPickerId === comment._id &&
                       !showEmojiPicker && (
                         <EmojiPickerWrapper
+                        setActiveEmojiPickerId={setActiveEmojiPickerId}
                           onEmojiSelect={handleEmojiClick}
                           id={comment._id}
                         />
@@ -644,7 +646,7 @@ const Comments = ({
                     sx={{ position: "relative", marginLeft: "36px" }}
                   >
                     <IconButton
-                      onClick={(e) => toggleEmojiPicker(comment._id)}
+                      onClick={(e) => toggleEmojiPicker(e, comment._id)}
                       sx={{ color: "#fff" }}
                     >
                       <SentimentSatisfiedAltIcon />
@@ -652,6 +654,7 @@ const Comments = ({
                     {activeEmojiPickerId === comment._id &&
                       !showEmojiPicker && (
                         <EmojiPickerWrapper
+                        setActiveEmojiPickerId={setActiveEmojiPickerId}
                           onEmojiSelect={handleEmojiClick}
                           id={comment._id}
                         />

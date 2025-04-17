@@ -351,16 +351,17 @@ function CommentReplies({
                     sx={{ position: "relative" }}
                   >
                     <IconButton
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleEmojiPicker(reply._id);
-                      }}
+                      onClick={(e) => 
+                        
+                        toggleEmojiPicker(e, reply._id)
+                      }
                       sx={{ color: "#fff" }}
                     >
                       <SentimentSatisfiedAltIcon />
                     </IconButton>
                     {activeEmojiPickerId === reply._id && !showEmojiPicker && (
                       <EmojiPickerWrapper
+                      setActiveEmojiPickerId={setActiveEmojiPickerId}
                         onEmojiSelect={(emoji) =>
                           setReplies((prev) => ({
                             ...prev,
@@ -645,16 +646,17 @@ function CommentReplies({
                 >
                   <Box sx={{ position: "relative", marginLeft: "36px" }}>
                     <IconButton
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleEmojiPicker(reply._id);
-                      }}
+                      onClick={(e) => 
+                        
+                        toggleEmojiPicker(e, reply._id)
+                      }
                       sx={{ color: "#fff" }}
                     >
                       <SentimentSatisfiedAltIcon />
                     </IconButton>
                     {activeEmojiPickerId === reply._id && !showEmojiPicker && (
                       <EmojiPickerWrapper
+                      setActiveEmojiPickerId={setActiveEmojiPickerId}
                         onEmojiSelect={(emoji) =>
                           setSubReplies((prev) => ({
                             ...prev,

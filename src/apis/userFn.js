@@ -17,14 +17,14 @@ const getCurrentUser = async () => {
   }
 };
 
-
 const getUserChannelProfile = async (username) => {
-  
-    const res = await axios.get(`${BASE_URL}/channel/${username}`, 
-      {withCredentials: true}
-    );
-    return res.data; 
-  };
+    const res = await axios.get(`${BASE_URL}/channel/${username}`, { 
+        withCredentials: true 
+    });
+    return res.data;
+};
+
+
 
   const registerUser = async (data) => {
     try {

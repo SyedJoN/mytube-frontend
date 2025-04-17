@@ -47,6 +47,7 @@ function AddComment({
   videoId,
   commentsData,
   activeEmojiPickerId,
+  setActiveEmojiPickerId,
   showEmojiPicker,
   setShowEmojiPicker,
   activeAlertId,
@@ -95,7 +96,13 @@ function AddComment({
   };
 
   const toggleEmojiPicker = () => {
-    setShowEmojiPicker((prev) => !prev);
+    if (showEmojiPicker === null) {
+      setShowEmojiPicker(true)
+    } else {
+      setShowEmojiPicker((prev) => !prev);
+      setActiveEmojiPickerId(null);
+
+    }
   };
 
   const handleInputClick = (e) => {
@@ -272,7 +279,7 @@ function AddComment({
               </IconButton>
               {showEmojiPicker && !activeEmojiPickerId && (
                 <Box sx={{ position: "absolute", left: "10px", zIndex: 100 }}>
-                  <EmojiPickerWrapper onEmojiSelect={handleEmojiClick} />
+                  <EmojiPickerWrapper  setActiveEmojiPickerId={setShowEmojiPicker} onEmojiSelect={handleEmojiClick} />
                 </Box>
               )}
             </Box>

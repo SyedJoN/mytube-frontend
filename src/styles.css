@@ -33,6 +33,7 @@ body {
     background: #171717;
     border-radius: 6px;
     font-size: 14px;
+    color: #f1f1f1;
   }
   
   [frimousse-viewport] {
@@ -59,7 +60,7 @@ body {
   [frimousse-category-header] {
     padding: 12px 12px 6px;
     background: #171717;
-    color: light-dark(#525252, #a1a1a1);
+    color: #f1f1f1;
     font-size: 12px;
     font-weight: 500;
   }

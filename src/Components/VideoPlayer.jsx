@@ -88,12 +88,8 @@ function VideoPlayer({ videoId }) {
     queryKey: ["video", videoId],
     queryFn: () => fetchVideoById(videoId),
     enabled: !!videoId,
-    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  // useEffect(() => {
-  //   console.log("Query triggered:", videoId);
-  // }, [videoId]);
   console.log("Query triggered:", videoId); // ✅ Debugging ke liye
 
   const user = data?.data?.owner?.username;
@@ -109,7 +105,7 @@ function VideoPlayer({ videoId }) {
   } = useQuery({
     queryKey: ["channelProfile", user],
     queryFn: () => getUserChannelProfile(user),
-    enabled: Boolean(user),
+    enabled: true,
   });
 
   const [subscriberCount, setSubscriberCount] = useState(
@@ -126,6 +122,9 @@ function VideoPlayer({ videoId }) {
       setSubscriberCount(newCount);
     }
   }, [userData]);
+
+  
+  
 
   const watchTimeRef = useRef(0);
   const { mutate } = useMutation({
@@ -245,8 +244,10 @@ function VideoPlayer({ videoId }) {
 
             <SubscribeButton
               isAuthenticated={isAuthenticated}
+        
               channelName={channelName}
               channelId={channelId}
+              userData={userData}
               initialSubscribed={userData?.data[0]?.isSubscribedTo}
               initialSubscribers={userData?.data[0]?.subscribersCount}
               user={user}
@@ -255,15 +256,11 @@ function VideoPlayer({ videoId }) {
             />
           </Box>
           <LikeDislikeButtons
+          dataContext={dataContext}
             isAuthenticated={isAuthenticated}
+            data={data}
             videoId={videoId}
-            initialLikes={data?.data?.likesCount || 0}
-            initialIsLiked={data?.data?.likedBy.includes(
-              dataContext?.data?._id
-            )}
-            initialIsDisliked={data?.data?.disLikedBy.includes(
-              dataContext?.data?._id
-            )}
+           
             activeAlertId={activeAlertId}
             setActiveAlertId={setActiveAlertId}
           />
