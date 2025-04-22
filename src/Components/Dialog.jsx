@@ -5,14 +5,26 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
+import { Box, IconButton } from "@mui/material";
+import CloseIcon from '@mui/icons-material/Close';
 
-export default function AlertDialog({ title, desc, buttonTxt, dialogOpen, setDialogOpen, onConfirm }) {
+export default function AlertDialog({
+  title,
+  desc,
+  buttonTxt,
+  dialogOpen,
+  setDialogOpen,
+  onConfirm,
+}) {
   const handleClose = () => {
     setDialogOpen(false);
   };
 
   return (
     <Dialog
+    disableEnforceFocus
+    disableAutoFocus
+    disableRestoreFocus
       slotProps={{
         paper: {
           sx: {
@@ -28,42 +40,48 @@ export default function AlertDialog({ title, desc, buttonTxt, dialogOpen, setDia
       aria-labelledby="alert-dialog-title"
       aria-describedby="alert-dialog-description"
     >
-      <DialogTitle sx={{ fontSize: "1rem" }} id="alert-dialog-title">
-       {title}
-      </DialogTitle>
+        <DialogTitle sx={{ fontSize: "1rem" }} id="alert-dialog-title">
+          {title}
+        </DialogTitle>
+  
+
       <DialogContent>
-        {desc && <DialogContentText
-          sx={{ fontSize: "0.9rem", color: "#aaa" }}
-          id="alert-dialog-description"
-        >
-         {desc}
-        </DialogContentText> }
-    
+        {desc && (
+          <DialogContentText
+            sx={{ fontSize: "0.9rem", color: "#aaa" }}
+            id="alert-dialog-description"
+          >
+            {desc}
+          </DialogContentText>
+        )}
       </DialogContent>
       <DialogActions>
         <Button
-          
-          sx={{ textTransform: "capitalize", color: "#3ea6ff",
+          sx={{
+            textTransform: "capitalize",
+            color: "#3ea6ff",
             transition: "none",
             "&:hover": {
               background: "#263850",
-              borderRadius: "50px"
-            }
-           }}
+              borderRadius: "50px",
+            },
+          }}
           onClick={handleClose}
         >
           Cancel
         </Button>
         <Button
-           sx={{ textTransform: "capitalize", color: "#3ea6ff",
+          sx={{
+            textTransform: "capitalize",
+            color: "#3ea6ff",
             transition: "none",
             "&:hover": {
               background: "#263850",
-              borderRadius: "50px"
-            }
-           }}
+              borderRadius: "50px",
+            },
+          }}
           onClick={() => {
-            onConfirm(); 
+            onConfirm();
             handleClose();
           }}
           autoFocus

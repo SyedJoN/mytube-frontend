@@ -2,21 +2,22 @@ import * as React from "react";
 import { OpenContext } from "../routes/__root";
 import { useContext, useState } from "react";
 import { useLocation } from "@tanstack/react-router";
-import {  
-  Avatar,  
-  MenuItem,  
-  ListItemIcon,  
-  Divider,  
-  IconButton,  
-  Typography,  
-  Tooltip,  
+import { Link } from "@tanstack/react-router";
+import {
+  Avatar,
+  MenuItem,
+  ListItemIcon,
+  Divider,
+  IconButton,
+  Typography,
+  Tooltip,
   Button,
-  Box 
-} from "@mui/material";  
+  Box,
+} from "@mui/material";
 import { useNavigate } from "@tanstack/react-router";
-import { useMutation, useQueryClient} from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import NotificationsNoneOutlinedIcon from "@mui/icons-material/NotificationsNoneOutlined";
-import PersonIcon from '@mui/icons-material/Person';
+import PersonIcon from "@mui/icons-material/Person";
 import AddIcon from "@mui/icons-material/Add";
 import SlideshowOutlinedIcon from "@mui/icons-material/SlideshowOutlined";
 import PodcastsIcon from "@mui/icons-material/Podcasts";
@@ -36,11 +37,8 @@ import {
   red,
 } from "@mui/material/colors";
 
-
-
 import Signin from "./Signin";
 import { logoutUser } from "../apis/userFn";
-
 
 export default function AccountMenu() {
   const [anchorEl, setAnchorEl] = React.useState(null);
@@ -52,7 +50,6 @@ export default function AccountMenu() {
   const context = useContext(OpenContext);
 
   let { data: userData } = context || {};
-
 
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -78,26 +75,25 @@ export default function AccountMenu() {
     setDialogue(false);
   };
 
-
   const handleLogout = () => {
-   mutate();
-   setAnchorEl(null);
-  }
+    mutate();
+    setAnchorEl(null);
+  };
 
-    const { mutate, isPending, isError, error } = useMutation({
-      mutationFn: logoutUser,
-        onSuccess: () => {
-          queryClient.invalidateQueries(["userData"]); // ✅ Clears and refetches user data
-          queryClient.setQueryData(["userData"], null); // 🧹 Resets user data to null
-          window.location.href = "/";
-        },
-      onError: (error) => {
-        console.error(
-          "Registration failed:",
-          error.response?.data?.message || error.message
-        );
-      },
-    });
+  const { mutate, isPending, isError, error } = useMutation({
+    mutationFn: logoutUser,
+    onSuccess: () => {
+      queryClient.invalidateQueries(["userData"]); // ✅ Clears and refetches user data
+      queryClient.setQueryData(["userData"], null); // 🧹 Resets user data to null
+      window.location.href = "/";
+    },
+    onError: (error) => {
+      console.error(
+        "Registration failed:",
+        error.response?.data?.message || error.message
+      );
+    },
+  });
 
   function getColor(name = "") {
     const colors = [
@@ -118,7 +114,6 @@ export default function AccountMenu() {
 
     const index = Math.abs(hash) % colors.length;
     return colors[index] || blue[500];
-
   }
   return (
     <React.Fragment>
@@ -169,14 +164,16 @@ export default function AccountMenu() {
               aria-haspopup="true"
               aria-expanded={open ? "true" : undefined}
             >
-             <Avatar
-                              src={userData?.data.avatar ? userData.data.avatar : null}
-                              sx={{ bgcolor: getColor(userData.data.fullName) }}
-                            >
-                              {userData.fullName
-                                ? userData.data.fullName.charAt(0).toUpperCase()
-                                : <PersonIcon/>}
-                            </Avatar>
+              <Avatar
+                src={userData?.data.avatar ? userData.data.avatar : null}
+                sx={{ bgcolor: getColor(userData.data.fullName) }}
+              >
+                {userData.fullName ? (
+                  userData.data.fullName.charAt(0).toUpperCase()
+                ) : (
+                  <PersonIcon />
+                )}
+              </Avatar>
             </IconButton>
           </Tooltip>
         </Box>
@@ -239,15 +236,23 @@ export default function AccountMenu() {
             }}
             onClick={handleClose}
           >
-              <Avatar
-                              src={userData?.data.avatar ? userData.data.avatar : null}
-                              sx={{ bgcolor: getColor(userData?.data?.fullName), marginRight: 1 }}
-                            >
-                              {userData?.fullName
-                                ? userData?.data?.fullName.charAt(0).toUpperCase()
-                                : "?"}
-                            </Avatar>
-            <Typography variant="body1">Profile</Typography>
+            <Avatar
+              src={userData?.data.avatar ? userData.data.avatar : null}
+              sx={{
+                bgcolor: getColor(userData?.data?.fullName),
+                marginRight: 1,
+              }}
+            >
+              {userData?.fullName
+                ? userData?.data?.fullName.charAt(0).toUpperCase()
+                : "?"}
+            </Avatar>
+            <Link
+              style={{ color: "#f1f1f1", textDecoration: "none" }}
+              to={`/@${userData?.data?.username}`}
+            >
+              <Typography variant="body1">Profile</Typography>
+            </Link>
           </MenuItem>
           <MenuItem
             sx={{
@@ -257,14 +262,19 @@ export default function AccountMenu() {
             }}
             onClick={handleClose}
           >
-             <Avatar
-                              src={userData?.data?.avatar ? userData.data.avatar : null}
-                              sx={{ bgcolor: getColor(userData?.data?.fullName), marginRight: 1 }}
-                            >
-                              {userData?.fullName
-                                ? userData?.data.fullName.charAt(0).toUpperCase()
-                                : <PersonIcon/>}
-                            </Avatar>
+            <Avatar
+              src={userData?.data?.avatar ? userData.data.avatar : null}
+              sx={{
+                bgcolor: getColor(userData?.data?.fullName),
+                marginRight: 1,
+              }}
+            >
+              {userData?.fullName ? (
+                userData?.data.fullName.charAt(0).toUpperCase()
+              ) : (
+                <PersonIcon />
+              )}
+            </Avatar>
             <Typography variant="body1">My account</Typography>
           </MenuItem>
           <Divider />

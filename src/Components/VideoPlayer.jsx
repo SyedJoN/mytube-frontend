@@ -109,7 +109,7 @@ function VideoPlayer({ videoId }) {
   });
 
   const [subscriberCount, setSubscriberCount] = useState(
-    userData?.data[0]?.subscribersCount ?? 0
+    userData?.data?.subscribersCount ?? 0
   );
   const [viewCounted, setViewCounted] = useState(false);
   const [activeAlertId, setActiveAlertId] = useState(null);
@@ -117,7 +117,7 @@ function VideoPlayer({ videoId }) {
   const buttonRef = useRef(null);
 
   useEffect(() => {
-    const newCount = userData?.data[0]?.subscribersCount ?? 0;
+    const newCount = userData?.data?.subscribersCount ?? 0;
     if (subscriberCount !== newCount) {
       setSubscriberCount(newCount);
     }
@@ -244,12 +244,11 @@ function VideoPlayer({ videoId }) {
 
             <SubscribeButton
               isAuthenticated={isAuthenticated}
-        
               channelName={channelName}
               channelId={channelId}
               userData={userData}
-              initialSubscribed={userData?.data[0]?.isSubscribedTo}
-              initialSubscribers={userData?.data[0]?.subscribersCount}
+              initialSubscribed={userData?.data?.isSubscribedTo}
+              initialSubscribers={userData?.data?.subscribersCount}
               user={user}
               activeAlertId={activeAlertId}
               setActiveAlertId={setActiveAlertId}
@@ -267,7 +266,7 @@ function VideoPlayer({ videoId }) {
         </Box>
         <Description
           data={data}
-          subscriberCount={userData?.data[0]?.subscribersCount}
+          subscriberCount={userData?.data?.subscribersCount}
         />
         <CommentSection
           isAuthenticated={isAuthenticated}

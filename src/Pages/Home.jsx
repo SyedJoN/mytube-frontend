@@ -4,7 +4,7 @@ import Grid from "@mui/material/Grid2";
 import { Box, Typography } from "@mui/material";
 import { useQuery, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fetchVideos } from "../apis/videoFn.js";
-import formatDate from "../utils/dayjs.js";
+import formatDate from "../utils/formatDate.js";
 import Skeleton from "@mui/material/Skeleton";
 import { Link } from "@tanstack/react-router";
 

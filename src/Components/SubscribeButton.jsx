@@ -36,6 +36,7 @@ export const SubscribeButton = React.memo(
     user,
     activeAlertId,
     setActiveAlertId,
+    marginLeftVal = "16px"
   }) => {
     const currentAlertId = `alert-${channelId}`;
     const paperOpen = activeAlertId === currentAlertId;
@@ -101,10 +102,10 @@ export const SubscribeButton = React.memo(
     };
 
     useEffect(() => {
-      if (!userData?.data?.length) return;
+      if (!userData?.data) return;
 
-      const newValue = userData.data[0]?.isSubscribedTo ?? false;
-      const newCount = userData.data[0]?.subscribersCount ?? 0;
+      const newValue = userData.data?.isSubscribedTo ?? false;
+      const newCount = userData.data?.subscribersCount ?? 0;
 
       setIsSubscribed(newValue);
       setSubscriberCount(newCount);
@@ -150,17 +151,6 @@ export const SubscribeButton = React.memo(
       },
     });
     
-    useEffect(() => {
-      if (!userData?.data?.length) return;
-      const newValue = userData?.data[0]?.isSubscribedTo ?? false;
-      if (isSubscribed !== newValue) {
-        setIsSubscribed(newValue); // ✅ Only update if different
-      }
-      const newCount = userData.data[0]?.subscribersCount ?? 0;
-      if (subscriberCount !== newCount) {
-        setSubscriberCount(newCount);
-      }
-    }, [userData]);
 
     const handleCloseAlert = () => {
       if (paperOpen) setActiveAlertId(null);
@@ -199,7 +189,7 @@ export const SubscribeButton = React.memo(
                 textTransform: "capitalize",
                 overflow: "hidden",
                 fontWeight: "600",
-                marginLeft: "16px",
+                marginLeft: marginLeftVal,
                 padding: "0 16px",
                 width: isSubscribed ? "140px" : "100px",
                 background: isSubscribed ? "rgba(255,255,255,0.1)" : "#f1f1f1",

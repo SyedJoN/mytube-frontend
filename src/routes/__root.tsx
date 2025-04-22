@@ -39,7 +39,7 @@ function RouteComponent() {
   const [open, setOpen] = useState(!(home || search || watch));
 
   useEffect(() => {
-    if (home || search || watch) {
+    if (home || search || watch || "/@") {
       setOpen(false);
     }
   }, [home, search, watch]);

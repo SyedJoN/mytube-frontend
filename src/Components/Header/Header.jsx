@@ -40,7 +40,7 @@ import { useNavigate } from "@tanstack/react-router";
 
 const drawerWidth = 240;
 const miniDrawerWidth = 65; // Collapsed drawer width
-function Header({ open, onClose, watch, search, home, ...props }) { 
+function Header({ open, onClose, watch, search, home , ...props }) { 
   const location = useLocation();
 const [searchQuery, setSearchQuery] = useState("");
   const theme = useTheme();
@@ -102,16 +102,16 @@ const handleSearch = (e) => {
 <Box>
 </Box>
 
-    {(home || search) && 
+    {(!watch) && 
     <Drawer
     container={container}
     variant="permanent"
     open={open}
     sx={{
-      width: open && (home || search) ? drawerWidth : miniDrawerWidth,
+      width: open && !watch ? drawerWidth : miniDrawerWidth,
       flexShrink: 0,
       "& .MuiDrawer-paper": {
-        width: open && (home || search) ? drawerWidth : miniDrawerWidth,
+        width: open && !watch ? drawerWidth : miniDrawerWidth,
 
         transition: "width 0.3s ease",
         overflowX: "hidden",
@@ -277,7 +277,7 @@ const handleSearch = (e) => {
       </List>
     )}
   </Drawer>}  
-  {!(home || search) && 
+  {watch && 
     <Drawer
     container={container}
     variant="permanent"
@@ -372,7 +372,7 @@ const handleSearch = (e) => {
    
    
 
-    {open && !(home || search) && (
+    {open && watch && (
       <List sx={{ color: "#fff" }}>
         <ListItem disablePadding sx={{ display: "flex" }}>
           <ListItemButton
