@@ -2,6 +2,15 @@
     padding: 0;
     margin: 0;
 }
+
+:root {
+  --drawer-width: 240px;
+  --mini-drawer-width: 72px;
+  --toolbar-height: 56px;
+  --base-background: #181818;
+  --text-secondary: #aaa;
+}
+
 body {
     background: #0f0f0f!important;
     margin: 0!important;

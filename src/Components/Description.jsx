@@ -4,7 +4,7 @@ import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Avatar from "@mui/material/Avatar";
 import { getColor } from "../utils/getColor";
-import formatDate from "../utils/dayjs";
+import formatDate from "../utils/formatDate";
 import { Typography } from "@mui/material";
 
 function Description({ data, subscriberCount }) {

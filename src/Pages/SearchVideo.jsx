@@ -4,8 +4,8 @@ import { fetchVideos } from '../apis/videoFn';
 import { useParams } from '@tanstack/react-router';
 import VideoCard from "../Components/VideoCard";
 import { Box, Typography } from '@mui/material';
-import formatDate from '../utils/dayjs';
-import Grid from "@mui/material/Grid2";
+import formatDate from '../utils/formatDate';
+import Grid from "@mui/material/Grid";
 import { Link } from "@tanstack/react-router";
 import Skeleton from "@mui/material/Skeleton";
 

@@ -12,7 +12,6 @@ import LinkedIn from "../Svgs/LinkedIn.jsx";
 import Pinterest from "../Svgs/Pinterest.jsx";
 
 export default function ScrollableTabsButton({ shareUrl }) {
-  console.log("In ScrollableTabsButtonAuto →", shareUrl);
   const [value, setValue] = React.useState(0);
 
   const handleClick = (platform) => {
@@ -50,6 +49,10 @@ export default function ScrollableTabsButton({ shareUrl }) {
       );
     } else if (platform === "linkedin") {
       const linkedInUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`;
+      window.open(linkedInUrl, "_blank");
+
+    } else if (platform === "pinterest") {
+      const linkedInUrl = `https://www.pinterest.com/pin/create/button/?url=${encodedUrl}&media=${encodedUrl}`;
       window.open(linkedInUrl, "_blank");
     }
   };

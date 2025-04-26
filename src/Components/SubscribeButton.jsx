@@ -5,6 +5,7 @@ import Button from "@mui/material/Button";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import { keyframes, positions } from "@mui/system";
 import { getUserChannelProfile } from "../apis/userFn";
+import { useTheme } from "@mui/material/styles";
 import AlertDialog from "./Dialog";
 import SimpleSnackbar from "./Snackbar";
 import Box from "@mui/system/Box";
@@ -38,6 +39,7 @@ export const SubscribeButton = React.memo(
     setActiveAlertId,
     marginLeftVal = "16px"
   }) => {
+    const theme = useTheme();
     const currentAlertId = `alert-${channelId}`;
     const paperOpen = activeAlertId === currentAlertId;
 
@@ -227,7 +229,7 @@ export const SubscribeButton = React.memo(
                   textOverflow: "ellipsis",
                   overflow: "hidden",
                   position: "relative",
-                  color: isSubscribed ? "#f1f1f1" : "#0f0f0f",
+                  color: isSubscribed ? "#f1f1f1" : theme.palette.primary.main,
                 }}
               >
                 {isSubscribed ? "Subscribed" : "Subscribe"}

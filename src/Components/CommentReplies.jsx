@@ -34,7 +34,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import ThumbDownAltIcon from "@mui/icons-material/ThumbDownAlt";
 
-import formatDate from "../utils/dayjs";
+import formatDate from "../utils/formatDate";
 import { getColor } from "../utils/getColor";
 import { useClickAway } from "react-use";
 import SimpleSnackbar from "./Snackbar";

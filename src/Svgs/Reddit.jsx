@@ -10,7 +10,7 @@ export default function Reddit({ size = 24, style = {}, ...props }) {
       style={{ display: "block", ...style }}
       {...props}
     >
-      <g clip-path="url(#clip0_1646_12789_yt97)">
+      <g clipPath="url(#clip0_1646_12789_yt97)">
         <mask
           id="mask0_1646_12789_yt97"
           style={{ maskType: "alpha" }}

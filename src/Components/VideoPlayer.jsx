@@ -9,7 +9,7 @@ import CommentSection from "./CommentSection";
 import { videoView } from "../apis/videoFn";
 import confetti from "canvas-confetti";
 import { OpenContext } from "../routes/__root";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import CardHeader from "@mui/material/CardHeader";
 import Avatar from "@mui/material/Avatar";
 
@@ -164,7 +164,7 @@ function VideoPlayer({ videoId }) {
     <Grid
       container
       spacing={0}
-      sx={{ flexWrap: "noWrap", paddingTop: "80px", justifyContent: "center" }}
+      sx={{ flexWrap: "noWrap", justifyContent: "center" }}
     >
       <Grid size={{ xs: 12, md: 8 }} sx={{ paddingRight: "24px" }}>
         <video

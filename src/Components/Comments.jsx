@@ -39,7 +39,7 @@ import Signin from "./Signin";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import EmojiPickerWrapper from "./EmojiPickerWrapper";
 import ThumbDownAltIcon from "@mui/icons-material/ThumbDownAlt";
-import formatDate from "../utils/dayjs";
+import formatDate from "../utils/formatDate";
 import { addComment, updateComment, deleteComment } from "../apis/commentFn";
 import { getColor } from "../utils/getColor";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";

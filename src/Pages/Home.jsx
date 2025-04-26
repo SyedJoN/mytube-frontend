@@ -1,14 +1,24 @@
-import React from "react";
+import React, { useContext } from "react";
 import VideoCard from "../Components/VideoCard";
-import Grid from "@mui/material/Grid2";
-import { Box, Typography } from "@mui/material";
-import { useQuery, QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import Grid from "@mui/material/Grid";
+import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
+import {
+  useQuery,
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
 import { fetchVideos } from "../apis/videoFn.js";
 import formatDate from "../utils/formatDate.js";
+import { OpenContext } from "../routes/__root.js";
 import Skeleton from "@mui/material/Skeleton";
 import { Link } from "@tanstack/react-router";
 
-function Home({ open }) {
+function Home() {
+  const context = useContext(OpenContext);
+  let { open, setOpen } = context;
+  const theme = useTheme();
+  const isTablet = useMediaQuery(theme.breakpoints.down("md"));
+
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["videos"],
     queryFn: fetchVideos,
@@ -17,13 +27,7 @@ function Home({ open }) {
   const videos = data?.data?.docs || []; // ✅ Ensure `videos` is always an array
 
   return (
-    <Box sx={{ flexGrow: 1, padding: "73px 16px", }}>
-      {/* {isLoading && (
-        <Typography variant="body1" sx={{ textAlign: "center" }}>
-          Loading...
-        </Typography>
-      )} */}
-
+    <Box sx={{ display: "flex" }}>
       {isError && (
         <Typography variant="body1" color="error" sx={{ textAlign: "center" }}>
           {error?.message || "Failed to load videos"}
@@ -36,12 +40,9 @@ function Home({ open }) {
         </Typography>
       )}
 
-      <Grid
-        container
-        spacing={open ? 3 : 2}
-        key={open}
-        columns={{ xs: 12, sm: 12, md: 12, lg: 12 }}
-      >
+      <Grid container sx={{
+        marginTop: "16px"
+      }}>
         {isLoading
           ? Array.from(new Array(12)).map((_, index) => (
               <Grid
@@ -51,7 +52,7 @@ function Home({ open }) {
                     xs: "span 12",
                     sm: "span 6",
                     md: "span 4",
-                    lg: open ? "span 3" : "span 12",
+                    lg: open ? "span 12" : "span 4",
                   },
                 }}
               >
@@ -59,9 +60,13 @@ function Home({ open }) {
                   variant="rectangular"
                   width={300}
                   height={180}
-                  sx={{ bgcolor: "rgba(255,255,255,0.1)", borderRadius: "8px", marginBottom: 1 }}
+                  sx={{
+                    bgcolor: "rgba(255,255,255,0.1)",
+                    borderRadius: "8px",
+                    marginBottom: 1,
+                  }}
                 />
-                <Box sx={{ display: "flex", alignItems: "center", gap: 2, }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                   <Skeleton
                     variant="circular"
                     width={40}
@@ -76,7 +81,6 @@ function Home({ open }) {
                     <Skeleton
                       sx={{
                         bgcolor: "rgba(255,255,255,0.1)",
-                 
                       }}
                       width="80%"
                       height={30}
@@ -84,7 +88,6 @@ function Home({ open }) {
                     <Skeleton
                       sx={{
                         bgcolor: "rgba(255,255,255,0.1)",
-                 
                       }}
                       width="50%"
                       height={30}
@@ -95,29 +98,37 @@ function Home({ open }) {
             ))
           : videos.map((video) => (
               <Grid
-                key={video._id}
                 sx={{
-                  gridColumn: {
-                    xs: "span 12",
-                    sm: "span 6",
-                    md: "span 4",
-                    lg: open ? "span 3" : "span 12",
-                  },
+                  flexGrow: "1!important",
+                  marginRight: "8px",
+                  marginLeft: "8px",
+                }}
+             
+                key={video._id}
+                size={{
+                  xs: 12,
+                  sm: 5.2,
+                  md: 3.5,
+                  lg: 3.5,
+                  xl: open ? 2.9 : 2.7,
                 }}
               >
-                <Link to={`/watch/${video._id}`} style={{textDecoration: "none"}}>
-                <VideoCard
-                  home={true}
-                  thumbnail={video.thumbnail}
-                  title={video.title}
-                  avatar={video.owner.avatar}
-                  open={open}
-                  fullName={video.owner.fullName}
-                  views={video.views}
-                  duration={video.duration}
-                  createdAt={formatDate(video.createdAt)}
-                />
-            </Link>
+                <Link
+                  to={`/watch/${video._id}`}
+                  style={{ textDecoration: "none" }}
+                >
+                  <VideoCard
+                    home={true}
+                    thumbnail={video.thumbnail}
+                    title={video.title}
+                    avatar={video.owner.avatar}
+                    open={open}
+                    fullName={video.owner.fullName}
+                    views={video.views}
+                    duration={video.duration}
+                    createdAt={formatDate(video.createdAt)}
+                  />
+                </Link>
               </Grid>
             ))}
       </Grid>

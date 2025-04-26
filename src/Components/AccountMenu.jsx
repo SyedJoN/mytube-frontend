@@ -200,6 +200,7 @@ export default function AccountMenu() {
               cursor: "pointer",
               textTransform: "none",
               transition: "none",
+              flexShrink: 0,
               "&:hover": {
                 backgroundColor: "hsl(0,0%,18.82%)",
                 borderColor: "unset",
