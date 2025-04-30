@@ -1,5 +1,6 @@
 import React, { useRef } from "react";
 import { Typography, Box, Button } from "@mui/material";
+import { keyframes, useMediaQuery, useTheme } from "@mui/system";
 import Paper from "@mui/material/Paper";
 import ClickAwayListener from '@mui/material/ClickAwayListener';
 
@@ -15,7 +16,9 @@ function SignInAlert({
   setActiveAlertId,
 }) {
   if (!isOpen) return null;
+    const theme = useTheme();
   const alertRef = useRef(null);
+  const isTablet = useMediaQuery(theme.breakpoints.down("md"));
 
   return (
     <ClickAwayListener onClickAway={() => setActiveAlertId(null)}>
@@ -23,9 +26,9 @@ function SignInAlert({
       ref={alertRef}
       sx={{
         position: "absolute",
-        top: "100%", // places Paper just below the button
+        top: "100%", 
         left: leftVal ? leftVal : "0",
-        width: width,
+        width: isTablet ? "228px" : width,
         height: height,
         zIndex: 10,
       }}
@@ -39,7 +42,7 @@ function SignInAlert({
           sx={{
             display: "flex",
             flexDirection: "column",
-            padding: 3,
+            padding: isTablet ? "20px" : 3,
           }}
         >
           <Typography

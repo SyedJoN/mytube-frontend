@@ -7,6 +7,8 @@ import CardContent from "@mui/material/CardContent";
 import CardActions from "@mui/material/CardActions";
 import Collapse from "@mui/material/Collapse";
 import Avatar from "@mui/material/Avatar";
+import { MenuItem } from "@mui/material";
+import OutlinedFlagOutlinedIcon from "@mui/icons-material/OutlinedFlagOutlined";
 
 import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
@@ -23,10 +25,11 @@ import Tooltip from "@mui/material/Tooltip";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import ShareIcon from "@mui/icons-material/Share";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { Box } from "@mui/material";
+import { Box, useMediaQuery } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useTheme } from "@mui/material/styles";
 import formatDuration from "../utils/formatDuration";
+import { useNavigate } from "@tanstack/react-router";
 
 const ExpandMore = styled((props) => {
   const { expand, ...other } = props;
@@ -53,6 +56,7 @@ const ExpandMore = styled((props) => {
 }));
 
 function VideoCard({
+  videoId,
   thumbnail,
   title,
   description,
@@ -67,13 +71,15 @@ function VideoCard({
   search,
   video,
   profile,
+  activeOptionsId,
+  setActiveOptionsId,
   ...props
 }) {
   const [expanded, setExpanded] = React.useState(false);
+  const navigate = useNavigate();
   const theme = useTheme();
-  const handleExpandClick = () => {
-    setExpanded(!expanded);
-  };
+  const isTablet = useMediaQuery(theme.breakpoints.down("md"));
+
   const colors = [red, blue, green, purple, orange, deepOrange, pink];
 
   const getColor = (name) => {
@@ -82,6 +88,20 @@ function VideoCard({
     return colors[index][500];
   };
 
+  React.useEffect(() => {
+    console.log("active option changed to:", activeOptionsId);
+  }, [activeOptionsId]);
+
+  const handleToggleOptions = (id) => {
+    setActiveOptionsId((prev) => (prev === id ? null : id));
+  };
+  const handleCardClick = () => {
+    navigate({
+      to: `/watch/${videoId}`,
+    })
+
+    console.log("videoID", videoId);
+  };
   return (
     <>
       {home ? (
@@ -129,28 +149,28 @@ function VideoCard({
               />
             </Box>
             <Box
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              position: "absolute",
-              bottom: "8px",
-              right: "8px",
-              width: "35px",
-              height: "20px",
-              backgroundColor: "rgba(0,0,0,0.6)",
-              borderRadius: "5px",
-            }}
-          >
-            <Typography
-              variant="body2"
-              color="#f1f1f1"
-              fontSize="0.75rem"
-              lineHeight="0"
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                position: "absolute",
+                bottom: "8px",
+                right: "8px",
+                width: "35px",
+                height: "20px",
+                backgroundColor: "rgba(0,0,0,0.6)",
+                borderRadius: "5px",
+              }}
             >
-              {formatDuration(duration)}
-            </Typography>
-          </Box>
+              <Typography
+                variant="body2"
+                color="#f1f1f1"
+                fontSize="0.75rem"
+                lineHeight="0"
+              >
+                {formatDuration(duration)}
+              </Typography>
+            </Box>
           </Box>
 
           <CardContent
@@ -232,11 +252,10 @@ function VideoCard({
               <MoreVertIcon sx={{ color: "#fff" }} />
             </IconButton>
           </CardContent>
-
-      
         </Card>
       ) : video ? (
         <Card
+          onClick={handleCardClick}
           sx={{
             position: "relative",
             transition: "0.3s ease-in-out",
@@ -319,7 +338,7 @@ function VideoCard({
               backgroundColor: theme.palette.primary.main,
               display: "flex",
               flexDirection: "column",
-              padding: 0,
+              padding: "0!important",
               minWidth: 0,
             }}
           >
@@ -334,13 +353,12 @@ function VideoCard({
                   display: "flex",
                   flexDirection: "column",
                   overflow: "hidden",
-
                   minWidth: 0,
                 },
               }}
               title={
                 <Typography
-                  variant="h3"
+                  variant="h8"
                   color="#f1f1f1"
                   sx={{
                     display: "-webkit-box",
@@ -349,7 +367,7 @@ function VideoCard({
                     WebkitLineClamp: 2, // Ensures 2 lines max
                     overflow: "hidden",
                     textOverflow: "ellipsis",
-                    paddingRight: "36px",
+                    paddingRight: "24px",
                     fontWeight: 600,
                     lineHeight: 1.5,
                   }}
@@ -378,18 +396,59 @@ function VideoCard({
                 </>
               }
               action={
-                <IconButton
-                  sx={{
-                    position: "absolute",
-                    width: "36px",
-                    height: "36px",
-                    right: "-12px",
-                    top: "-6px",
-                  }}
-                  aria-label="settings"
-                >
-                  <MoreVertIcon sx={{ color: "#fff" }} />
-                </IconButton>
+                <>
+                  <IconButton
+                    onClick={(e) => {
+                      e.stopPropagation(); 
+                      handleToggleOptions(videoId);
+                    }}
+                    sx={{
+                      position: "absolute",
+                      width: "36px",
+                      height: "36px",
+                      right: "-12px",
+                      top: "-6px",
+                    }}
+                    aria-label="settings"
+                  >
+                    <MoreVertIcon sx={{ color: "#fff" }} />
+                  </IconButton>
+                  {activeOptionsId === videoId && (
+                    <Box
+                      id="create-menu"
+                      sx={{
+                        position: "absolute",
+                        top: "35px",
+                        right: "0",
+                        borderRadius: "12px",
+                        backgroundColor: "#282828",
+                        zIndex: 2,
+                        paddingY: 1,
+                      }}
+                    >
+                      <MenuItem
+                        sx={{
+                          paddingTop: 1,
+                          paddingLeft: "16px",
+                          paddingRight: "36px",
+                          gap: "3px",
+                          "&:hover": {
+                            backgroundColor: "rgba(255,255,255,0.1)",
+                          },
+                        }}
+                      >
+                        <OutlinedFlagOutlinedIcon sx={{ color: "#f1f1f1" }} />
+                        <Typography
+                          variant="body2"
+                          marginLeft="10px"
+                          color="#f1f1f1"
+                        >
+                          Report
+                        </Typography>
+                      </MenuItem>
+                    </Box>
+                  )}
+                </>
               }
             />
           </CardContent>

@@ -21,6 +21,8 @@ import {
   MenuItem,
   Input,
   Tooltip,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import OutlinedFlagOutlinedIcon from "@mui/icons-material/OutlinedFlagOutlined";
@@ -70,6 +72,8 @@ const Comments = ({
   const dislikeAlertId = `comment-dislike-${comment._id}`;
   const isLikeAlertOpen = activeAlertId === likeAlertId;
   const isDislikeAlertOpen = activeAlertId === dislikeAlertId;
+  const theme = useTheme();
+  const isTablet = useMediaQuery(theme.breakpoints.down("md"));
 
   const context = useContext(OpenContext);
   let { data: userData } = context;
@@ -353,7 +357,7 @@ const Comments = ({
                   <Box ref={emojiPickerRef} sx={{ position: "relative" }}>
                     <IconButton
                       onClick={(e) => {
-                       // Stop the event from propagating
+                        // Stop the event from propagating
                         toggleEmojiPicker(e, comment._id); // Toggle the emoji picker
                       }}
                       sx={{ color: "#fff" }}
@@ -363,7 +367,7 @@ const Comments = ({
                     {activeEmojiPickerId === comment._id &&
                       !showEmojiPicker && (
                         <EmojiPickerWrapper
-                        setActiveEmojiPickerId={setActiveEmojiPickerId}
+                          setActiveEmojiPickerId={setActiveEmojiPickerId}
                           onEmojiSelect={handleEmojiClick}
                           id={comment._id}
                         />
@@ -419,63 +423,63 @@ const Comments = ({
             <ButtonGroup
               sx={{ alignItems: "center", marginTop: 0.5, marginLeft: "-8px" }}
             >
-              <Box sx={{ position: "relative"}}>
-              {isLike.isLiked ? (
-                <Tooltip title="Unlike">
-                  <IconButton
-                    sx={{
-                      padding: 0,
-                      width: "32px",
-                      height: "32px",
-                      "&:hover": {
-                        background: "rgba(255,255,255,0.2)",
-                      },
-                    }}
-                  >
-                    <ThumbUpAltIcon
-                      onClick={() => toggleLike(comment._id)}
+              <Box sx={{ position: "relative" }}>
+                {isLike.isLiked ? (
+                  <Tooltip title="Unlike">
+                    <IconButton
                       sx={{
-                        cursor: "pointer",
-                        color: "#f1f1f1",
-                        fontSize: "1.3rem",
+                        padding: 0,
+                        width: "32px",
+                        height: "32px",
+                        "&:hover": {
+                          background: "rgba(255,255,255,0.2)",
+                        },
                       }}
-                    />
-                  </IconButton>
-                </Tooltip>
-              ) : (
-                <Tooltip title="Like">
-                  <IconButton
-                    sx={{
-                      padding: 0,
-                      width: "32px",
-                      height: "32px",
-                      "&:hover": {
-                        background: "rgba(255,255,255,0.2)",
-                      },
-                    }}
-                  >
-                    <ThumbUpOffAltIcon
-                      onClick={() => toggleLike(comment._id)}
+                    >
+                      <ThumbUpAltIcon
+                        onClick={() => toggleLike(comment._id)}
+                        sx={{
+                          cursor: "pointer",
+                          color: "#f1f1f1",
+                          fontSize: "1.3rem",
+                        }}
+                      />
+                    </IconButton>
+                  </Tooltip>
+                ) : (
+                  <Tooltip title="Like">
+                    <IconButton
                       sx={{
-                        cursor: "pointer",
-                        color: "#fff",
-                        fontSize: "1.3rem",
+                        padding: 0,
+                        width: "32px",
+                        height: "32px",
+                        "&:hover": {
+                          background: "rgba(255,255,255,0.2)",
+                        },
                       }}
-                    />
-                  </IconButton>
-                </Tooltip>
-              )}
-               <SignInAlert
-              title="Like this video?"
-              desc="Sign in to make your opinion count"
-              isOpen={isLikeAlertOpen}
-              setIsOpen={handleCloseAlert}
-              setActiveAlertId={setActiveAlertId}
-              onConfirm={() => setIsSignIn(true)}
-              handleClose={handleCloseAlert}
-              leftVal="0px"
-            />
-</Box>
+                    >
+                      <ThumbUpOffAltIcon
+                        onClick={() => toggleLike(comment._id)}
+                        sx={{
+                          cursor: "pointer",
+                          color: "#fff",
+                          fontSize: "1.3rem",
+                        }}
+                      />
+                    </IconButton>
+                  </Tooltip>
+                )}
+                <SignInAlert
+                  title="Like this video?"
+                  desc="Sign in to make your opinion count"
+                  isOpen={isLikeAlertOpen}
+                  setIsOpen={handleCloseAlert}
+                  setActiveAlertId={setActiveAlertId}
+                  onConfirm={() => setIsSignIn(true)}
+                  handleClose={handleCloseAlert}
+                  leftVal="0px"
+                />
+              </Box>
               {isLike.likeCount && (
                 <span
                   style={{
@@ -487,62 +491,62 @@ const Comments = ({
                   {isLike.likeCount}
                 </span>
               )}
-              <Box sx={{ position: "relative"}}>
-              {isDislike.isDisliked ? (
-                <Tooltip title="Remove dislike">
-                  <IconButton
-                    sx={{
-                      padding: 0,
-                      width: "32px",
-                      height: "32px",
-                      "&:hover": {
-                        background: "rgba(255,255,255,0.2)",
-                      },
-                    }}
-                  >
-                    <ThumbDownAltIcon
-                      onClick={() => toggleDislike(comment._id)}
+              <Box sx={{ position: "relative" }}>
+                {isDislike.isDisliked ? (
+                  <Tooltip title="Remove dislike">
+                    <IconButton
                       sx={{
-                        cursor: "pointer",
-                        color: "#fff",
-                        fontSize: "1.3rem",
+                        padding: 0,
+                        width: "32px",
+                        height: "32px",
+                        "&:hover": {
+                          background: "rgba(255,255,255,0.2)",
+                        },
                       }}
-                    />
-                  </IconButton>
-                </Tooltip>
-              ) : (
-                <Tooltip title="Dislike">
-                  <IconButton
-                    sx={{
-                      padding: 0,
-                      width: "32px",
-                      height: "32px",
-                      "&:hover": {
-                        background: "rgba(255,255,255,0.2)",
-                      },
-                    }}
-                  >
-                    <ThumbDownOffAltIcon
-                      onClick={() => toggleDislike(comment._id)}
+                    >
+                      <ThumbDownAltIcon
+                        onClick={() => toggleDislike(comment._id)}
+                        sx={{
+                          cursor: "pointer",
+                          color: "#fff",
+                          fontSize: "1.3rem",
+                        }}
+                      />
+                    </IconButton>
+                  </Tooltip>
+                ) : (
+                  <Tooltip title="Dislike">
+                    <IconButton
                       sx={{
-                        cursor: "pointer",
-                        color: "#fff",
-                        fontSize: "1.3rem",
+                        padding: 0,
+                        width: "32px",
+                        height: "32px",
+                        "&:hover": {
+                          background: "rgba(255,255,255,0.2)",
+                        },
                       }}
-                    />
-                  </IconButton>
-                </Tooltip>
-              )}
+                    >
+                      <ThumbDownOffAltIcon
+                        onClick={() => toggleDislike(comment._id)}
+                        sx={{
+                          cursor: "pointer",
+                          color: "#fff",
+                          fontSize: "1.3rem",
+                        }}
+                      />
+                    </IconButton>
+                  </Tooltip>
+                )}
                 <SignInAlert
-              title="Don’t like this video?"
-              desc="Sign in to make your opinion count"
-              isOpen={isDislikeAlertOpen}
-              setIsOpen={handleCloseAlert}
-              setActiveAlertId={setActiveAlertId}
-              onConfirm={() => setIsSignIn(true)}
-              handleClose={handleCloseAlert}
-              leftVal="0px"
-            />
+                  title="Don’t like this video?"
+                  desc="Sign in to make your opinion count"
+                  isOpen={isDislikeAlertOpen}
+                  setIsOpen={handleCloseAlert}
+                  setActiveAlertId={setActiveAlertId}
+                  onConfirm={() => setIsSignIn(true)}
+                  handleClose={handleCloseAlert}
+                  leftVal="0px"
+                />
               </Box>
               <Box sx={{ position: "relative", padding: 0, marginLeft: "8px" }}>
                 <Button
@@ -654,7 +658,7 @@ const Comments = ({
                     {activeEmojiPickerId === comment._id &&
                       !showEmojiPicker && (
                         <EmojiPickerWrapper
-                        setActiveEmojiPickerId={setActiveEmojiPickerId}
+                          setActiveEmojiPickerId={setActiveEmojiPickerId}
                           onEmojiSelect={handleEmojiClick}
                           id={comment._id}
                         />
@@ -759,7 +763,12 @@ const Comments = ({
           </>
         }
         action={
-          <Box sx={{ position: "relative" }}>
+          <Box
+            sx={{
+              display: userId === comment.owner._id ? "block" : "none",
+              position: "relative",
+            }}
+          >
             <IconButton onClick={handleToggleOptions} aria-label="settings">
               <MoreVertIcon sx={{ color: "#fff" }} />
             </IconButton>
@@ -770,7 +779,7 @@ const Comments = ({
                   sx={{
                     position: "absolute",
                     top: "35px",
-                    right: "-93px",
+                    right: isTablet ? "0" : "-93px",
                     borderRadius: "12px",
                     backgroundColor: "#282828",
                     zIndex: 2,
@@ -822,42 +831,7 @@ const Comments = ({
                 </Box>
               )}
 
-            {activeOptionsId === comment._id &&
-              userId !== comment.owner._id && (
-                <Box
-                  id="create-menu"
-                  sx={{
-                    position: "absolute",
-                    top: "35px",
-                    right: "-93px",
-                    borderRadius: "12px",
-                    backgroundColor: "#282828",
-                    zIndex: 2,
-                    paddingY: 1,
-                  }}
-                >
-                  <MenuItem
-                    sx={{
-                      paddingTop: 1,
-                      paddingLeft: "16px",
-                      paddingRight: "36px",
-                      gap: "3px",
-                      "&:hover": {
-                        backgroundColor: "rgba(255,255,255,0.1)",
-                      },
-                    }}
-                  >
-                    <OutlinedFlagOutlinedIcon sx={{ color: "#f1f1f1" }} />
-                    <Typography
-                      variant="body2"
-                      marginLeft="10px"
-                      color="#f1f1f1"
-                    >
-                      Report
-                    </Typography>
-                  </MenuItem>
-                </Box>
-              )}
+           
             <AlertDialog
               dialogOpen={dialogOpen}
               setDialogOpen={setDialogOpen}

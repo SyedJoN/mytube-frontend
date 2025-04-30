@@ -29,13 +29,11 @@ function Description({ data, subscriberCount }) {
       onClick={() => setExpanded(true)}
     >
       <CardContent sx={{ padding: "8px 0" }}>
-        {/* Views and Date */}
         <Typography variant="body2" color="rgb(255,255,255)" fontWeight={500}>
           {data.data.views} {data.data.views === 1 ? "view" : "views"} •{" "}
           {formatDate(data.data.createdAt)}
         </Typography>
 
-        {/* Expandable Description */}
         <Typography variant="body2" color="rgb(255,255,255)">
         {expanded
   ? data.data.description || ""

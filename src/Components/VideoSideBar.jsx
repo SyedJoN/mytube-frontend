@@ -23,7 +23,7 @@ function VideoSideBar() {
     queryKey: ["videos"],
     queryFn: fetchVideos,
   });
-
+  const [activeOptionsId, setActiveOptionsId] = React.useState(null);
   const videos = listVideoData?.data?.docs || [];
 
   return (
@@ -31,49 +31,33 @@ function VideoSideBar() {
       {isErrorList && <Typography>Error: {errorList.message}</Typography>}
 
       {videos.length > 0 ? (
-        <Grid container spacing={0}>
+        <Box>
           {videos.map((video) => (
-            <Grid
+            <Box
               sx={{
-                gridColumn: {
-                  xs: 12,
-                  sm: 6,
-                  md: 4,
-                },
+                marginBottom: 2,
               }}
               key={video._id}
             >
-              <Link
-                to={`/watch/${video._id}`}
-                style={{ textDecoration: "none" }}
-              >
-                <VideoCard
-                  thumbnail={video.thumbnail}
-                  title={video.title}
-                  video={true}
-                  fullName={video.owner.fullName}
-                  views={video.views}
-                  duration={video.duration}
-                  createdAt={formatDate(video.createdAt)}
-                />
-              </Link>
-            </Grid>
+              <VideoCard
+                videoId={video._id}
+                thumbnail={video.thumbnail}
+                title={video.title}
+                video={true}
+                fullName={video.owner.fullName}
+                views={video.views}
+                duration={video.duration}
+                createdAt={formatDate(video.createdAt)}
+                activeOptionsId={activeOptionsId}
+                setActiveOptionsId={setActiveOptionsId}
+              />
+            </Box>
           ))}
-        </Grid>
+        </Box>
       ) : (
         isLoadingList &&
         Array.from(new Array(12)).map((_, index) => (
-          <Grid
-            key={index}
-            sx={{
-              gridColumn: {
-                xs: "span 12",
-                sm: "span 6",
-                md: "span 4",
-                lg: "span 2",
-              },
-            }}
-          >
+          <Box key={index}>
             <Box sx={{ display: "flex" }}>
               <Skeleton
                 variant="rectangular"
@@ -119,7 +103,7 @@ function VideoSideBar() {
                 </Box>
               </Box>
             </Box>
-          </Grid>
+          </Box>
         ))
       )}
     </>

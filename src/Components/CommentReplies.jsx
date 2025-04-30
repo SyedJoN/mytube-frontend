@@ -13,6 +13,8 @@ import {
   Menu,
   MenuItem,
   Tooltip,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import { addComment, updateComment, deleteComment } from "../apis/commentFn";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
@@ -63,6 +65,8 @@ function CommentReplies({
   const isLikeAlertOpen = activeAlertId === likeAlertId;
   const isDislikeAlertOpen = activeAlertId === dislikeAlertId;
 
+  const theme = useTheme();
+  const isTablet = useMediaQuery(theme.breakpoints.down("md"));
   const queryClient = useQueryClient();
   const emojiPickerRefs = useRef({});
   const userId = userData?.data?._id;
@@ -231,7 +235,6 @@ function CommentReplies({
     e.stopPropagation(e);
     if (isAuthenticated) {
       toggleLikeMutation(id);
-
     } else {
       setActiveAlertId(isLikeAlertOpen ? null : likeAlertId);
     }
@@ -244,7 +247,6 @@ function CommentReplies({
     } else {
       setActiveAlertId(isDislikeAlertOpen ? null : dislikeAlertId);
     }
-   
   };
 
   const handleToggleOptions = () => {
@@ -351,17 +353,14 @@ function CommentReplies({
                     sx={{ position: "relative" }}
                   >
                     <IconButton
-                      onClick={(e) => 
-                        
-                        toggleEmojiPicker(e, reply._id)
-                      }
+                      onClick={(e) => toggleEmojiPicker(e, reply._id)}
                       sx={{ color: "#fff" }}
                     >
                       <SentimentSatisfiedAltIcon />
                     </IconButton>
                     {activeEmojiPickerId === reply._id && !showEmojiPicker && (
                       <EmojiPickerWrapper
-                      setActiveEmojiPickerId={setActiveEmojiPickerId}
+                        setActiveEmojiPickerId={setActiveEmojiPickerId}
                         onEmojiSelect={(emoji) =>
                           setReplies((prev) => ({
                             ...prev,
@@ -422,63 +421,63 @@ function CommentReplies({
             <ButtonGroup
               sx={{ alignItems: "center", marginTop: 0.5, marginLeft: "-8px" }}
             >
-              <Box sx={{ position: "relative"}}>
-              {isLike.isLiked ? (
-                <Tooltip title="Unlike">
-                  <IconButton
-                    sx={{
-                      padding: 0,
-                      width: "32px",
-                      height: "32px",
-                      "&:hover": {
-                        background: "rgba(255,255,255,0.2)",
-                      },
-                    }}
-                  >
-                    <ThumbUpAltIcon
-                      onClick={(e) => toggleLike(e, reply._id)}
+              <Box sx={{ position: "relative" }}>
+                {isLike.isLiked ? (
+                  <Tooltip title="Unlike">
+                    <IconButton
                       sx={{
-                        cursor: "pointer",
-                        color: "#f1f1f1",
-                        fontSize: "1.3rem",
+                        padding: 0,
+                        width: "32px",
+                        height: "32px",
+                        "&:hover": {
+                          background: "rgba(255,255,255,0.2)",
+                        },
                       }}
-                    />
-                  </IconButton>
-                </Tooltip>
-              ) : (
-                <Tooltip title="Like">
-                  <IconButton
-                    sx={{
-                      padding: 0,
-                      width: "32px",
-                      height: "32px",
-                      "&:hover": {
-                        background: "rgba(255,255,255,0.2)",
-                      },
-                    }}
-                  >
-                    <ThumbUpOffAltIcon
-                      onClick={(e) => toggleLike(e, reply._id)}
+                    >
+                      <ThumbUpAltIcon
+                        onClick={(e) => toggleLike(e, reply._id)}
+                        sx={{
+                          cursor: "pointer",
+                          color: "#f1f1f1",
+                          fontSize: "1.3rem",
+                        }}
+                      />
+                    </IconButton>
+                  </Tooltip>
+                ) : (
+                  <Tooltip title="Like">
+                    <IconButton
                       sx={{
-                        cursor: "pointer",
-                        color: "#fff",
-                        fontSize: "1.3rem",
+                        padding: 0,
+                        width: "32px",
+                        height: "32px",
+                        "&:hover": {
+                          background: "rgba(255,255,255,0.2)",
+                        },
                       }}
-                    />
-                  </IconButton>
-                </Tooltip>
-              )}
-               <SignInAlert
-              title="Like this video?"
-              desc="Sign in to make your opinion count"
-              isOpen={isLikeAlertOpen}
-              setIsOpen={handleCloseAlert}
-              setActiveAlertId={setActiveAlertId}
-              onConfirm={() => setIsSignIn(true)}
-              handleClose={handleCloseAlert}
-              leftVal="0px"
-            />
-</Box>
+                    >
+                      <ThumbUpOffAltIcon
+                        onClick={(e) => toggleLike(e, reply._id)}
+                        sx={{
+                          cursor: "pointer",
+                          color: "#fff",
+                          fontSize: "1.3rem",
+                        }}
+                      />
+                    </IconButton>
+                  </Tooltip>
+                )}
+                <SignInAlert
+                  title="Like this video?"
+                  desc="Sign in to make your opinion count"
+                  isOpen={isLikeAlertOpen}
+                  setIsOpen={handleCloseAlert}
+                  setActiveAlertId={setActiveAlertId}
+                  onConfirm={() => setIsSignIn(true)}
+                  handleClose={handleCloseAlert}
+                  leftVal="0px"
+                />
+              </Box>
               {isLike.likeCount && (
                 <span
                   style={{
@@ -490,62 +489,62 @@ function CommentReplies({
                   {isLike.likeCount}
                 </span>
               )}
-              <Box sx={{ position: "relative"}}>
-              {isDislike.isDisliked ? (
-                <Tooltip title="Remove dislike">
-                  <IconButton
-                    sx={{
-                      padding: 0,
-                      width: "32px",
-                      height: "32px",
-                      "&:hover": {
-                        background: "rgba(255,255,255,0.2)",
-                      },
-                    }}
-                  >
-                    <ThumbDownAltIcon
-                      onClick={(e) => toggleDislike(e, reply._id)}
+              <Box sx={{ position: "relative" }}>
+                {isDislike.isDisliked ? (
+                  <Tooltip title="Remove dislike">
+                    <IconButton
                       sx={{
-                        cursor: "pointer",
-                        color: "#fff",
-                        fontSize: "1.3rem",
+                        padding: 0,
+                        width: "32px",
+                        height: "32px",
+                        "&:hover": {
+                          background: "rgba(255,255,255,0.2)",
+                        },
                       }}
-                    />
-                  </IconButton>
-                </Tooltip>
-              ) : (
-                <Tooltip title="Dislike">
-                  <IconButton
-                    sx={{
-                      padding: 0,
-                      width: "32px",
-                      height: "32px",
-                      "&:hover": {
-                        background: "rgba(255,255,255,0.2)",
-                      },
-                    }}
-                  >
-                    <ThumbDownOffAltIcon
-                      onClick={(e) => toggleDislike(e, reply._id)}
+                    >
+                      <ThumbDownAltIcon
+                        onClick={(e) => toggleDislike(e, reply._id)}
+                        sx={{
+                          cursor: "pointer",
+                          color: "#fff",
+                          fontSize: "1.3rem",
+                        }}
+                      />
+                    </IconButton>
+                  </Tooltip>
+                ) : (
+                  <Tooltip title="Dislike">
+                    <IconButton
                       sx={{
-                        cursor: "pointer",
-                        color: "#fff",
-                        fontSize: "1.3rem",
+                        padding: 0,
+                        width: "32px",
+                        height: "32px",
+                        "&:hover": {
+                          background: "rgba(255,255,255,0.2)",
+                        },
                       }}
-                    />
-                  </IconButton>
-                </Tooltip>
-              )}
+                    >
+                      <ThumbDownOffAltIcon
+                        onClick={(e) => toggleDislike(e, reply._id)}
+                        sx={{
+                          cursor: "pointer",
+                          color: "#fff",
+                          fontSize: "1.3rem",
+                        }}
+                      />
+                    </IconButton>
+                  </Tooltip>
+                )}
                 <SignInAlert
-              title="Don’t like this video?"
-              desc="Sign in to make your opinion count"
-              isOpen={isDislikeAlertOpen}
-              setIsOpen={handleCloseAlert}
-              setActiveAlertId={setActiveAlertId}
-              onConfirm={() => setIsSignIn(true)}
-              handleClose={handleCloseAlert}
-              leftVal="0px"
-            />
+                  title="Don’t like this video?"
+                  desc="Sign in to make your opinion count"
+                  isOpen={isDislikeAlertOpen}
+                  setIsOpen={handleCloseAlert}
+                  setActiveAlertId={setActiveAlertId}
+                  onConfirm={() => setIsSignIn(true)}
+                  handleClose={handleCloseAlert}
+                  leftVal="0px"
+                />
               </Box>
               <Box sx={{ position: "relative", padding: 0, marginLeft: "8px" }}>
                 <Button
@@ -646,17 +645,14 @@ function CommentReplies({
                 >
                   <Box sx={{ position: "relative", marginLeft: "36px" }}>
                     <IconButton
-                      onClick={(e) => 
-                        
-                        toggleEmojiPicker(e, reply._id)
-                      }
+                      onClick={(e) => toggleEmojiPicker(e, reply._id)}
                       sx={{ color: "#fff" }}
                     >
                       <SentimentSatisfiedAltIcon />
                     </IconButton>
                     {activeEmojiPickerId === reply._id && !showEmojiPicker && (
                       <EmojiPickerWrapper
-                      setActiveEmojiPickerId={setActiveEmojiPickerId}
+                        setActiveEmojiPickerId={setActiveEmojiPickerId}
                         onEmojiSelect={(emoji) =>
                           setSubReplies((prev) => ({
                             ...prev,
@@ -712,7 +708,12 @@ function CommentReplies({
           </>
         }
         action={
-          <Box sx={{ position: "relative" }}>
+          <Box
+            sx={{
+              display: userId === reply.owner._id ? "block" : "none",
+              position: "relative",
+            }}
+          >
             <IconButton onClick={handleToggleOptions} aria-label="settings">
               <MoreVertIcon sx={{ color: "#fff" }} />
             </IconButton>
@@ -722,7 +723,7 @@ function CommentReplies({
                 sx={{
                   position: "absolute",
                   top: "35px",
-                  right: "-93px",
+                  right: isTablet ? "0" : "-93px",
                   borderRadius: "12px",
                   backgroundColor: "#282828",
                   zIndex: 2,
@@ -772,7 +773,7 @@ function CommentReplies({
                 sx={{
                   position: "absolute",
                   top: "35px",
-                  right: "-93px",
+                  right: isTablet ? "0" : "-93px",
                   borderRadius: "12px",
                   backgroundColor: "#282828",
                   zIndex: 2,

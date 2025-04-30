@@ -4,7 +4,15 @@ import { toggleVideoLike } from "../apis/likeFn";
 import { toggleVideoDislike } from "../apis/dislikeFn";
 import SignInAlert from "./SignInAlert";
 import Signin from "./Signin";
-import { Box, Button, ButtonGroup, Tooltip, Divider } from "@mui/material";
+import {
+  Box,
+  Button,
+  ButtonGroup,
+  Tooltip,
+  Divider,
+  useTheme,
+  useMediaQuery,
+} from "@mui/material";
 import ThumbUpAltIcon from "@mui/icons-material/ThumbUpAlt";
 import ThumbUpOffAltIcon from "@mui/icons-material/ThumbUpOffAlt";
 import ThumbDownAltIcon from "@mui/icons-material/ThumbDownAlt";
@@ -19,34 +27,38 @@ export const LikeDislikeButtons = React.memo(
     activeAlertId,
     setActiveAlertId,
   }) => {
-      const queryClient = useQueryClient();
-    
+    const queryClient = useQueryClient();
+    const theme = useTheme();
+    const isTablet = useMediaQuery('(max-width:959px)');
+    const isMobile = useMediaQuery('(max-width:526px)');
     const likeAlertId = `like-alert-${videoId}`;
     const dislikeAlertId = `dislike-alert-${videoId}`;
 
     const isLikeAlertOpen = activeAlertId === likeAlertId;
     const isDislikeAlertOpen = activeAlertId === dislikeAlertId;
 
-   const [isLike, setIsLike] = useState({
-       isLiked: data?.data?.likedBy.includes(dataContext?.data?._id) || false,
-       likeCount: data?.data.likesCount || 0,
-     });
-     const [isDislike, setIsDislike] = useState({
-       isDisliked:data?.data?.disLikedBy.includes(dataContext?.data?._id) || false,
-     });
+    const [isLike, setIsLike] = useState({
+      isLiked: data?.data?.likedBy.includes(dataContext?.data?._id) || false,
+      likeCount: data?.data.likesCount || 0,
+    });
+    const [isDislike, setIsDislike] = useState({
+      isDisliked:
+        data?.data?.disLikedBy.includes(dataContext?.data?._id) || false,
+    });
     const [isSignIn, setIsSignIn] = useState(false);
 
-     useEffect(() => {
-        if (data?.data) {
-          setIsLike({
-            isLiked: data.data.likedBy.includes(dataContext?.data?._id) || false,
-            likeCount: data.data.likesCount || 0,
-          });
-          setIsDislike({
-            isDisliked: data.data.disLikedBy.includes(dataContext?.data?._id) || false,
-          });
-        }
-      }, [data?.data, dataContext?.data?._id]); 
+    useEffect(() => {
+      if (data?.data) {
+        setIsLike({
+          isLiked: data.data.likedBy.includes(dataContext?.data?._id) || false,
+          likeCount: data.data.likesCount || 0,
+        });
+        setIsDislike({
+          isDisliked:
+            data.data.disLikedBy.includes(dataContext?.data?._id) || false,
+        });
+      }
+    }, [data?.data, dataContext?.data?._id]);
 
     const { mutate: likeMutate } = useMutation({
       mutationFn: () => toggleVideoLike(videoId),
@@ -86,7 +98,6 @@ export const LikeDislikeButtons = React.memo(
           }
           return prev;
         });
-    
       },
       onSuccess: () => {
         queryClient.invalidateQueries(["video", videoId]);
@@ -110,7 +121,7 @@ export const LikeDislikeButtons = React.memo(
     };
 
     const handleCloseAlert = () => {
-     setActiveAlertId(null);
+      setActiveAlertId(null);
     };
 
     return (
@@ -122,105 +133,116 @@ export const LikeDislikeButtons = React.memo(
         )}
         <Box
           sx={{
-            position: "relative",
-            height: "36px",
-            display: "inline-flex",
-            alignItems: "center",
-            borderRadius: "50px",
-            color: "rgba(255,255,255,0.2)",
-            bgcolor: "rgba(255,255,255,0.1)",
-            "& svg": {
-              m: 1,
-            },
+            flexBasis: 0,
+            mt: 1,
           }}
         >
-          <Box sx={{ position: "relative" }}>
-            <Button
-              disableRipple
-              onClick={handleLikeBtn}
-              sx={{
-                paddingX: "8px",
-                paddingY: 0,
-                outline: "none",
-                height: "34px",
-                borderRadius: "50px 0 0 50px",
-                "&:hover": {
-                  background: "rgba(255,255,255,0.2)",
-                },
-              }}
-            >
-              {isLike.isLiked ? (
-                <Tooltip title="Unlike">
-                  <ThumbUpAltIcon
-                    sx={{ color: "rgb(255,255,255)", marginRight: "8px" }}
-                  />
-                </Tooltip>
-              ) : (
-                <Tooltip title="I like this">
-                  <ThumbUpOffAltIcon
-                    sx={{ color: "rgb(255,255,255)", marginRight: "8px" }}
-                  />
-                </Tooltip>
-              )}
-              <span style={{ color: "rgb(255,255,255)", paddingRight: "8px" }}>
-                {isLike.likeCount}
-              </span>
-            </Button>
-            <SignInAlert
-              title="Like this video?"
-              desc="Sign in to make your opinion count"
-              isOpen={isLikeAlertOpen}
-              setIsOpen={handleCloseAlert}
-              onConfirm={() => setIsSignIn(true)}
-              handleClose={handleCloseAlert}
-              leftVal="0px"
-            />
-          </Box>
+          <Box
+            sx={{
+              position: "relative",
+              height: "36px",
+              display: "inline-flex",
+              alignItems: "center",
+              borderRadius: "50px",
+              color: "rgba(255,255,255,0.2)",
+              bgcolor: "rgba(255,255,255,0.1)",
+              "& svg": {
+                m: 1,
+              },
+            }}
+          >
+            <Box sx={{ position: "relative" }}>
+              <Button
+                disableRipple
+                onClick={handleLikeBtn}
+                sx={{
+                  paddingX: "8px",
+                  paddingY: 0,
+                  outline: "none",
+                  height: "34px",
+                  borderRadius: "50px 0 0 50px",
+                  "&:hover": {
+                    background: "rgba(255,255,255,0.2)",
+                  },
+                }}
+              >
+                {isLike.isLiked ? (
+                  <Tooltip title="Unlike">
+                    <ThumbUpAltIcon
+                      sx={{ color: "rgb(255,255,255)", marginRight: "8px" }}
+                    />
+                  </Tooltip>
+                ) : (
+                  <Tooltip title="I like this">
+                    <ThumbUpOffAltIcon
+                      sx={{ color: "rgb(255,255,255)", marginRight: "8px" }}
+                    />
+                  </Tooltip>
+                )}
+                <span
+                  style={{ color: "rgb(255,255,255)", paddingRight: "8px" }}
+                >
+                  {isLike.likeCount}
+                </span>
+              </Button>
+              <SignInAlert
+                title="Like this video?"
+                desc="Sign in to make your opinion count"
+                isOpen={isLikeAlertOpen}
+                setIsOpen={handleCloseAlert}
+                onConfirm={() => setIsSignIn(true)}
+                handleClose={handleCloseAlert}
+                leftVal={isTablet && !isMobile ? "-168px" : "0px"}
 
-          <Divider
-            sx={{ bgcolor: "rgba(255, 255, 255, 0.42)" }}
-            orientation="vertical"
-            variant="middle"
-            flexItem
-          />
-          <Box sx={{ position: "relative" }}>
-            <Button
-              disableRipple
-              onClick={handleDislikeBtn}
-              sx={{
-                paddingX: "8px",
-                paddingY: 0,
-                outline: "none",
-                height: "34px",
-                borderRadius: "0 50px 50px 0",
-                "&:hover": {
-                  background: "rgba(255,255,255,0.2)",
-                },
-              }}
-            >
-              {isDislike.isDisliked ? (
-                <Tooltip title="Remove dislike">
-                  <ThumbDownAltIcon
-                    sx={{ color: "rgb(255,255,255)", marginRight: "8px" }}
-                  />
-                </Tooltip>
-              ) : (
-                <Tooltip title="I dislike this">
-                  <ThumbDownOffAltIcon
-                    sx={{ color: "rgb(255,255,255)", marginRight: "8px" }}
-                  />
-                </Tooltip>
-              )}
-            </Button>
-            <SignInAlert
-              title="Don’t like this video?"
-              desc="Sign in to make your opinion count"
-              isOpen={isDislikeAlertOpen}
-              setIsOpen={handleCloseAlert}
-              onConfirm={() => setIsSignIn(true)}
-              handleClose={handleCloseAlert}
-              leftVal="0px"
+              />
+            </Box>
+
+            <Divider
+              sx={{ bgcolor: "rgba(255, 255, 255, 0.42)" }}
+              orientation="vertical"
+              variant="middle"
+              flexItem
             />
+            <Box sx={{ position: "relative" }}>
+              <Button
+                disableRipple
+                onClick={handleDislikeBtn}
+                sx={{
+                  paddingX: "8px",
+                  paddingY: 0,
+                  outline: "none",
+                  height: "34px",
+                  borderRadius: "0 50px 50px 0",
+                  "&:hover": {
+                    background: "rgba(255,255,255,0.2)",
+                  },
+                }}
+              >
+                {isDislike.isDisliked ? (
+                  <Tooltip title="Remove dislike">
+                    <ThumbDownAltIcon
+                      sx={{ color: "rgb(255,255,255)", marginRight: "8px" }}
+                    />
+                  </Tooltip>
+                ) : (
+                  <Tooltip title="I dislike this">
+                    <ThumbDownOffAltIcon
+                      sx={{ color: "rgb(255,255,255)", marginRight: "8px" }}
+                    />
+                  </Tooltip>
+                )}
+              </Button>
+              <SignInAlert
+                title="Don’t like this video?"
+                desc="Sign in to make your opinion count"
+                isOpen={isDislikeAlertOpen}
+                setIsOpen={handleCloseAlert}
+                onConfirm={() => setIsSignIn(true)}
+                handleClose={handleCloseAlert}
+                leftVal={isTablet && !isMobile ? "-168px" : "0px"}
+
+              />
+            </Box>
           </Box>
         </Box>
       </>

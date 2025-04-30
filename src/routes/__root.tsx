@@ -79,11 +79,11 @@ function RouteComponent() {
           component="main"
           sx={{
             marginTop: "var(--toolbar-height)",
-            marginLeft: isTablet
+            marginLeft: (isTablet || watch)
             ? "0" // If it's a mobile device, set marginLeft to 0
-            : open && !isLaptop && !watch
+            : open && !isLaptop
             ? "var(--drawer-width)" // When open and not tablet, and not watching
-            : !(open && watch) || !isTablet
+            : !open || !isTablet
             ? "var(--mini-drawer-width)" // If not watching and not mobile
             : "0", // Default to 0
           

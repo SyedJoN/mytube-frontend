@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useContext } from "react";
-import { keyframes } from "@mui/system";
+import { keyframes, useMediaQuery, useTheme } from "@mui/system";
 import { getColor } from "../utils/getColor";
 import { Box, Typography } from "@mui/material";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -17,11 +17,17 @@ import { SubscribeButton } from "./SubscribeButton";
 import { LikeDislikeButtons } from "./LikeDislikeButton";
 import Description from "./Description";
 import VideoSideBar from "./VideoSideBar";
+import theme from "../assets/Theme";
+import { wrap } from "lodash";
 
 function VideoPlayer({ videoId }) {
   const context = useContext(OpenContext);
   let { data: dataContext } = context;
   const isAuthenticated = dataContext || null;
+
+  const theme = useTheme();
+  const isTablet = useMediaQuery(theme.breakpoints.down("md"));
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const rotateAnimation = keyframes`
   0% { transform: rotate(0deg); }
@@ -123,9 +129,6 @@ function VideoPlayer({ videoId }) {
     }
   }, [userData]);
 
-  
-  
-
   const watchTimeRef = useRef(0);
   const { mutate } = useMutation({
     mutationFn: () => videoView(videoId),
@@ -163,10 +166,11 @@ function VideoPlayer({ videoId }) {
   return (
     <Grid
       container
+      direction={isTablet ? "column" : "row"}
       spacing={0}
-      sx={{ flexWrap: "noWrap", justifyContent: "center" }}
+      sx={{ flexWrap: "noWrap", justifyContent: !isTablet ? "center" : "flex-start", alignItems: isTablet ? "center" : "flex-start" }}
     >
-      <Grid size={{ xs: 12, md: 8 }} sx={{ paddingRight: "24px" }}>
+      <Grid size={{ xs: 12, sm: 11.5, md: 8 }} sx={{ p: 3, width: isTablet ? "100%!important" : "" }}>
         <video
           width="100%"
           height="auto"
@@ -179,15 +183,31 @@ function VideoPlayer({ videoId }) {
           <source src={data.data.videoFile} type="video/mp4" />
         </video>
         <Box marginTop="8px">
-          <Typography variant="h3" color="#fff">
+          <Typography
+            sx={{
+              display: "-webkit-box",
+              textOverflow: "ellipsis",
+              maxHeight: "5.6rem",
+              WebkitLineClamp: "2",
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+            }}
+            variant="h3"
+            color="#fff"
+          >
             {data.data.title}
           </Typography>
         </Box>
         <Box
           sx={{
             display: "flex",
+            flexWrap: "wrap",
             justifyContent: "space-between",
             alignItems: "center",
+            gap: {
+              xs: "0",
+              sm: "24",
+            },
           }}
         >
           <Box
@@ -196,6 +216,7 @@ function VideoPlayer({ videoId }) {
               alignItems: "center",
               marginTop: 1,
               position: "relative",
+              minWidth: "calc(50% - 6px)",
             }}
           >
             <CardHeader
@@ -225,11 +246,6 @@ function VideoPlayer({ videoId }) {
                   {data.data.owner.fullName}
                 </Typography>
               }
-              // action={
-              //   <IconButton aria-label="settings">
-              //     <MoreVertIcon sx={{ color: "#fff" }} />
-              //   </IconButton>
-              // }
               subheader={
                 <>
                   <Typography variant="body2" color="#aaa" fontSize="0.8rem">
@@ -255,11 +271,10 @@ function VideoPlayer({ videoId }) {
             />
           </Box>
           <LikeDislikeButtons
-          dataContext={dataContext}
+            dataContext={dataContext}
             isAuthenticated={isAuthenticated}
             data={data}
             videoId={videoId}
-           
             activeAlertId={activeAlertId}
             setActiveAlertId={setActiveAlertId}
           />
@@ -268,22 +283,37 @@ function VideoPlayer({ videoId }) {
           data={data}
           subscriberCount={userData?.data?.subscribersCount}
         />
-        <CommentSection
-          isAuthenticated={isAuthenticated}
-          videoId={videoId}
-          data={data}
-          activeAlertId={activeAlertId}
-          setActiveAlertId={setActiveAlertId}
-        />
+        {!isTablet && (
+          <CommentSection
+            isAuthenticated={isAuthenticated}
+            videoId={videoId}
+            data={data}
+            activeAlertId={activeAlertId}
+            setActiveAlertId={setActiveAlertId}
+          />
+        )}
       </Grid>
       <Grid
-        size={{ xs: 12, md: 4 }}
+        size={{ xs: 12, sm: 12, md: 4 }}
         sx={{
+          flexGrow: isTablet ? "1" : "0",
           width: "402px!important",
-          minWidth: "300px!important",
+          minWidth: isTablet ? "100%" : "300px!important",
+          py: 3,
+          px: isTablet ? 3 : 0,
+          pr: 3
         }}
       >
         <VideoSideBar />
+        {isTablet && (
+          <CommentSection
+            isAuthenticated={isAuthenticated}
+            videoId={videoId}
+            data={data}
+            activeAlertId={activeAlertId}
+            setActiveAlertId={setActiveAlertId}
+          />
+        )}
       </Grid>
     </Grid>
   );
