@@ -38,7 +38,7 @@ import { useLocation } from "@tanstack/react-router";
 import { useNavigate } from "@tanstack/react-router";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 
-function Header({ open, onClose, watch, search, home, ...props }) {
+function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
   const theme = useTheme();
   const isLaptop = useMediaQuery(theme.breakpoints.down("lg"));
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
@@ -67,10 +67,10 @@ function Header({ open, onClose, watch, search, home, ...props }) {
    }
   }, [isMobile])
 
+  
   return (
     <Box>
       <CssBaseline />
-
       <AppBar position="fixed" sx={{ boxShadow: "none" }}>
         {!searchMenu ? 
            <Toolbar
@@ -387,6 +387,228 @@ function Header({ open, onClose, watch, search, home, ...props }) {
         </Drawer>
       )}
 
+{(userProfile && !isTablet) && (
+        <Drawer
+        id="userProfile"
+          container={container}
+          variant="permanent"
+          open={open}
+          sx={{
+            "& .MuiDrawer-paper": {
+              width: !isLaptop ? (open  ? drawerWidth : miniDrawerWidth) :
+              miniDrawerWidth,
+              overflowX: "hidden",
+              border: "none",
+              zIndex: 0,
+              bgcolor: theme.palette.primary.main,
+            },
+          }}
+        >
+          <Toolbar
+            sx={{
+              minHeight: "var(--toolbar-height)",
+              "@media (min-width:600px)": {
+                minHeight: "var(--toolbar-height)", // 👈 override default
+              },
+            }}
+          >
+            <IconButton
+              size="medium"
+              edge="start"
+              color="inherit"
+              aria-label="menu"
+              onClick={onClose}
+              sx={{ pl: 2, mr: 1 }}
+            >
+              <MenuIcon sx={{ color: "#f1f1f1" }} />
+            </IconButton>
+            <Link style={{ color: "#fff", textDecoration: "none" }} to="/">
+              <Typography
+                sx={{ padding: "10px" }}
+                variant="h6"
+                noWrap
+                component="div"
+              >
+                VTube
+              </Typography>
+            </Link>
+          </Toolbar>
+
+          <List sx={{ color: "#fff" }}>
+            {["Home", "Shorts", "Subscriptions", !open ? "You" : null]
+              .filter(Boolean)
+              .map((text, index) => {
+                const paths = ["/", "/shorts", "/subscriptions", "/profile"];
+                const route = paths[index];
+                return (
+                  <ListItem
+                    key={text}
+                    disablePadding
+                    sx={{
+                      display: "block",
+                      width: (open && !isLaptop) ? "calc(100% - 12px)" : "100%",
+                    }}
+                  >
+                    <ListItemButton
+                      to={route}
+                      selected={location.pathname === route}
+                      sx={{
+                        display: "flex",
+                        flexDirection: (open && !isLaptop)  ? "row" : "column",
+                        alignItems: "center",
+                        justifyContent: (open && !isLaptop)  ? "flex-start" : "center", // ✅ Fix for icons when collapsed
+                        borderRadius: "10px",
+                        paddingX: 2,
+                        paddingY: (open && !isLaptop)  ? 1 : 1.5,
+                        marginX: (open && !isLaptop)  ? 1 : 0,
+                        gap: (open && !isLaptop)  ? "0" : "0.5px",
+                        transition: "background-color 0.3s ease",
+                        "&:hover": {
+                          backgroundColor: "rgba(255, 255, 255, 0.1)",
+                        },
+                        "&.Mui-selected": {
+                          backgroundColor: (open && !isLaptop) 
+                            ? "rgba(255, 255, 255, 0.1)"
+                            : "",
+                          "&:hover": {
+                            backgroundColor: (open && !isLaptop) 
+                              ? "rgba(255, 255, 255, 0.2)"
+                              : "rgba(255, 255, 255, 0.1)",
+                          },
+                        },
+                      }}
+                    >
+                      <ListItemIcon
+                        sx={{
+                          color: "#fff",
+                          minWidth: 0,
+                          justifyContent: "center",
+                        }}
+                      >
+                        {index === 0 ? (
+                          location.pathname === route ? (
+                            <HomeIcon sx={{ fontSize: "1.5rem" }} />
+                          ) : (
+                            <HomeOutlinedIcon sx={{ fontSize: "1.5rem" }} />
+                          )
+                        ) : index === 1 ? (
+                          <PlayArrowOutlinedIcon sx={{ fontSize: "1.5rem" }} />
+                        ) : index === 2 ? (
+                          <SubscriptionsOutlinedIcon
+                            sx={{ fontSize: "1.5rem" }}
+                          />
+                        ) : !open ? (
+                          <AccountCircleOutlinedIcon
+                            sx={{ fontSize: "1.5rem" }}
+                          />
+                        ) : null}
+                      </ListItemIcon>
+                      <Typography
+                        sx={{
+                          marginLeft: (open && !isLaptop)  ? 2 : 0,
+                          fontSize: (open && !isLaptop)  ? "0.9rem" : "0.6rem",
+                          mt: (open && !isLaptop)  ? 0 : "5px",
+                        }}
+                      >
+                        {text}
+                      </Typography>
+                    </ListItemButton>
+                  </ListItem>
+                );
+              })}
+          </List>
+
+          {(open && !isLaptop)  && (
+            <Divider sx={{ bgcolor: "rgba(255, 255, 255, 0.2)", my: 1 }} />
+          )}
+
+          {(open && !isLaptop)  && (
+            <List sx={{ color: "#fff" }}>
+              <ListItem disablePadding sx={{ display: "flex" }}>
+                <ListItemButton
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "flex-start", // ✅ Fix for icons when collapsed
+                    borderRadius: "10px",
+                    paddingX: 2,
+                    paddingY: 1,
+                    gap: "0.5rem",
+                    marginX: 1,
+                    transition: "background-color 0.3s ease",
+                    "&:hover": {
+                      backgroundColor: "rgba(255, 255, 255, 0.1)",
+                    },
+                  }}
+                >
+                  <Typography sx={{ fontSize: "0.9rem" }}>You</Typography>
+
+                  <ListItemIcon
+                    sx={{
+                      color: "#fff",
+                      minWidth: 0,
+                      justifyContent: "center",
+                    }}
+                  >
+                    <ArrowForwardIosOutlinedIcon sx={{ fontSize: "0.9rem" }} />
+                  </ListItemIcon>
+                </ListItemButton>
+              </ListItem>
+
+              {[
+                "History",
+                "Playlists",
+                "Your videos",
+                "Watch Later",
+                "Liked Videos",
+              ].map((text, index) => (
+                <ListItem key={text} disablePadding sx={{ display: "block" }}>
+                  <ListItemButton
+                    sx={{
+                      display: "flex",
+                      flexDirection: open ? "row" : "column",
+                      alignItems: "center",
+                      justifyContent: open ? "flex-start" : "center",
+                      paddingY: 1,
+                      paddingX: open ? 2 : 0,
+                      borderRadius: "10px",
+                      marginX: 1,
+                      transition: "background-color 0.3s ease",
+                      "&:hover": {
+                        backgroundColor: "rgba(255, 255, 255, 0.1)",
+                      },
+                    }}
+                  >
+                    <ListItemIcon
+                      sx={{
+                        color: "#fff",
+                        minWidth: 0,
+                        justifyContent: "center",
+                      }}
+                    >
+                      {index === 0 ? (
+                        <HistoryOutlinedIcon />
+                      ) : index === 1 ? (
+                        <PlaylistPlayOutlinedIcon />
+                      ) : index === 2 ? (
+                        <SmartDisplayOutlinedIcon />
+                      ) : index === 3 ? (
+                        <WatchLaterOutlinedIcon />
+                      ) : (
+                        <ThumbUpOutlinedIcon />
+                      )}
+                    </ListItemIcon>
+                    <Typography sx={{ marginLeft: 2, fontSize: "0.9rem" }}>
+                      {text}
+                    </Typography>
+                  </ListItemButton>
+                </ListItem>
+              ))}
+            </List>
+          )}
+        </Drawer>
+      )}
+
       {isLaptop && (
         <Drawer
           container={container}
@@ -402,6 +624,7 @@ function Header({ open, onClose, watch, search, home, ...props }) {
               zIndex: 0,
               bgcolor: theme.palette.primary.main,
             },
+            
           }}
         >
           <Toolbar

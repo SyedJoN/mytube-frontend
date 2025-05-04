@@ -1,8 +1,11 @@
-import React, { useContext, useState, useEffect } from "react";
+import React, { useContext, useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { getUserChannelProfile } from "../../apis/userFn";
 import { OpenContext } from "../../routes/__root";
 import { getColor } from "../../utils/getColor";
+import Grid from "@mui/material/Grid";
+import { useParams } from "@tanstack/react-router";
+
 import {
   Avatar,
   CardHeader,
@@ -10,9 +13,10 @@ import {
   Box,
   Divider,
   Container,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import { SubscribeButton } from "../SubscribeButton";
-import Grid from "@mui/material/Grid";
 import formatDate from "../../utils/formatDate";
 import AlertDialog from "../Dialog";
 import StatsDialog from "../StatsDialog";
@@ -20,12 +24,16 @@ import BasicTabs from "../Tabs";
 import VideoCard from "../VideoCard";
 
 const ChannelProfile = ({ username }) => {
+  const headerRef = useRef(null);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm")); // <600px
+  const isDesktop = useMediaQuery(theme.breakpoints.up("lg")); // >1200px
+  const isTablet = useMediaQuery(theme.breakpoints.down("md")); // >1200px
+
   const context = useContext(OpenContext);
   let { data: dataContext, open } = context;
   const isAuthenticated = dataContext || null;
   const [showMore, setShowMore] = useState(false);
-  const [hideHeader, setHideHeader] = useState(false);
-  const [lastScrollTop, setLastScrollTop] = useState(0);
   const userNameStyles = {
     color: "#f1f1f1",
     fontWeight: "bold",
@@ -60,16 +68,32 @@ const ChannelProfile = ({ username }) => {
   }, [userData]);
 
   const [translateY, setTranslateY] = useState(0);
+  const scrollYRef = useRef(0);
 
   useEffect(() => {
     const handleScroll = () => {
-      setTranslateY(window.scrollY);
+      const stickyVal = headerRef.current?.offsetHeight - 46 || 0;
+
+      const currentScrollY =
+        document.body.style.position === "fixed"
+          ? scrollYRef.current
+          : window.scrollY;
+
+      const clampY = Math.min(currentScrollY, stickyVal);
+      setTranslateY(-clampY);
     };
 
-    window.addEventListener("scroll", handleScroll);
+    if (open) {
+      scrollYRef.current = window.scrollY;
+    }
 
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [translateY]);
+    window.addEventListener("scroll", handleScroll);
+    handleScroll(); // run once initially
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, [open]);
 
   return (
     <>
@@ -84,23 +108,46 @@ const ChannelProfile = ({ username }) => {
       />
       <Box
         sx={{
-          display: "block",
+          flex: 1,
+          flexBasis: 0,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
         }}
       >
-        <Box id="wrapper" sx={{ marginTop: "var(--toolbar-height)"}}>
+        <Box id="wrapper" sx={{ width: "100%", height: "100%" }}>
           <Box
+            ref={headerRef}
             id="header"
             sx={{
               position: "fixed",
-              width: "100%",
+              background: "#0f0f0f",
               top: 0,
-              left: open ? "var(--drawer-width)" : "0",
-              zIndex: 1000,
-              transform: `translate3d(0px, -${translateY}px, 0px)`,
+              marginTop: "var(--toolbar-height)",
+              left: isDesktop
+                ? open
+                  ? "var(--drawer-width)"
+                  : "var(--mini-drawer-width)"
+                : isMobile
+                  ? "0"
+                  : isTablet
+                    ? "0"
+                    : "72px",
+              right: 0,
+              zIndex: 500,
+              transform: `translate3d(0px, ${translateY}px, 0px)`,
+              transition: "transform 0ms linear",
             }}
           >
             <Box sx={{ display: "flex", flexDirection: "column" }}>
-              <Box sx={{ paddingX: `calc(50% - 642px)` }}>
+              <Container
+                fixed
+                sx={
+                  {
+                    // paddingX: `calc(50% - ${isLaptop ? 535 : isTablet ? 428 : isMobile ? 321 : 642}px)`,
+                  }
+                }
+              >
                 <Box
                   sx={{
                     position: "relative",
@@ -129,22 +176,24 @@ const ChannelProfile = ({ username }) => {
                     ></Box>
                   </Box>
                 </Box>
-              </Box>
-
-              <Box
+              </Container>
+              <Container
+                fixed
                 sx={{
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  paddingX: `calc(50% - 642px)`,
+                  paddingTop: 2,
+                  flex: 1,
+                  // paddingX: `calc(50% - ${isLaptop ? 535 : isTablet ? 428 : isMobile ? 321 : 642}px)`,
                 }}
               >
                 <Box
                   sx={{
                     display: "flex",
                     alignItems: "center",
-                    marginTop: 2,
                     position: "relative",
+                    flex: 1,
                   }}
                 >
                   <CardHeader
@@ -243,35 +292,55 @@ const ChannelProfile = ({ username }) => {
                     }
                   />
                 </Box>
-              </Box>
+              </Container>
             </Box>
-            <Box sx={{ position: "relative", marginY: "20px" }}>
+            <Box
+              sx={{
+                position: "relative",
+                borderBottom: 1,
+                borderColor: "rgba(255,255,255,0.2)",
+              }}
+            >
               <BasicTabs userData={userData} />
             </Box>
           </Box>
-        </Box>
-        <Box sx={{ marginTop: "400px" }}>
           <Box
             sx={{
-              display: "flex",
-              flexWrap: "wrap",
-              paddingX: `calc(50% - 642px)`,
+              position: "relative",
+              paddingTop: `${headerRef.current?.offsetHeight}px`,
+              zIndex: 0,
             }}
-          >
-            {userData?.data?.videos?.map((video) => (
-              <VideoCard
-                key={video._id}
-                profile={true}
-                thumbnail={video.thumbnail}
-                title={video.title}
-                open={open}
-                views={video.views}
-                duration={video.duration}
-                createdAt={formatDate(video.createdAt)}
-              />
-            ))}
-          </Box>
+          ></Box>
         </Box>
+        <Container fixed sx={{ marginTop: "20px" }}>
+          <Grid container spacing={2}>
+            {userData?.data?.videos?.map((video) => (
+              <Grid
+                key={video._id}
+                sx={{ flexGrow: "1!important" }}
+                size={{
+                  xs: 12,
+                  sm: 6,
+                  md: 4,
+                  lg: 3,
+                  xl: 3,
+                }}
+              >
+                <Box sx={{ width: "100%" }}>
+                  <VideoCard
+                    profile={true}
+                    thumbnail={video.thumbnail}
+                    title={video.title}
+                    open={open}
+                    views={video.views}
+                    duration={video.duration}
+                    createdAt={formatDate(video.createdAt)}
+                  />
+                </Box>
+              </Grid>
+            ))}
+          </Grid>
+        </Container>
       </Box>
     </>
   );

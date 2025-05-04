@@ -3,7 +3,13 @@ import PropTypes from "prop-types";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import Box from "@mui/material/Box";
-import { Container, FormControl, Input } from "@mui/material";
+import {
+  Container,
+  FormControl,
+  Input,
+  useMediaQuery,
+  useTheme,
+} from "@mui/material";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import ClickAwayListener from "@mui/material/ClickAwayListener";
 import Grid from "@mui/material/Grid";
@@ -38,6 +44,10 @@ function a11yProps(index) {
 }
 
 export default function BasicTabs() {
+  const theme = useTheme();
+  const isTablet = useMediaQuery("(min-width: 961px) and (max-width: 1156px)");
+  const isLaptop = useMediaQuery("(min-width: 1157px) and (max-width: 1533px)");  
+  const isMobile = useMediaQuery("(max-width: 960px)");
   const [search, setSearch] = React.useState(false);
   const inputRef = React.useRef(null);
   const [value, setValue] = React.useState(0);
@@ -60,14 +70,17 @@ export default function BasicTabs() {
   };
 
   return (
-    <Box sx={{ marginX: `calc(50% - 642px)` }}>
+    <Container
+    fixed
+      // sx={{
+      //   marginX: `calc(50% - ${isLaptop ? 535 : isTablet ? 428 : isMobile ? 321 : 642}px)`,
+      // }}
+    >
       <Box>
         <Tabs
           value={value}
           onChange={handleChange}
           sx={{
-            borderBottom: 1,
-            borderColor: "rgba(255,255,255,0.2)",
             "& .MuiTabs-indicator": {
               backgroundColor: "#f1f1f1",
             },
@@ -154,6 +167,6 @@ export default function BasicTabs() {
       </Box>
 
       <CustomTabPanel index={0}>Item One</CustomTabPanel>
-    </Box>
+    </Container>
   );
 }

@@ -142,12 +142,6 @@ function AddComment({
     return colorPalette[index] || blue[500]; // Default to blue if something goes wrong
   }
 
-  // useClickAway(emojiPickerRef, (e) => {
-  //   e.stopPropagation();
-  //   setShowEmojiPicker(false);
-  // setActiveEmojiPickerId(null);
-  // });
-
   return (
     <>
       {isSignIn && (
@@ -155,11 +149,11 @@ function AddComment({
           <Signin open={isSignIn} onClose={() => setIsSignIn(false)} />
         </Box>
       )}
-      <Box marginTop="12px">
+      <Box marginTop="24px">
         <Typography variant="h6" color="rgb(255,255,255)" fontWeight={600}>
           {commentsData?.length} Comments
         </Typography>
-        <Box sx={{ display: "flex", alignItems: "center", mt: 2 }}>
+        <Box sx={{ display: "flex", alignItems: "center", marginTop: "-6px" }}>
           <CardHeader
             sx={{
               alignItems: "flex-start",

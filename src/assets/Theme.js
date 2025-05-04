@@ -29,8 +29,8 @@ let theme = createTheme({
       values: {
         xs: 0,   // Mobile screen
         sm: 600, // Small tablets
-        md: 960, // Tablets
-        lg: 1313, // Laptops
+        md: 792, // Tablets
+        lg: 1185, // Laptops
         xl: 1920, // Desktops
       },
     },

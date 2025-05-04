@@ -31,7 +31,7 @@ function VideoSideBar() {
       {isErrorList && <Typography>Error: {errorList.message}</Typography>}
 
       {videos.length > 0 ? (
-        <Box>
+        <>
           {videos.map((video) => (
             <Box
               sx={{
@@ -53,7 +53,7 @@ function VideoSideBar() {
               />
             </Box>
           ))}
-        </Box>
+        </>
       ) : (
         isLoadingList &&
         Array.from(new Array(12)).map((_, index) => (

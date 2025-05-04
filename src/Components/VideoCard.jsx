@@ -648,10 +648,7 @@ function VideoCard({
         profile && (
           <Card
             sx={{
-              marginRight: "16px",
-              marginBottom: "24px",
               position: "relative",
-              width: 288,
               transition: "0.3s ease-in-out",
               padding: 0,
               cursor: "pointer",
