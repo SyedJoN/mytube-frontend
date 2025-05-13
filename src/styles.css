@@ -17,6 +17,11 @@ body {
     overflow-x: inherit;
     
 }
+.MuiAppBar-root,
+.MuiDrawer-root,
+.MuiModal-root {
+  padding-right: 0 !important;
+}
 
 .smoothTransition {
   transition-property: opacity, transform;

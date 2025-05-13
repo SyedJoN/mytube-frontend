@@ -11,6 +11,7 @@ import SimpleSnackbar from "./Snackbar";
 import Box from "@mui/system/Box";
 import Signin from "./Signin";
 import SignInAlert from "./SignInAlert";
+import { useMediaQuery } from "@mui/material";
 
 const rotateAnimation = keyframes`
   0% { transform: rotate(0deg); }
@@ -42,6 +43,8 @@ export const SubscribeButton = React.memo(
     const theme = useTheme();
     const currentAlertId = `alert-${channelId}`;
     const paperOpen = activeAlertId === currentAlertId;
+      const isTablet = useMediaQuery(theme.breakpoints.down("md"));
+    
 
     const [isSubscribed, setIsSubscribed] = useState(initialSubscribed);
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -144,7 +147,7 @@ export const SubscribeButton = React.memo(
         }
       },
     
-      onSuccess: (data) => {
+      onSuccess: () => {
         queryClient.invalidateQueries(["channelProfile", user]);
         !isSubscribed
           ? setSnackbarMessage("Subscription removed")
@@ -177,7 +180,7 @@ export const SubscribeButton = React.memo(
           setOpen={setSnackbarOpen}
           message={snackbarMessage}
         />
-        <Box>
+        <Box sx={{display: "flex", justifyContent: isTablet ? "center" : "start", mt: isTablet ? 1 : 0}}>
           {hasLoaded && (
             <Button
               ref={buttonRef}
@@ -193,7 +196,7 @@ export const SubscribeButton = React.memo(
                 fontWeight: "600",
                 marginLeft: marginLeftVal,
                 padding: "0 16px",
-                width: isSubscribed ? "140px" : "100px",
+                width: isSubscribed && !isTablet ? "140px" : !isSubscribed && !isTablet ? "100px" : "560px",
                 background: isSubscribed ? "rgba(255,255,255,0.1)" : "#f1f1f1",
                 transition: isSubscribed
                   ? "width 0.5s ease, background 0.3s ease"
@@ -205,7 +208,7 @@ export const SubscribeButton = React.memo(
                 },
                 "&::before": {
                   ...buttonStyles.before,
-                  opacity: isSubscribed && showGradient ? 1 : 0,
+                  opacity: isSubscribed && showGradient && !isTablet ? 1 : 0,
                 },
               }}
             >

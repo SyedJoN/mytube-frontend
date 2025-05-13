@@ -4,7 +4,7 @@ import { getUserChannelProfile } from "../../apis/userFn";
 import { OpenContext } from "../../routes/__root";
 import { getColor } from "../../utils/getColor";
 import Grid from "@mui/material/Grid";
-import { useParams } from "@tanstack/react-router";
+import { Outlet, useLocation, useParams } from "@tanstack/react-router";
 
 import {
   Avatar,
@@ -22,14 +22,24 @@ import AlertDialog from "../Dialog";
 import StatsDialog from "../StatsDialog";
 import BasicTabs from "../Tabs";
 import VideoCard from "../VideoCard";
+import ManageButtons from "./ManageButtons";
+import UserVideos from "./UserVideos";
 
-const ChannelProfile = ({ username }) => {
+const ChannelProfile = ({ username, userData }) => {
+  const location = useLocation();
   const headerRef = useRef(null);
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm")); // <600px
-  const isDesktop = useMediaQuery(theme.breakpoints.up("lg")); // >1200px
-  const isTablet = useMediaQuery(theme.breakpoints.down("md")); // >1200px
-
+  const isXs = useMediaQuery("(max-width:315.95px)");
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isDesktop = useMediaQuery(theme.breakpoints.up("lg"));
+  const isTablet = useMediaQuery(theme.breakpoints.down("md"));
+  const tabPaths = ["videos", "playlists", "community"];
+  const components = [UserVideos, BasicTabs, StatsDialog];
+  const currentTabIndex = tabPaths.findIndex((path) =>
+    location.pathname.includes(path)
+  );
+  const ComponentToRender =
+    currentTabIndex === -1 ? components[0] : components[currentTabIndex];
   const context = useContext(OpenContext);
   let { data: dataContext, open } = context;
   const isAuthenticated = dataContext || null;
@@ -38,16 +48,16 @@ const ChannelProfile = ({ username }) => {
     color: "#f1f1f1",
     fontWeight: "bold",
   };
-  const {
-    data: userData,
-    isLoading: isUserLoading,
-    isError: isUserError,
-    error: userError,
-  } = useQuery({
-    queryKey: ["channelProfile", username],
-    queryFn: () => getUserChannelProfile(username),
-    enabled: true,
-  });
+  // const {
+  //   data: userData,
+  //   isLoading: isUserLoading,
+  //   isError: isUserError,
+  //   error: userError,
+  // } = useQuery({
+  //   queryKey: ["channelProfile", username],
+  //   queryFn: () => getUserChannelProfile(username),
+  //   enabled: true,
+  // });
 
   const channelId = userData?.data?._id;
   const [subscriberCount, setSubscriberCount] = useState(
@@ -55,9 +65,9 @@ const ChannelProfile = ({ username }) => {
   );
   const [activeAlertId, setActiveAlertId] = useState(null);
 
-  useEffect(() => {
-    console.log("userData", userData);
-  }, [userData]);
+  // useEffect(() => {
+  //   console.log("userData", userData);
+  // }, [userData]);
   const channelName = userData?.data.fullName;
 
   useEffect(() => {
@@ -88,7 +98,7 @@ const ChannelProfile = ({ username }) => {
     }
 
     window.addEventListener("scroll", handleScroll);
-    handleScroll(); // run once initially
+    handleScroll();
 
     return () => {
       window.removeEventListener("scroll", handleScroll);
@@ -185,7 +195,6 @@ const ChannelProfile = ({ username }) => {
                   alignItems: "center",
                   paddingTop: 2,
                   flex: 1,
-                  // paddingX: `calc(50% - ${isLaptop ? 535 : isTablet ? 428 : isMobile ? 321 : 642}px)`,
                 }}
               >
                 <Box
@@ -198,6 +207,7 @@ const ChannelProfile = ({ username }) => {
                 >
                   <CardHeader
                     sx={{
+                      flexGrow: 1,
                       alignItems: "center",
                       padding: 0,
                       "& .MuiCardHeader-content": {
@@ -215,8 +225,8 @@ const ChannelProfile = ({ username }) => {
                         }
                         sx={{
                           bgcolor: getColor(userData?.data?.fullName),
-                          width: "150px",
-                          height: "150px",
+                          width: { xs: 70, sm: 120, md: 150 },
+                          height: { xs: 70, sm: 120, md: 150 },
                         }}
                       >
                         {userData?.fullName
@@ -225,75 +235,201 @@ const ChannelProfile = ({ username }) => {
                       </Avatar>
                     }
                     title={
-                      <Typography variant="h2" color="#f1f1f1">
-                        {userData?.data?.fullName}
-                      </Typography>
+                      <Box sx={{ display: "flex", flexDirection: "column" }}>
+                        <Typography
+                          variant="h2"
+                          color="#f1f1f1"
+                          sx={{
+                            fontSize: {
+                              xs: "1.4rem",
+                              sm: "1.8rem",
+                            },
+                          }}
+                        >
+                          {userData?.data?.fullName}
+                        </Typography>
+
+                        {isTablet ? (
+                          <>
+                            <Typography
+                              sx={{
+                                display: "flex",
+                                flexDirection: isXs ? "column" : "row",
+                                alignItems: isXs ? "start" : "center",
+                                whiteSpace: "nowrap",
+                                mt: 1,
+                                fontSize: {
+                                  xs: "0.8rem",
+                                  sm: "0.95rem",
+                                },
+                              }}
+                              variant="body2"
+                              color="#aaa"
+                              fontSize="0.85rem"
+                            >
+                              <span style={userNameStyles}>
+                                @{userData?.data?.username}
+                                {!isXs && (
+                                  <span style={{ margin: "0 4px" }}>•</span>
+                                )}
+                              </span>
+                              <Box sx={{ display: isXs ? "flex" : "block" }}>
+                                <span>
+                                  {subscriberCount}{" "}
+                                  {subscriberCount === 1
+                                    ? "subscriber"
+                                    : "subscribers"}
+                                </span>
+                                <span style={{ margin: "0 4px" }}>•</span>
+                                <span>
+                                  {userData?.data?.videos?.length}{" "}
+                                  {userData?.data?.videos?.length === 1
+                                    ? "video"
+                                    : "videos"}
+                                </span>
+                              </Box>
+                            </Typography>
+                            {!isXs ? (
+                              <Typography
+                                variant="body2"
+                                sx={{ color: "#aaa", my: 1 }}
+                              >
+                                More about this channel{" "}
+                                <span
+                                  onClick={() => setShowMore(true)}
+                                  role="button"
+                                  style={{
+                                    fontWeight: "500",
+                                    cursor: "pointer",
+                                    color: "rgb(255,255,255)",
+                                  }}
+                                >
+                                  ...more
+                                </span>
+                              </Typography>
+                            ) : null}
+                          </>
+                        ) : null}
+                      </Box>
                     }
                     // action={
                     //   <IconButton aria-label="settings">
                     //     <MoreVertIcon sx={{ color: "#fff" }} />
                     //   </IconButton>
                     // }
+
                     subheader={
-                      <>
-                        <Typography
-                          sx={{ display: "flex", alignItems: "center", mt: 1 }}
-                          variant="body2"
-                          color="#aaa"
-                          fontSize="0.85rem"
-                        >
-                          <span style={userNameStyles}>
-                            @{userData?.data?.username}
-                            <span style={{ margin: "0 4px" }}>•</span>
-                          </span>
-                          <span>
-                            {subscriberCount}{" "}
-                            {subscriberCount === 1
-                              ? "subscriber"
-                              : "subscribers"}
-                          </span>
-                          <span style={{ margin: "0 4px" }}>•</span>
-                          <span>
-                            {userData?.data?.videos?.length}{" "}
-                            {userData?.data?.videos?.length === 1
-                              ? "video"
-                              : "videos"}
-                          </span>
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          sx={{ color: "#aaa", my: 1 }}
-                        >
-                          More about this channel{" "}
-                          <span
-                            onClick={() => setShowMore(true)}
-                            role="button"
-                            style={{
-                              fontWeight: "500",
-                              cursor: "pointer",
-                              color: "rgb(255,255,255)",
+                      !isTablet ? (
+                        <>
+                          <Typography
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              mt: 1,
                             }}
+                            variant="body2"
+                            color="#aaa"
+                            fontSize="0.85rem"
                           >
-                            ...more
-                          </span>
-                        </Typography>
-                        <SubscribeButton
-                          isAuthenticated={isAuthenticated}
-                          channelName={channelName}
-                          channelId={channelId}
-                          userData={userData}
-                          initialSubscribed={userData?.data?.isSubscribedTo}
-                          initialSubscribers={userData?.data?.subscribersCount}
-                          activeAlertId={activeAlertId}
-                          setActiveAlertId={setActiveAlertId}
-                          marginLeftVal="0"
-                        />
-                      </>
+                            <span style={userNameStyles}>
+                              @{userData?.data?.username}
+                              <span style={{ margin: "0 4px" }}>•</span>
+                            </span>
+                            <span>
+                              {subscriberCount}{" "}
+                              {subscriberCount === 1
+                                ? "subscriber"
+                                : "subscribers"}
+                            </span>
+                            <span style={{ margin: "0 4px" }}>•</span>
+                            <span>
+                              {userData?.data?.videos?.length}{" "}
+                              {userData?.data?.videos?.length === 1
+                                ? "video"
+                                : "videos"}
+                            </span>
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{ color: "#aaa", my: 1 }}
+                          >
+                            More about this channel{" "}
+                            <span
+                              onClick={() => setShowMore(true)}
+                              role="button"
+                              style={{
+                                fontWeight: "500",
+                                cursor: "pointer",
+                                color: "rgb(255,255,255)",
+                              }}
+                            >
+                              ...more
+                            </span>
+                          </Typography>
+                          {userData?.data?.username !==
+                          dataContext?.data?.username ? (
+                            <SubscribeButton
+                              isAuthenticated={isAuthenticated}
+                              channelName={channelName}
+                              channelId={channelId}
+                              userData={userData}
+                              initialSubscribed={userData?.data?.isSubscribedTo}
+                              initialSubscribers={
+                                userData?.data?.subscribersCount
+                              }
+                              activeAlertId={activeAlertId}
+                              setActiveAlertId={setActiveAlertId}
+                              marginLeftVal="0"
+                            />
+                          ) : (
+                            <ManageButtons />
+                          )}
+                        </>
+                      ) : null
                     }
                   />
                 </Box>
               </Container>
+              {isTablet &&
+              userData?.data?.username === dataContext?.data?.username ? (
+                <Container maxWidth="100%">
+                  <ManageButtons />
+                </Container>
+              ) : isTablet &&
+                userData?.data?.username !== dataContext?.data?.username ? (
+                <Container maxWidth="100%">
+                  <SubscribeButton
+                    isAuthenticated={isAuthenticated}
+                    channelName={channelName}
+                    channelId={channelId}
+                    userData={userData}
+                    initialSubscribed={userData?.data?.isSubscribedTo}
+                    initialSubscribers={userData?.data?.subscribersCount}
+                    activeAlertId={activeAlertId}
+                    setActiveAlertId={setActiveAlertId}
+                    marginLeftVal="0"
+                  />
+                </Container>
+              ) : null}
             </Box>
+            {isXs && (
+              <Container fixed>
+                <Typography variant="body2" sx={{ color: "#aaa", my: 1 }}>
+                  More about this channel{" "}
+                  <span
+                    onClick={() => setShowMore(true)}
+                    role="button"
+                    style={{
+                      fontWeight: "500",
+                      cursor: "pointer",
+                      color: "rgb(255,255,255)",
+                    }}
+                  >
+                    ...more
+                  </span>
+                </Typography>
+              </Container>
+            )}
             <Box
               sx={{
                 position: "relative",
@@ -301,7 +437,7 @@ const ChannelProfile = ({ username }) => {
                 borderColor: "rgba(255,255,255,0.2)",
               }}
             >
-              <BasicTabs userData={userData} />
+              <BasicTabs username={username} tabPaths={tabPaths} />
             </Box>
           </Box>
           <Box
@@ -312,12 +448,11 @@ const ChannelProfile = ({ username }) => {
             }}
           ></Box>
         </Box>
-        <Container fixed sx={{ marginTop: "20px" }}>
+        {/* <Container fixed sx={{ marginTop: "20px" }}>
           <Grid container spacing={2}>
             {userData?.data?.videos?.map((video) => (
               <Grid
                 key={video._id}
-                sx={{ flexGrow: "1!important" }}
                 size={{
                   xs: 12,
                   sm: 6,
@@ -340,6 +475,10 @@ const ChannelProfile = ({ username }) => {
               </Grid>
             ))}
           </Grid>
+        </Container> */}
+
+        <Container fixed sx={{ marginTop: "20px" }}>
+          {currentTabIndex === -1 ? <ComponentToRender /> : <Outlet />}
         </Container>
       </Box>
     </>

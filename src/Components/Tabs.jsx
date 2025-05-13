@@ -12,7 +12,8 @@ import {
 } from "@mui/material";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import ClickAwayListener from "@mui/material/ClickAwayListener";
-import Grid from "@mui/material/Grid";
+import { OpenContext } from "../routes/__root";
+import { useNavigate, useLocation } from "@tanstack/react-router";
 
 function CustomTabPanel(props) {
   const { children, value, index, ...other } = props;
@@ -43,17 +44,18 @@ function a11yProps(index) {
   };
 }
 
-export default function BasicTabs() {
-  const theme = useTheme();
-  const isTablet = useMediaQuery("(min-width: 961px) and (max-width: 1156px)");
-  const isLaptop = useMediaQuery("(min-width: 1157px) and (max-width: 1533px)");  
-  const isMobile = useMediaQuery("(max-width: 960px)");
+export default function BasicTabs({ username, tabPaths }) {
   const [search, setSearch] = React.useState(false);
   const inputRef = React.useRef(null);
-  const [value, setValue] = React.useState(0);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const currentPath = location.pathname;
+  const currentTabIndex = tabPaths.findIndex((p) =>
+    currentPath.includes(`/${p}`)
+  );
 
-  const handleChange = (event, newValue) => {
-    setValue(newValue);
+  const handleChange = (_, newValue) => {
+    navigate({ to: `/@${username}/${tabPaths[newValue]}` });
   };
 
   React.useEffect(() => {
@@ -69,16 +71,19 @@ export default function BasicTabs() {
     }
   };
 
+  // const handleTabSwitch = (tab) => {
+  //   if (tab === "posts") {
+  //     navigate({
+  //       to: `/watch/${videoId}`,
+  //     });
+  //   }
+  // };
+
   return (
-    <Container
-    fixed
-      // sx={{
-      //   marginX: `calc(50% - ${isLaptop ? 535 : isTablet ? 428 : isMobile ? 321 : 642}px)`,
-      // }}
-    >
+    <Container fixed>
       <Box>
         <Tabs
-          value={value}
+          value={currentTabIndex === -1 ? 0 : currentTabIndex}
           onChange={handleChange}
           sx={{
             "& .MuiTabs-indicator": {
@@ -91,37 +96,100 @@ export default function BasicTabs() {
           <Tab
             disableTouchRipple
             label="Videos"
+              onClick={() => navigate({ to: `/@${username}/videos` })}
             {...a11yProps(0)}
             sx={{
               position: "relative",
               textTransform: "none",
+              minWidth: 6,
               color: "#f1f1f1",
               fontSize: "1rem",
               fontWeight: "600",
               padding: "0",
               alignItems: "center",
+              marginRight: 3,
+              "&::after": {
+                content: '""',
+                position: "absolute",
+                bottom: 0,
+                left: 0,
+                height: "2px",
+                width: "100%",
+                opacity: 0,
+                backgroundColor: "rgba(255,255,255,0.6)",
+                transition: "opacity 0.3s ease",
+              },
+              "&:hover::after": {
+                opacity: 1,
+              },
             }}
           />
 
           <Tab
             disableTouchRipple
-            label="Playlist"
+            label="Playlists"
             {...a11yProps(0)}
             sx={{
               position: "relative",
               textTransform: "none",
+              minWidth: 6,
               color: "#f1f1f1",
               fontSize: "1rem",
               fontWeight: "600",
               padding: "0",
               alignItems: "center",
+              marginRight: 3,
+              "&::after": {
+                content: '""',
+                position: "absolute",
+                bottom: 0,
+                left: 0,
+                height: "2px",
+                width: "100%",
+                opacity: 0,
+                backgroundColor: "rgba(255,255,255,0.6)",
+                transition: "opacity 0.3s ease",
+              },
+              "&:hover::after": {
+                opacity: 1,
+              },
+            }}
+          />
+          <Tab
+            disableTouchRipple
+            label="Posts"
+            {...a11yProps(0)}
+            sx={{
+              position: "relative",
+              textTransform: "none",
+              minWidth: 6,
+              color: "#f1f1f1",
+              fontSize: "1rem",
+              fontWeight: "600",
+              padding: "0",
+              alignItems: "center",
+              marginRight: 3,
+              "&::after": {
+                content: '""',
+                position: "absolute",
+                bottom: 0,
+                left: 0,
+                height: "2px",
+                width: "100%",
+                opacity: 0,
+                backgroundColor: "rgba(255,255,255,0.6)",
+                transition: "opacity 0.3s ease",
+              },
+              "&:hover::after": {
+                opacity: 1,
+              },
             }}
           />
 
           <ClickAwayListener onClickAway={() => setSearch(false)}>
             <Tab
               disableRipple
-              sx={{ padding: 0, opacity: 1 }}
+              sx={{ padding: 0, opacity: 1, justifyContent: "start" }}
               icon={
                 <>
                   <SearchOutlinedIcon
@@ -166,7 +234,6 @@ export default function BasicTabs() {
         </Tabs>
       </Box>
 
-      <CustomTabPanel index={0}>Item One</CustomTabPanel>
     </Container>
   );
 }

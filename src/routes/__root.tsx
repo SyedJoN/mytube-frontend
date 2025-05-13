@@ -55,23 +55,42 @@ function RouteComponent() {
   const scrollYRef = React.useRef(0);
   const prevScrollRef = React.useRef(0);
 
-
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      const isModalOpen = !!document.querySelector('[role="presentation"]');
+  
+      if (isModalOpen) {
+        document.body.style.paddingRight = '0px';
+      } else {
+        document.body.style.paddingRight = '';
+      }
+    });
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true, 
+    });
+  
+    return () => observer.disconnect();
+  }, []);
+  
   useEffect(() => {
     const body = document.body;
 
-    if (open) {
+    if (open && isLaptop) {
       scrollYRef.current = window.scrollY;
       body.style.position = "fixed";
       body.style.top = `-${scrollYRef.current}px`; // Preserve scroll position
       body.style.left = "0";
       body.style.right = "0";
       body.style.overflow = "revert!important"
-    } else {
-      body.style.position = "relative";
+
+    } else if (!open && isLaptop) {
+      body.style.position = "";
       body.style.top = "";
+      body.style.paddingRight = "0!important"
       window.scrollTo(0, prevScrollRef.current); // Restore previous scroll position
     }
-  }, [open]);
+  }, [open, isLaptop]);
 
 
   useEffect(() => {

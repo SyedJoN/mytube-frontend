@@ -15,6 +15,9 @@ import { Route as UsernameImport } from './routes/$username'
 import { Route as IndexImport } from './routes/index'
 import { Route as WatchVideoIdImport } from './routes/watch/$videoId'
 import { Route as SearchQueryImport } from './routes/search/$query'
+import { Route as UsernameVideosImport } from './routes/$username.videos'
+import { Route as UsernamePlaylistsImport } from './routes/$username.playlists'
+import { Route as UsernameCommunityImport } from './routes/$username.community'
 
 // Create/Update Routes
 
@@ -42,6 +45,24 @@ const SearchQueryRoute = SearchQueryImport.update({
   getParentRoute: () => rootRoute,
 } as any)
 
+const UsernameVideosRoute = UsernameVideosImport.update({
+  id: '/videos',
+  path: '/videos',
+  getParentRoute: () => UsernameRoute,
+} as any)
+
+const UsernamePlaylistsRoute = UsernamePlaylistsImport.update({
+  id: '/playlists',
+  path: '/playlists',
+  getParentRoute: () => UsernameRoute,
+} as any)
+
+const UsernameCommunityRoute = UsernameCommunityImport.update({
+  id: '/community',
+  path: '/community',
+  getParentRoute: () => UsernameRoute,
+} as any)
+
 // Populate the FileRoutesByPath interface
 
 declare module '@tanstack/react-router' {
@@ -59,6 +80,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/$username'
       preLoaderRoute: typeof UsernameImport
       parentRoute: typeof rootRoute
+    }
+    '/$username/community': {
+      id: '/$username/community'
+      path: '/community'
+      fullPath: '/$username/community'
+      preLoaderRoute: typeof UsernameCommunityImport
+      parentRoute: typeof UsernameImport
+    }
+    '/$username/playlists': {
+      id: '/$username/playlists'
+      path: '/playlists'
+      fullPath: '/$username/playlists'
+      preLoaderRoute: typeof UsernamePlaylistsImport
+      parentRoute: typeof UsernameImport
+    }
+    '/$username/videos': {
+      id: '/$username/videos'
+      path: '/videos'
+      fullPath: '/$username/videos'
+      preLoaderRoute: typeof UsernameVideosImport
+      parentRoute: typeof UsernameImport
     }
     '/search/$query': {
       id: '/search/$query'
@@ -79,16 +121,38 @@ declare module '@tanstack/react-router' {
 
 // Create and export the route tree
 
+interface UsernameRouteChildren {
+  UsernameCommunityRoute: typeof UsernameCommunityRoute
+  UsernamePlaylistsRoute: typeof UsernamePlaylistsRoute
+  UsernameVideosRoute: typeof UsernameVideosRoute
+}
+
+const UsernameRouteChildren: UsernameRouteChildren = {
+  UsernameCommunityRoute: UsernameCommunityRoute,
+  UsernamePlaylistsRoute: UsernamePlaylistsRoute,
+  UsernameVideosRoute: UsernameVideosRoute,
+}
+
+const UsernameRouteWithChildren = UsernameRoute._addFileChildren(
+  UsernameRouteChildren,
+)
+
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/$username': typeof UsernameRoute
+  '/$username': typeof UsernameRouteWithChildren
+  '/$username/community': typeof UsernameCommunityRoute
+  '/$username/playlists': typeof UsernamePlaylistsRoute
+  '/$username/videos': typeof UsernameVideosRoute
   '/search/$query': typeof SearchQueryRoute
   '/watch/$videoId': typeof WatchVideoIdRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/$username': typeof UsernameRoute
+  '/$username': typeof UsernameRouteWithChildren
+  '/$username/community': typeof UsernameCommunityRoute
+  '/$username/playlists': typeof UsernamePlaylistsRoute
+  '/$username/videos': typeof UsernameVideosRoute
   '/search/$query': typeof SearchQueryRoute
   '/watch/$videoId': typeof WatchVideoIdRoute
 }
@@ -96,30 +160,55 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
-  '/$username': typeof UsernameRoute
+  '/$username': typeof UsernameRouteWithChildren
+  '/$username/community': typeof UsernameCommunityRoute
+  '/$username/playlists': typeof UsernamePlaylistsRoute
+  '/$username/videos': typeof UsernameVideosRoute
   '/search/$query': typeof SearchQueryRoute
   '/watch/$videoId': typeof WatchVideoIdRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/$username' | '/search/$query' | '/watch/$videoId'
+  fullPaths:
+    | '/'
+    | '/$username'
+    | '/$username/community'
+    | '/$username/playlists'
+    | '/$username/videos'
+    | '/search/$query'
+    | '/watch/$videoId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/$username' | '/search/$query' | '/watch/$videoId'
-  id: '__root__' | '/' | '/$username' | '/search/$query' | '/watch/$videoId'
+  to:
+    | '/'
+    | '/$username'
+    | '/$username/community'
+    | '/$username/playlists'
+    | '/$username/videos'
+    | '/search/$query'
+    | '/watch/$videoId'
+  id:
+    | '__root__'
+    | '/'
+    | '/$username'
+    | '/$username/community'
+    | '/$username/playlists'
+    | '/$username/videos'
+    | '/search/$query'
+    | '/watch/$videoId'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  UsernameRoute: typeof UsernameRoute
+  UsernameRoute: typeof UsernameRouteWithChildren
   SearchQueryRoute: typeof SearchQueryRoute
   WatchVideoIdRoute: typeof WatchVideoIdRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  UsernameRoute: UsernameRoute,
+  UsernameRoute: UsernameRouteWithChildren,
   SearchQueryRoute: SearchQueryRoute,
   WatchVideoIdRoute: WatchVideoIdRoute,
 }
@@ -144,7 +233,24 @@ export const routeTree = rootRoute
       "filePath": "index.tsx"
     },
     "/$username": {
-      "filePath": "$username.tsx"
+      "filePath": "$username.tsx",
+      "children": [
+        "/$username/community",
+        "/$username/playlists",
+        "/$username/videos"
+      ]
+    },
+    "/$username/community": {
+      "filePath": "$username.community.tsx",
+      "parent": "/$username"
+    },
+    "/$username/playlists": {
+      "filePath": "$username.playlists.tsx",
+      "parent": "/$username"
+    },
+    "/$username/videos": {
+      "filePath": "$username.videos.tsx",
+      "parent": "/$username"
     },
     "/search/$query": {
       "filePath": "search/$query.tsx"
