@@ -50,6 +50,7 @@ import CommentReplies from "./CommentReplies";
 import { useClickAway } from "react-use";
 import SimpleSnackbar from "./Snackbar";
 import AlertDialog from "./Dialog";
+import { useSnackbar } from "../Contexts/SnackbarContext";
 
 const Comments = ({
   isAuthenticated,
@@ -86,8 +87,9 @@ const Comments = ({
   const [deleteTargetId, setDeleteTargetId] = useState(null);
   const [isEditable, setIsEditable] = useState(false);
   const [isSignIn, setIsSignIn] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState("");
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  
+      const { showMessage } = useSnackbar();
+
   const [isLike, setIsLike] = useState({
     isLiked: comment?.LikedBy?.includes(userData?.data?._id) || false,
     likeCount: comment?.likesCount || 0,
@@ -138,8 +140,7 @@ const Comments = ({
     onSuccess: () => {
       activeEmojiPickerId && setActiveEmojiPickerId(null);
       queryClient.refetchQueries(["commentsData", videoId]);
-      setSnackbarMessage("Comment deleted");
-      setSnackbarOpen(true);
+      showMessage("Comment deleted");
     },
     onError: (error) => {
       console.error(error);
@@ -831,7 +832,6 @@ const Comments = ({
                 </Box>
               )}
 
-           
             <AlertDialog
               dialogOpen={dialogOpen}
               setDialogOpen={setDialogOpen}
@@ -847,11 +847,6 @@ const Comments = ({
               }
             />
 
-            <SimpleSnackbar
-              open={snackbarOpen}
-              setOpen={setSnackbarOpen}
-              message={snackbarMessage}
-            />
           </Box>
         }
       />

@@ -39,18 +39,24 @@ function VideoSideBar() {
               }}
               key={video._id}
             >
-              <VideoCard
-                videoId={video._id}
-                thumbnail={video.thumbnail}
-                title={video.title}
-                video={true}
-                fullName={video.owner.fullName}
-                views={video.views}
-                duration={video.duration}
-                createdAt={formatDate(video.createdAt)}
-                activeOptionsId={activeOptionsId}
-                setActiveOptionsId={setActiveOptionsId}
-              />
+              <Link
+                to={`/watch/${video._id}`}
+                style={{ textDecoration: "none" }}
+              >
+                <VideoCard
+                  owner={video?.owner?.username}
+                  videoId={video._id}
+                  thumbnail={video.thumbnail}
+                  title={video.title}
+                  video={true}
+                  fullName={video.owner.fullName}
+                  views={video.views}
+                  duration={video.duration}
+                  createdAt={formatDate(video.createdAt)}
+                  activeOptionsId={activeOptionsId}
+                  setActiveOptionsId={setActiveOptionsId}
+                />
+              </Link>
             </Box>
           ))}
         </>

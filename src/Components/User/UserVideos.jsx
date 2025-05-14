@@ -35,6 +35,7 @@ const { userData } = useLoaderData({
               views={video.views}
               duration={video.duration}
               createdAt={formatDate(video.createdAt)}
+              videoId={video._id}
             />
           </Box>
         </Grid>

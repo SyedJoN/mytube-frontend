@@ -29,8 +29,8 @@ export const LikeDislikeButtons = React.memo(
   }) => {
     const queryClient = useQueryClient();
     const theme = useTheme();
-    const isTablet = useMediaQuery('(max-width:959px)');
-    const isMobile = useMediaQuery('(max-width:526px)');
+    const isTablet = useMediaQuery("(max-width:959px)");
+    const isMobile = useMediaQuery("(max-width:526px)");
     const likeAlertId = `like-alert-${videoId}`;
     const dislikeAlertId = `dislike-alert-${videoId}`;
 
@@ -152,39 +152,41 @@ export const LikeDislikeButtons = React.memo(
             }}
           >
             <Box sx={{ position: "relative" }}>
-              <Button
-                disableRipple
-                onClick={handleLikeBtn}
-                sx={{
-                  paddingX: "8px",
-                  paddingY: 0,
-                  outline: "none",
-                  height: "34px",
-                  borderRadius: "50px 0 0 50px",
-                  "&:hover": {
-                    background: "rgba(255,255,255,0.2)",
-                  },
-                }}
+              <Tooltip
+              disableInteractive
+              title={isLike.isLiked ? "Unlike" : "I like this"}
+             
               >
-                {isLike.isLiked ? (
-                  <Tooltip title="Unlike">
+                <Button
+                  disableRipple
+                  onClick={handleLikeBtn}
+                  sx={{
+                    paddingX: "8px",
+                    paddingY: 0,
+                    outline: "none",
+                    height: "34px",
+                    borderRadius: "50px 0 0 50px",
+                    "&:hover": {
+                      background: "rgba(255,255,255,0.2)",
+                    },
+                  }}
+                >
+                  {isLike.isLiked ? (
                     <ThumbUpAltIcon
                       sx={{ color: "rgb(255,255,255)", marginRight: "8px" }}
                     />
-                  </Tooltip>
-                ) : (
-                  <Tooltip title="I like this">
+                  ) : (
                     <ThumbUpOffAltIcon
                       sx={{ color: "rgb(255,255,255)", marginRight: "8px" }}
                     />
-                  </Tooltip>
-                )}
-                <span
-                  style={{ color: "rgb(255,255,255)", paddingRight: "8px" }}
-                >
-                  {isLike.likeCount}
-                </span>
-              </Button>
+                  )}
+                  <span
+                    style={{ color: "rgb(255,255,255)", paddingRight: "8px" }}
+                  >
+                    {isLike.likeCount}
+                  </span>
+                </Button>
+              </Tooltip>
               <SignInAlert
                 title="Like this video?"
                 desc="Sign in to make your opinion count"
@@ -193,7 +195,6 @@ export const LikeDislikeButtons = React.memo(
                 onConfirm={() => setIsSignIn(true)}
                 handleClose={handleCloseAlert}
                 leftVal={isTablet && !isMobile ? "-168px" : "0px"}
-
               />
             </Box>
 
@@ -204,34 +205,37 @@ export const LikeDislikeButtons = React.memo(
               flexItem
             />
             <Box sx={{ position: "relative" }}>
-              <Button
-                disableRipple
-                onClick={handleDislikeBtn}
-                sx={{
-                  paddingX: "8px",
-                  paddingY: 0,
-                  outline: "none",
-                  height: "34px",
-                  borderRadius: "0 50px 50px 0",
-                  "&:hover": {
-                    background: "rgba(255,255,255,0.2)",
-                  },
-                }}
+              <Tooltip
+              disableInteractive
+                title={
+                  isDislike.isDisliked ? "Remove dislike" : "I dislike this"
+                }
               >
-                {isDislike.isDisliked ? (
-                  <Tooltip title="Remove dislike">
+                <Button
+                  disableRipple
+                  onClick={handleDislikeBtn}
+                  sx={{
+                    paddingX: "8px",
+                    paddingY: 0,
+                    outline: "none",
+                    height: "34px",
+                    borderRadius: "0 50px 50px 0",
+                    "&:hover": {
+                      background: "rgba(255,255,255,0.2)",
+                    },
+                  }}
+                >
+                  {isDislike.isDisliked ? (
                     <ThumbDownAltIcon
                       sx={{ color: "rgb(255,255,255)", marginRight: "8px" }}
                     />
-                  </Tooltip>
-                ) : (
-                  <Tooltip title="I dislike this">
+                  ) : (
                     <ThumbDownOffAltIcon
                       sx={{ color: "rgb(255,255,255)", marginRight: "8px" }}
                     />
-                  </Tooltip>
-                )}
-              </Button>
+                  )}
+                </Button>
+              </Tooltip>
               <SignInAlert
                 title="Don’t like this video?"
                 desc="Sign in to make your opinion count"
@@ -240,7 +244,6 @@ export const LikeDislikeButtons = React.memo(
                 onConfirm={() => setIsSignIn(true)}
                 handleClose={handleCloseAlert}
                 leftVal={isTablet && !isMobile ? "-168px" : "0px"}
-
               />
             </Box>
           </Box>

@@ -42,6 +42,7 @@ import { useClickAway } from "react-use";
 import SimpleSnackbar from "./Snackbar";
 import AlertDialog from "./Dialog";
 import SignInAlert from "./SignInAlert";
+import { useSnackbar } from "../Contexts/SnackbarContext";
 
 function CommentReplies({
   isAuthenticated,
@@ -64,7 +65,7 @@ function CommentReplies({
   const dislikeAlertId = `reply-dislike-${reply._id}`;
   const isLikeAlertOpen = activeAlertId === likeAlertId;
   const isDislikeAlertOpen = activeAlertId === dislikeAlertId;
-
+const {showMessage} = useSnackbar();
   const theme = useTheme();
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
   const queryClient = useQueryClient();
@@ -77,8 +78,6 @@ function CommentReplies({
   const [subReplies, setSubReplies] = useState({});
   const [deleteTargetId, setDeleteTargetId] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState("");
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [isEditable, setIsEditable] = useState(null);
   const [isLike, setIsLike] = useState({
     isLiked: reply.LikedBy?.includes(userData?.data?._id) || false,
@@ -128,8 +127,7 @@ function CommentReplies({
     onSuccess: () => {
       activeEmojiPickerId && setActiveEmojiPickerId(null);
       queryClient.refetchQueries(["commentsData", videoId]);
-      setSnackbarMessage("Comment deleted");
-      setSnackbarOpen(true);
+      showMessage("Comment deleted");
     },
     onError: (error) => {
       console.error(error);
@@ -811,12 +809,6 @@ function CommentReplies({
                   content: replies[deleteTargetId],
                 })
               }
-            />
-
-            <SimpleSnackbar
-              open={snackbarOpen}
-              setOpen={setSnackbarOpen}
-              message={snackbarMessage}
             />
           </Box>
         }

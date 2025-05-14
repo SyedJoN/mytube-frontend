@@ -9,6 +9,7 @@ import { useTheme } from "@mui/material/styles";
 import AlertDialog from "./Dialog";
 import SimpleSnackbar from "./Snackbar";
 import Box from "@mui/system/Box";
+import { useSnackbar } from "../Contexts/SnackbarContext";
 import Signin from "./Signin";
 import SignInAlert from "./SignInAlert";
 import { useMediaQuery } from "@mui/material";
@@ -29,6 +30,7 @@ const rotateAnimation = keyframes`
 
 export const SubscribeButton = React.memo(
   ({
+    channelProfile,
     isAuthenticated,
     channelName,
     channelId,
@@ -38,26 +40,24 @@ export const SubscribeButton = React.memo(
     user,
     activeAlertId,
     setActiveAlertId,
-    marginLeftVal = "16px"
+    marginLeftVal = "16px",
   }) => {
     const theme = useTheme();
     const currentAlertId = `alert-${channelId}`;
     const paperOpen = activeAlertId === currentAlertId;
-      const isTablet = useMediaQuery(theme.breakpoints.down("md"));
-    
+    const isTablet = useMediaQuery(theme.breakpoints.down("md"));
 
+    const { showMessage } = useSnackbar();
     const [isSubscribed, setIsSubscribed] = useState(initialSubscribed);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [isSignIn, setIsSignIn] = useState(false);
-    const [snackbarMessage, setSnackbarMessage] = useState("");
-    const [snackbarOpen, setSnackbarOpen] = useState(false);
     const [subscriberCount, setSubscriberCount] = useState(initialSubscribers);
     const [shouldAnimate, setShouldAnimate] = useState(false);
     const [showGradient, setShowGradient] = useState(false);
     const [hasLoaded, setHasLoaded] = useState(false);
 
     const buttonRef = useRef(null);
-    const timeoutIdRef = useRef(null); 
+    const timeoutIdRef = useRef(null);
     const queryClient = useQueryClient();
 
     const buttonStyles = {
@@ -124,38 +124,35 @@ export const SubscribeButton = React.memo(
       mutationFn: () => toggleSubscription(channelId),
       onMutate: () => {
         const isSubscribing = !isSubscribed;
-    
+
         if (isSubscribing) {
           setShowGradient(true);
         }
-    
+
         setIsSubscribed(isSubscribing);
         setSubscriberCount((prev) => prev + (isSubscribing ? 1 : -1));
-    
+
         setShouldAnimate(false);
-    
+
         if (timeoutIdRef.current) {
           clearTimeout(timeoutIdRef.current);
         }
-    
+
         timeoutIdRef.current = setTimeout(() => {
-          setShouldAnimate(true); 
-        }, 500); 
-    
+          setShouldAnimate(true);
+        }, 500);
+
         if (!isSubscribing) {
           setShouldAnimate(false);
         }
       },
-    
+
       onSuccess: () => {
+          
         queryClient.invalidateQueries(["channelProfile", user]);
-        !isSubscribed
-          ? setSnackbarMessage("Subscription removed")
-          : setSnackbarMessage("Subscription added");
-        setSnackbarOpen(true);
+         showMessage(isSubscribed ? "Subscription added" : "Subscription removed");
       },
     });
-    
 
     const handleCloseAlert = () => {
       if (paperOpen) setActiveAlertId(null);
@@ -175,12 +172,14 @@ export const SubscribeButton = React.memo(
           setDialogOpen={setDialogOpen}
           onConfirm={() => mutate()}
         />
-        <SimpleSnackbar
-          open={snackbarOpen}
-          setOpen={setSnackbarOpen}
-          message={snackbarMessage}
-        />
-        <Box sx={{display: "flex", justifyContent: isTablet ? "center" : "start", mt: isTablet ? 1 : 0}}>
+    
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: isTablet && channelProfile ? "center" : "start",
+            mt: isTablet && channelProfile ? 1 : 0,
+          }}
+        >
           {hasLoaded && (
             <Button
               ref={buttonRef}
@@ -196,7 +195,14 @@ export const SubscribeButton = React.memo(
                 fontWeight: "600",
                 marginLeft: marginLeftVal,
                 padding: "0 16px",
-                width: isSubscribed && !isTablet ? "140px" : !isSubscribed && !isTablet ? "100px" : "560px",
+                width:
+                  isSubscribed && !isTablet && channelProfile
+                    ? "140px"
+                    : !isSubscribed && !isTablet
+                      ? "100px"
+                      : channelProfile
+                        ? "590px"
+                        : "100%",
                 background: isSubscribed ? "rgba(255,255,255,0.1)" : "#f1f1f1",
                 transition: isSubscribed
                   ? "width 0.5s ease, background 0.3s ease"

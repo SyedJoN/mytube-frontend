@@ -33,8 +33,9 @@ const ChannelProfile = ({ username, userData }) => {
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isDesktop = useMediaQuery(theme.breakpoints.up("lg"));
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
-  const tabPaths = ["videos", "playlists", "community"];
-  const components = [UserVideos, BasicTabs, StatsDialog];
+  const userPlaylists = userData?.data?.playlists.length;
+  const tabPaths = ["Videos", userPlaylists > 0 ? "Playlists" : null, "Posts"].filter(Boolean);
+  const components = [UserVideos, userPlaylists > 0 ? BasicTabs : null, StatsDialog].filter(Boolean);
   const currentTabIndex = tabPaths.findIndex((path) =>
     location.pathname.includes(path)
   );
@@ -65,9 +66,6 @@ const ChannelProfile = ({ username, userData }) => {
   );
   const [activeAlertId, setActiveAlertId] = useState(null);
 
-  // useEffect(() => {
-  //   console.log("userData", userData);
-  // }, [userData]);
   const channelName = userData?.data.fullName;
 
   useEffect(() => {
@@ -369,6 +367,7 @@ const ChannelProfile = ({ username, userData }) => {
                           {userData?.data?.username !==
                           dataContext?.data?.username ? (
                             <SubscribeButton
+                              channelProfile={true}
                               isAuthenticated={isAuthenticated}
                               channelName={channelName}
                               channelId={channelId}
@@ -399,6 +398,7 @@ const ChannelProfile = ({ username, userData }) => {
                 userData?.data?.username !== dataContext?.data?.username ? (
                 <Container maxWidth="100%">
                   <SubscribeButton
+                    channelProfile={true}
                     isAuthenticated={isAuthenticated}
                     channelName={channelName}
                     channelId={channelId}

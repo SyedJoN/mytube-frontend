@@ -11,7 +11,6 @@ const Playlists = () => {
         from: '/$username',
         strict: false 
       });
-      console.log("playlists", userData)
   return (
      <Grid container spacing={2}>
       {userData?.data?.playlists?.map((playlist) => (

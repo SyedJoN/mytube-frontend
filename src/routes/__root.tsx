@@ -18,6 +18,7 @@ import theme from "../assets/Theme";
 import Header from "../Components/Header/Header";
 import { getCurrentUser } from "../apis/userFn";
 import { throttle } from "lodash";
+import { SnackbarProvider } from "../Contexts/SnackbarContext";
 
 // Context for managing drawer state
 type OpenContextType = {
@@ -44,7 +45,7 @@ export const Route = createRootRoute({
 
 function RouteComponent() {
   const location = useLocation();
-  const home = location.pathname === "/" ;
+  const home = location.pathname === "/";
   const search = location.pathname.startsWith("/search");
   const watch = location.pathname.startsWith("/watch");
   const userProfile = location.pathname.startsWith("/@");
@@ -58,21 +59,21 @@ function RouteComponent() {
   useEffect(() => {
     const observer = new MutationObserver(() => {
       const isModalOpen = !!document.querySelector('[role="presentation"]');
-  
+
       if (isModalOpen) {
-        document.body.style.paddingRight = '0px';
+        document.body.style.paddingRight = "0px";
       } else {
-        document.body.style.paddingRight = '';
+        document.body.style.paddingRight = "";
       }
     });
     observer.observe(document.body, {
       childList: true,
-      subtree: true, 
+      subtree: true,
     });
-  
+
     return () => observer.disconnect();
   }, []);
-  
+
   useEffect(() => {
     const body = document.body;
 
@@ -82,16 +83,14 @@ function RouteComponent() {
       body.style.top = `-${scrollYRef.current}px`; // Preserve scroll position
       body.style.left = "0";
       body.style.right = "0";
-      body.style.overflow = "revert!important"
-
+      body.style.overflow = "revert!important";
     } else if (!open && isLaptop) {
       body.style.position = "";
       body.style.top = "";
-      body.style.paddingRight = "0!important"
+      body.style.paddingRight = "0!important";
       window.scrollTo(0, prevScrollRef.current); // Restore previous scroll position
     }
   }, [open, isLaptop]);
-
 
   useEffect(() => {
     const handleScroll = throttle(() => {
@@ -123,14 +122,12 @@ function RouteComponent() {
       window.removeEventListener("beforeunload", handleBeforeUnload);
     };
   }, []);
-  
-
 
   useEffect(() => {
     if (home || search || userProfile) {
       setOpen(true);
     }
-  }, [home, search, userProfile]);
+  }, [home, search, userProfile, watch]);
 
   const toggleDrawer = () => setOpen((prev) => !prev);
 
@@ -144,39 +141,40 @@ function RouteComponent() {
 
   return (
     // ✅ Wrap everything inside QueryClientProvider
+    <SnackbarProvider>
+      <OpenContext.Provider value={{ open, setOpen, data: data || null }}>
+        <CssBaseline />
 
-    <OpenContext.Provider value={{ open, setOpen, data: data || null }}>
-      <CssBaseline />
+        <Header
+          open={open}
+          onClose={toggleDrawer}
+          home={home}
+          search={search}
+          watch={watch}
+          userProfile={userProfile}
+        />
 
-      <Header
-        open={open}
-        onClose={toggleDrawer}
-        home={home}
-        search={search}
-        watch={watch}
-        userProfile={userProfile}
-      />
+        <Box
+          component="main"
+          sx={{
+            display: "flex",
+            overflowY: "visible",
+            marginTop: "var(--toolbar-height)",
+            marginLeft:
+              isTablet || watch
+                ? "0" // If it's a mobile device, set marginLeft to 0
+                : open && !isLaptop
+                  ? "var(--drawer-width)" // When open and not tablet, and not watching
+                  : !open || !isTablet
+                    ? "var(--mini-drawer-width)" // If not watching and not mobile
+                    : "0", // Default to 0
 
-      <Box
-        component="main"
-        sx={{
-          display: "flex",
-          overflowY: "visible",
-          marginTop: "var(--toolbar-height)",
-          marginLeft:
-            isTablet || watch
-              ? "0" // If it's a mobile device, set marginLeft to 0
-              : open && !isLaptop
-                ? "var(--drawer-width)" // When open and not tablet, and not watching
-                : !open || !isTablet
-                  ? "var(--mini-drawer-width)" // If not watching and not mobile
-                  : "0", // Default to 0
-
-          backgroundColor: theme.palette.primary.main,
-        }}
-      >
-        <Outlet />
-      </Box>
-    </OpenContext.Provider>
+            backgroundColor: theme.palette.primary.main,
+          }}
+        >
+          <Outlet />
+        </Box>
+      </OpenContext.Provider>
+    </SnackbarProvider>
   );
 }

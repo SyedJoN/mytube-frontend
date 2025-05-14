@@ -12,18 +12,21 @@ import { OpenContext } from "../routes/__root";
 import Grid from "@mui/material/Grid";
 import CardHeader from "@mui/material/CardHeader";
 import Avatar from "@mui/material/Avatar";
-
+import Tooltip from "@mui/material/Tooltip";
+import { Link } from "@tanstack/react-router";
 import { SubscribeButton } from "./SubscribeButton";
 import { LikeDislikeButtons } from "./LikeDislikeButton";
 import Description from "./Description";
 import VideoSideBar from "./VideoSideBar";
 import theme from "../assets/Theme";
 import { wrap } from "lodash";
+import { useNavigate } from "@tanstack/react-router";
 
 function VideoPlayer({ videoId }) {
   const context = useContext(OpenContext);
   let { data: dataContext } = context;
   const isAuthenticated = dataContext || null;
+  const navigate = useNavigate();
 
   const theme = useTheme();
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
@@ -113,7 +116,7 @@ function VideoPlayer({ videoId }) {
     queryFn: () => getUserChannelProfile(user),
     enabled: true,
   });
-
+  const owner = data?.data?.owner?.username;
   const [subscriberCount, setSubscriberCount] = useState(
     userData?.data?.subscribersCount ?? 0
   );
@@ -162,15 +165,27 @@ function VideoPlayer({ videoId }) {
       }
     }
   };
-
+  const handleChannelClick = () => {
+    navigate({
+      to: `/@${owner}`,
+    });
+  };
   return (
     <Grid
       container
       direction={isTablet ? "column" : "row"}
       spacing={0}
-      sx={{ flexWrap: "noWrap", justifyContent: !isTablet ? "center" : "flex-start", alignItems: isTablet ? "center" : "flex-start" }}
+      sx={{
+        flexWrap: "noWrap",
+        justifyContent: !isTablet ? "center" : "flex-start",
+        alignItems: isTablet ? "center" : "flex-start",
+        flexGrow: 1,
+      }}
     >
-      <Grid size={{ xs: 12, sm: 11.5, md: 8 }} sx={{ p: 3, width: isTablet ? "100%!important" : "" }}>
+      <Grid
+        size={{ xs: 12, sm: 11.5, md: 8 }}
+        sx={{ p: 3, width: isTablet ? "100%!important" : "" }}
+      >
         <video
           width="100%"
           height="auto"
@@ -232,19 +247,46 @@ function VideoPlayer({ videoId }) {
                 },
               }}
               avatar={
+                 <Link
+                                        style={{
+                                          textDecoration: "none"
+                                        }}
+                                        to={`/@${owner}`}
+                                      >
                 <Avatar
+                 
                   src={data.data.owner.avatar ? data.data.owner.avatar : null}
-                  sx={{ bgcolor: getColor(data?.data?.owner?.fullName) }}
+                  sx={{
+                    bgcolor: getColor(data?.data?.owner?.fullName),
+                    cursor: "pointer",
+                  }}
                 >
                   {data.data.owner.fullName
                     ? data.data.owner.fullName.charAt(0).toUpperCase()
                     : "?"}
                 </Avatar>
+                </Link>
               }
               title={
-                <Typography variant="p" color="#f1f1f1">
-                  {data.data.owner.fullName}
-                </Typography>
+                <Tooltip
+                  title={data.data.owner.fullName}
+                  placement="top-start"
+                >
+                    <Link
+                                        style={{
+                                          textDecoration: "none"
+                                        }}
+                                        to={`/@${owner}`}
+                                      >
+                  <Typography
+                    variant="p"
+                    color="#f1f1f1"
+                    sx={{cursor: "pointer"}}
+                  >
+                    {data.data.owner.fullName}
+                  </Typography>
+                  </Link>
+                </Tooltip>
               }
               subheader={
                 <>
@@ -301,7 +343,7 @@ function VideoPlayer({ videoId }) {
           minWidth: isTablet ? "100%" : "300px!important",
           py: 3,
           px: isTablet ? 3 : 0,
-          pr: 3
+          pr: 3,
         }}
       >
         <VideoSideBar />

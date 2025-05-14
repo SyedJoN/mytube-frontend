@@ -10,7 +10,7 @@ import Avatar from "@mui/material/Avatar";
 import PlaylistPlayOutlinedIcon from "@mui/icons-material/PlaylistPlayOutlined";
 import { MenuItem } from "@mui/material";
 import OutlinedFlagOutlinedIcon from "@mui/icons-material/OutlinedFlagOutlined";
-import { FastAverageColor } from 'fast-average-color';
+import { FastAverageColor } from "fast-average-color";
 import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
 import {
@@ -25,13 +25,14 @@ import {
 import Tooltip from "@mui/material/Tooltip";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import ShareIcon from "@mui/icons-material/Share";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';;
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import { Box, useMediaQuery, Paper } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useTheme } from "@mui/material/styles";
 import formatDuration from "../utils/formatDuration";
 import { useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 
 const ExpandMore = styled((props) => {
   const { expand, ...other } = props;
@@ -59,6 +60,7 @@ const ExpandMore = styled((props) => {
 
 function VideoCard({
   videoId,
+  owner,
   thumbnail,
   title,
   description,
@@ -85,7 +87,7 @@ function VideoCard({
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
   const imgRef = React.useRef(null);
   const [bgColor, setBgColor] = React.useState("rgba(0,0,0,0.6)"); // default fallback
-    const fac = new FastAverageColor();
+  const fac = new FastAverageColor();
   const colors = [red, blue, green, purple, orange, deepOrange, pink];
 
   const getColor = (name) => {
@@ -94,28 +96,15 @@ function VideoCard({
     return colors[index][500];
   };
 
-  React.useEffect(() => {
-    console.log("active option changed to:", activeOptionsId);
-  }, [activeOptionsId]);
-
-  React.useEffect(() => {
-   const img = imgRef.current;
-  if (img && img.complete) {
-    fac.getColorAsync(img)
-      .then(color => {
-        setBgColor(color.rgba); // e.g. "rgba(100, 120, 80, 1)"
-      })
-      .catch(e => console.log(e));
-  }
-}, []);
   const handleImageLoad = () => {
     if (imgRef.current) {
-      fac.getColorAsync(imgRef.current)
-        .then(color => {
+      fac
+        .getColorAsync(imgRef.current)
+        .then((color) => {
           console.log("Extracted Color:", color.rgba);
           setBgColor(color.rgba);
         })
-        .catch(err => console.log("Color extraction error:", err));
+        .catch((err) => console.log("Color extraction error:", err));
     }
   };
   const handleToggleOptions = (id) => {
@@ -127,6 +116,12 @@ function VideoCard({
     });
 
     console.log("videoID", videoId);
+  };
+
+  const handleChannelClick = () => {
+    navigate({
+      to: `/@${owner}`,
+    });
   };
   return (
     <>
@@ -160,7 +155,13 @@ function VideoCard({
               },
             }}
           >
-            <Box height="100%" position="absolute" top="0" left="0">
+            <Box
+              onClick={handleCardClick}
+              height="100%"
+              position="absolute"
+              top="0"
+              left="0"
+            >
               <CardMedia
                 sx={{
                   borderRadius: "10px",
@@ -210,6 +211,7 @@ function VideoCard({
             <Box sx={{ display: "flex" }}>
               {avatar && (
                 <Avatar
+                  onClick={handleChannelClick}
                   src={avatar ? avatar : null}
                   sx={{ bgcolor: getColor(fullName), marginRight: "16px" }}
                 >
@@ -219,6 +221,7 @@ function VideoCard({
 
               <Box sx={{ overflowX: "hidden", paddingRight: "24px" }}>
                 <Typography
+                  onClick={handleCardClick}
                   variant="body2"
                   color="#f1f1f1"
                   sx={{
@@ -248,6 +251,7 @@ function VideoCard({
                       }}
                     >
                       <Typography
+                        onClick={handleChannelClick}
                         variant="body2"
                         color="#aaa"
                         sx={{
@@ -281,7 +285,6 @@ function VideoCard({
         </Card>
       ) : video ? (
         <Card
-          onClick={handleCardClick}
           sx={{
             position: "relative",
             transition: "0.3s ease-in-out",
@@ -403,16 +406,24 @@ function VideoCard({
               }
               subheader={
                 <>
-                  <Typography
-                    fontSize="0.75rem"
-                    color="#aaa"
-                    sx={{
-                      marginTop: "2px",
-                    }}
-                  >
-                    {fullName}
-                  </Typography>
-
+                  <Tooltip title={fullName} placement="top-start">
+                    <Link
+                      style={{
+                        textDecoration: "none"
+                      }}
+                      to={`/@${owner}`}
+                    >
+                      <Typography
+                        fontSize="0.75rem"
+                        color="#aaa"
+                        sx={{
+                          marginTop: "2px",
+                        }}
+                      >
+                        {fullName}
+                      </Typography>
+                    </Link>
+                  </Tooltip>
                   <Typography fontSize="0.75rem" color="#aaa">
                     <span>
                       {views} {views === 1 ? "view" : "views"} &bull;{" "}
@@ -672,6 +683,7 @@ function VideoCard({
         </Card>
       ) : profile ? (
         <Card
+          onClick={handleCardClick}
           sx={{
             position: "relative",
             transition: "0.3s ease-in-out",
@@ -711,6 +723,29 @@ function VideoCard({
                 component="img"
                 image={thumbnail}
               />
+            </Box>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                position: "absolute",
+                bottom: "4px",
+                right: "8px",
+                width: "35px",
+                height: "20px",
+                backgroundColor: "rgba(0,0,0,0.6)",
+                borderRadius: "5px",
+              }}
+            >
+              <Typography
+                variant="body2"
+                color="#f1f1f1"
+                fontSize="0.75rem"
+                lineHeight="0"
+              >
+                {formatDuration(duration)}
+              </Typography>
             </Box>
           </Box>
 
@@ -761,30 +796,6 @@ function VideoCard({
               }
             />
           </CardContent>
-
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              position: "absolute",
-              bottom: "100px",
-              right: "8px",
-              width: "35px",
-              height: "20px",
-              backgroundColor: "rgba(0,0,0,0.6)",
-              borderRadius: "5px",
-            }}
-          >
-            <Typography
-              variant="body2"
-              color="#f1f1f1"
-              fontSize="0.75rem"
-              lineHeight="0"
-            >
-              {formatDuration(duration)}
-            </Typography>
-          </Box>
         </Card>
       ) : (
         playlist && (
@@ -825,7 +836,7 @@ function VideoCard({
                     left: "12px",
                     right: "12px",
                     top: "-8px",
-                     backgroundColor: bgColor,
+                    backgroundColor: bgColor,
                     borderRadius: "12px",
                     opacity: "50%",
                   }}
@@ -839,7 +850,7 @@ function VideoCard({
                     top: "-4px",
                     borderTop: "1px solid #0f0f0f",
                     marginTop: "-1px",
-                     backgroundColor: bgColor,
+                    backgroundColor: bgColor,
                     borderRadius: "12px",
                   }}
                 ></Box>
@@ -872,8 +883,8 @@ function VideoCard({
                       crossOrigin="anonymous"
                       component="img"
                       image={thumbnail}
-                        ref={imgRef}
-                        onLoad={handleImageLoad}
+                      ref={imgRef}
+                      onLoad={handleImageLoad}
                     />
                   </Box>
 
@@ -892,10 +903,36 @@ function VideoCard({
                       fontSize: "1rem",
                     }}
                   >
-                   
- <PlayArrowIcon sx={{marginRight: 1}}/>
-
+                    <PlayArrowIcon sx={{ marginRight: 1 }} />
                     Play All
+                  </Box>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      position: "absolute",
+                      bottom: "4px",
+                      right: "4px",
+                      width: "75px",
+                      height: "20px",
+                      backgroundColor: "rgba(0,0,0,0.3)",
+                      borderRadius: "5px",
+                    }}
+                  >
+                    <Typography
+                      sx={{
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
+                      variant="body2"
+                      color="#f1f1f1"
+                      fontSize="0.75rem"
+                      lineHeight="0"
+                    >
+                      <PlaylistPlayOutlinedIcon /> {videoCount}{" "}
+                      {videoCount === 1 ? "video" : "videos"}
+                    </Typography>
                   </Box>
                 </Box>
               </Box>
@@ -938,34 +975,6 @@ function VideoCard({
                     </Typography>
                   }
                 />
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    position: "absolute",
-                    bottom: "77px",
-                    right: "4px",
-                    width: "75px",
-                    height: "20px",
-                    backgroundColor: "rgba(0,0,0,0.3)",
-                    borderRadius: "5px",
-                  }}
-                >
-                  <Typography
-                    sx={{
-                      display: "flex",
-                      justifyContent: "center",
-                      alignItems: "center",
-                    }}
-                    variant="body2"
-                    color="#f1f1f1"
-                    fontSize="0.75rem"
-                    lineHeight="0"
-                  >
-                    <PlaylistPlayOutlinedIcon /> {videoCount}{" "}
-                    {videoCount === 1 ? "video" : "videos"}
-                  </Typography>
-                </Box>
               </CardContent>
             </Card>
           </Box>

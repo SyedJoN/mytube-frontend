@@ -24,7 +24,7 @@ function Home() {
     queryFn: fetchVideos,
   });
 
-  const videos = data?.data?.docs || []; // ✅ Ensure `videos` is always an array
+  const videos = data?.data?.docs || [];
 
   return (
     <Box sx={{ display: "flex" }}>
@@ -40,9 +40,12 @@ function Home() {
         </Typography>
       )}
 
-      <Grid container sx={{
-        marginTop: "16px"
-      }}>
+      <Grid
+        container
+        sx={{
+          marginTop: "16px",
+        }}
+      >
         {isLoading
           ? Array.from(new Array(12)).map((_, index) => (
               <Grid
@@ -103,7 +106,6 @@ function Home() {
                   marginRight: "8px",
                   marginLeft: "8px",
                 }}
-             
                 key={video._id}
                 size={{
                   xs: 12,
@@ -113,22 +115,19 @@ function Home() {
                   xl: open ? 2.9 : 2.7,
                 }}
               >
-                <Link
-                  to={`/watch/${video._id}`}
-                  style={{ textDecoration: "none" }}
-                >
-                  <VideoCard
-                    home={true}
-                    thumbnail={video.thumbnail}
-                    title={video.title}
-                    avatar={video.owner.avatar}
-                    open={open}
-                    fullName={video.owner.fullName}
-                    views={video.views}
-                    duration={video.duration}
-                    createdAt={formatDate(video.createdAt)}
-                  />
-                </Link>
+                <VideoCard
+                  owner={video.owner?.username}
+                  videoId={video._id}
+                  home={true}
+                  thumbnail={video.thumbnail}
+                  title={video.title}
+                  avatar={video.owner.avatar}
+                  open={open}
+                  fullName={video.owner.fullName}
+                  views={video.views}
+                  duration={video.duration}
+                  createdAt={formatDate(video.createdAt)}
+                />
               </Grid>
             ))}
       </Grid>

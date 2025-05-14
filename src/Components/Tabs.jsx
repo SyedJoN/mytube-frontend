@@ -93,10 +93,11 @@ export default function BasicTabs({ username, tabPaths }) {
           textColor="inherit"
           aria-label="basic tabs example"
         >
-          <Tab
+          {tabPaths?.map((tab) => (
+               <Tab
             disableTouchRipple
-            label="Videos"
-              onClick={() => navigate({ to: `/@${username}/videos` })}
+            label={tab}
+              onClick={() => navigate({ to: `/@${username}/${tab}` })}
             {...a11yProps(0)}
             sx={{
               position: "relative",
@@ -124,67 +125,9 @@ export default function BasicTabs({ username, tabPaths }) {
               },
             }}
           />
+            ))}
+        
 
-          <Tab
-            disableTouchRipple
-            label="Playlists"
-            {...a11yProps(0)}
-            sx={{
-              position: "relative",
-              textTransform: "none",
-              minWidth: 6,
-              color: "#f1f1f1",
-              fontSize: "1rem",
-              fontWeight: "600",
-              padding: "0",
-              alignItems: "center",
-              marginRight: 3,
-              "&::after": {
-                content: '""',
-                position: "absolute",
-                bottom: 0,
-                left: 0,
-                height: "2px",
-                width: "100%",
-                opacity: 0,
-                backgroundColor: "rgba(255,255,255,0.6)",
-                transition: "opacity 0.3s ease",
-              },
-              "&:hover::after": {
-                opacity: 1,
-              },
-            }}
-          />
-          <Tab
-            disableTouchRipple
-            label="Posts"
-            {...a11yProps(0)}
-            sx={{
-              position: "relative",
-              textTransform: "none",
-              minWidth: 6,
-              color: "#f1f1f1",
-              fontSize: "1rem",
-              fontWeight: "600",
-              padding: "0",
-              alignItems: "center",
-              marginRight: 3,
-              "&::after": {
-                content: '""',
-                position: "absolute",
-                bottom: 0,
-                left: 0,
-                height: "2px",
-                width: "100%",
-                opacity: 0,
-                backgroundColor: "rgba(255,255,255,0.6)",
-                transition: "opacity 0.3s ease",
-              },
-              "&:hover::after": {
-                opacity: 1,
-              },
-            }}
-          />
 
           <ClickAwayListener onClickAway={() => setSearch(false)}>
             <Tab
