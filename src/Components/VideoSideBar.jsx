@@ -11,9 +11,10 @@ import formatDate from "../utils/formatDate";
 import Button from "@mui/material/Button";
 import { useQuery } from "@tanstack/react-query";
 import ButtonGroup from "@mui/material/ButtonGroup";
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, useTheme } from "@mui/material";
 
 function VideoSideBar() {
+    const theme = useTheme();
   const {
     data: listVideoData,
     isLoading: isLoadingList,
@@ -39,10 +40,7 @@ function VideoSideBar() {
               }}
               key={video._id}
             >
-              <Link
-                to={`/watch/${video._id}`}
-                style={{ textDecoration: "none" }}
-              >
+         
                 <VideoCard
                   owner={video?.owner?.username}
                   videoId={video._id}
@@ -56,7 +54,7 @@ function VideoSideBar() {
                   activeOptionsId={activeOptionsId}
                   setActiveOptionsId={setActiveOptionsId}
                 />
-              </Link>
+       
             </Box>
           ))}
         </>

@@ -189,13 +189,16 @@ function VideoPlayer({ videoId }) {
         <video
           width="100%"
           height="auto"
+          key={data?.data?._id}
           controls
-          key={data.data.videoFile}
           autoPlay
           onTimeUpdate={handleTimeUpdate}
           style={{ aspectRatio: "16/9", borderRadius: "8px" }}
         >
-          <source src={data.data.videoFile} type="video/mp4" />
+            {data?.data?.videoFile && (
+    <source src={data.data.videoFile} type="video/mp4" />
+  )}
+  Your browser does not support the video tag.
         </video>
         <Box marginTop="8px">
           <Typography
@@ -210,7 +213,7 @@ function VideoPlayer({ videoId }) {
             variant="h3"
             color="#fff"
           >
-            {data.data.title}
+            {data?.data?.title}
           </Typography>
         </Box>
         <Box
@@ -247,44 +250,40 @@ function VideoPlayer({ videoId }) {
                 },
               }}
               avatar={
-                 <Link
-                                        style={{
-                                          textDecoration: "none"
-                                        }}
-                                        to={`/@${owner}`}
-                                      >
-                <Avatar
-                 
-                  src={data.data.owner.avatar ? data.data.owner.avatar : null}
-                  sx={{
-                    bgcolor: getColor(data?.data?.owner?.fullName),
-                    cursor: "pointer",
+                <Link
+                  style={{
+                    textDecoration: "none",
                   }}
+                  to={`/@${owner}`}
                 >
-                  {data.data.owner.fullName
-                    ? data.data.owner.fullName.charAt(0).toUpperCase()
-                    : "?"}
-                </Avatar>
+                  <Avatar
+                    src={data.data.owner.avatar ? data.data.owner.avatar : null}
+                    sx={{
+                      bgcolor: getColor(data?.data?.owner?.fullName),
+                      cursor: "pointer",
+                    }}
+                  >
+                    {data.data.owner.fullName
+                      ? data.data.owner.fullName.charAt(0).toUpperCase()
+                      : "?"}
+                  </Avatar>
                 </Link>
               }
               title={
-                <Tooltip
-                  title={data.data.owner.fullName}
-                  placement="top-start"
-                >
-                    <Link
-                                        style={{
-                                          textDecoration: "none"
-                                        }}
-                                        to={`/@${owner}`}
-                                      >
-                  <Typography
-                    variant="p"
-                    color="#f1f1f1"
-                    sx={{cursor: "pointer"}}
+                <Tooltip title={data.data.owner.fullName} placement="top-start">
+                  <Link
+                    style={{
+                      textDecoration: "none",
+                    }}
+                    to={`/@${owner}`}
                   >
-                    {data.data.owner.fullName}
-                  </Typography>
+                    <Typography
+                      variant="p"
+                      color="#f1f1f1"
+                      sx={{ cursor: "pointer" }}
+                    >
+                      {data.data.owner.fullName}
+                    </Typography>
                   </Link>
                 </Tooltip>
               }

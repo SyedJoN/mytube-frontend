@@ -37,7 +37,7 @@ const ChannelProfile = ({ username, userData }) => {
   const tabPaths = ["Videos", userPlaylists > 0 ? "Playlists" : null, "Posts"].filter(Boolean);
   const components = [UserVideos, userPlaylists > 0 ? BasicTabs : null, StatsDialog].filter(Boolean);
   const currentTabIndex = tabPaths.findIndex((path) =>
-    location.pathname.includes(path)
+    location.pathname.includes(path.toLowerCase())
   );
   const ComponentToRender =
     currentTabIndex === -1 ? components[0] : components[currentTabIndex];

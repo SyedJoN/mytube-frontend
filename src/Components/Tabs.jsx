@@ -51,11 +51,11 @@ export default function BasicTabs({ username, tabPaths }) {
   const location = useLocation();
   const currentPath = location.pathname;
   const currentTabIndex = tabPaths.findIndex((p) =>
-    currentPath.includes(`/${p}`)
+    currentPath.includes(`/${p.toLowerCase()}`)
   );
 
   const handleChange = (_, newValue) => {
-    navigate({ to: `/@${username}/${tabPaths[newValue]}` });
+    navigate({ to: `/@${username}/${tabPaths[newValue].toLowerCase()}` });
   };
 
   React.useEffect(() => {
@@ -97,7 +97,7 @@ export default function BasicTabs({ username, tabPaths }) {
                <Tab
             disableTouchRipple
             label={tab}
-              onClick={() => navigate({ to: `/@${username}/${tab}` })}
+              onClick={() => navigate({ to: `/@${username}/${tab.toLowerCase()}` })}
             {...a11yProps(0)}
             sx={{
               position: "relative",

@@ -2,27 +2,40 @@ import React, { useState } from "react";
 import CardHeader from "@mui/material/CardHeader";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
+import Box from "@mui/material/Box";
 import Avatar from "@mui/material/Avatar";
 import { getColor } from "../utils/getColor";
 import formatDate from "../utils/formatDate";
 import { Typography } from "@mui/material";
+import Interaction from "./Interaction";
 
 function Description({ data, subscriberCount }) {
   const [expanded, setExpanded] = useState(false);
+  const [isPressed, setIsPressed] = useState(false);
 
   const handleToggle = (e) => {
     e.stopPropagation();
-    setExpanded((prev)=> !prev);
-  }
+    setExpanded((prev) => !prev);
+  };
+
+  const handleRipple = (e) => {
+    setIsPressed(false);
+    e.currentTarget.classList.remove("down");
+  };
+  const handleRippleDown = (e) => {
+    setIsPressed(true);
+    e.currentTarget.classList.add("down");
+  };
 
   return (
     <Card
       sx={{
+        position: "relative",
         backgroundColor: "rgba(255,255,255,0.1)",
         marginTop: 2,
         borderRadius: "8px",
         padding: "8px 12px",
-        transition: "all 0.3s ease-in-out",
+        paddingBottom: expanded ? "32px" : "8px",
         maxHeight: expanded ? "none" : "120px",
         overflow: "hidden",
       }}
@@ -35,9 +48,9 @@ function Description({ data, subscriberCount }) {
         </Typography>
 
         <Typography variant="body2" color="rgb(255,255,255)">
-        {expanded
-  ? data.data.description || ""
-  : `${data.data.description?.slice(0, 100) || ""}... `}
+          {expanded
+            ? data.data.description || ""
+            : `${data.data.description?.slice(0, 100) || ""}... `}
 
           <span
             role="button"
@@ -47,12 +60,37 @@ function Description({ data, subscriberCount }) {
             {!expanded ? "more" : ""}
           </span>
         </Typography>
+        {expanded && (
+          <Typography
+            onClick={() => setExpanded(false)}
+            variant="body2"
+            color="rgb(255,255,255)"
+            fontWeight={500}
+          >
+            <span
+              role="button"
+              style={{
+                position: "absolute",
+                bottom: "8px",
+                zIndex: "999",
+                cursor: "pointer",
+                color: "#fff",
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpanded(false);
+              }}
+            >
+              Show less
+            </span>
+          </Typography>
+        )}
       </CardContent>
 
       <CardHeader
         sx={{
           display: expanded ? "flex" : "none", // Hide when collapsed
-          padding: 0,
+          padding: "8px 0",
           "& .MuiCardHeader-content": { overflow: "hidden", minWidth: 0 },
         }}
         avatar={
@@ -75,23 +113,8 @@ function Description({ data, subscriberCount }) {
           </Typography>
         }
       />
-      {expanded ? (
-        <span
-          role="button"
-          style={{
-            display: "inline-block",
-            paddingTop: "20px",
-            color: "rgb(255,255,255)",
-            fontSize: "0.875rem",
-            cursor: "pointer",
-          }}
-          onClick={(e) => {
-            handleToggle(e)
-          } }
-        >
-          Show less
-        </span>
-      ) : null}
+
+     {!expanded && <Interaction id="display-interaction" /> } 
     </Card>
   );
 }
