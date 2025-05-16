@@ -297,9 +297,6 @@ function VideoCard({
         </Card>
       ) : video ? (
         <Card
-          onMouseDown={handleMouseDown}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseLeave}
           sx={{
             position: "relative",
             transition: "0.3s ease-in-out",
@@ -312,19 +309,7 @@ function VideoCard({
             backgroundColor: "transparent",
           }}
         >
-          {isPressed && (
-            <Box
-              sx={{
-                position: "absolute",
-                inset: 0,
-                backgroundColor: theme.palette.primary.hover,
-                borderRadius: "4px",
-                margin: "-4px",
-                pointerEvents: "none",
-              }}
-            />
-          )}
-          <Link to={`/watch/${videoId}`} style={{ textDecoration: "none" }}>
+         
             <Box
               sx={{
                 display: "flex",
@@ -389,7 +374,7 @@ function VideoCard({
                 </Box>
               </Box>
             </Box>
-          </Link>
+       
           <CardContent
             sx={{
               backgroundColor: theme.palette.primary.main,
@@ -476,14 +461,15 @@ function VideoCard({
                       padding: 0,
                       right: "-8px",
                       top: "0",
+                      zIndex: "9999",
                     }}
                     aria-label="settings"
                   >
                     <MoreVertIcon
                       sx={{ color: "#fff", borderRadius: "50px" }}
                     />
-                  
-                  <Interaction id="interaction"/>
+
+                    <Interaction id="interaction" />
                   </IconButton>
 
                   {activeOptionsId === videoId && (
@@ -491,7 +477,7 @@ function VideoCard({
                       id="create-menu"
                       sx={{
                         position: "absolute",
-                        top: "35px",
+                        top: "20px",
                         right: "0",
                         borderRadius: "12px",
                         backgroundColor: "#282828",
@@ -525,6 +511,9 @@ function VideoCard({
               }
             />
           </CardContent>
+           <Link to={`/watch/${videoId}`} style={{ textDecoration: "none" }}>
+          <Interaction id="video-interaction" />
+          </Link>
         </Card>
       ) : search ? (
         <Card

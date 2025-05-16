@@ -17,15 +17,27 @@ body {
     overflow-x: inherit;
     
 }
-vt-interaction.down:active .fill {
+vt-interaction.down .fill {
   opacity: 0.1;
 }
-vt-interaction:not(.down:active) .stroke {
-  animation: rippleFade 0.3s ease-in-out forwards;
+
+vt-interaction.animate:not(.down) .fill {
+  animation: rippleFadeFill 0.3s ease-in-out forwards;
+}
+vt-interaction.animate:not(.down) .stroke {
+  animation: rippleFade 0.4s ease-in-out forwards;
+}
+@keyframes rippleFadeFill {
+  0% {
+    opacity: 0.0865;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 @keyframes rippleFade {
   from {
-    opacity: 0.178;
+    opacity: 0.2;
   }
   to {
     opacity: 0;

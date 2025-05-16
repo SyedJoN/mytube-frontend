@@ -196,7 +196,7 @@ function VideoPlayer({ videoId }) {
           style={{ aspectRatio: "16/9", borderRadius: "8px" }}
         >
             {data?.data?.videoFile && (
-    <source src={data.data.videoFile} type="video/mp4" />
+    <source src={data?.data?.videoFile} type="video/mp4" />
   )}
   Your browser does not support the video tag.
         </video>
@@ -257,20 +257,20 @@ function VideoPlayer({ videoId }) {
                   to={`/@${owner}`}
                 >
                   <Avatar
-                    src={data.data.owner.avatar ? data.data.owner.avatar : null}
+                    src={data?.data?.owner?.avatar ? data?.data?.owner?.avatar : null}
                     sx={{
                       bgcolor: getColor(data?.data?.owner?.fullName),
                       cursor: "pointer",
                     }}
                   >
-                    {data.data.owner.fullName
-                      ? data.data.owner.fullName.charAt(0).toUpperCase()
+                    {data?.data?.owner?.fullName
+                      ? data?.data?.owner?.fullName.charAt(0).toUpperCase()
                       : "?"}
                   </Avatar>
                 </Link>
               }
               title={
-                <Tooltip title={data.data.owner.fullName} placement="top-start">
+                <Tooltip title={data?.data?.owner?.fullName} placement="top-start">
                   <Link
                     style={{
                       textDecoration: "none",
@@ -282,7 +282,7 @@ function VideoPlayer({ videoId }) {
                       color="#f1f1f1"
                       sx={{ cursor: "pointer" }}
                     >
-                      {data.data.owner.fullName}
+                      {data?.data?.owner?.fullName}
                     </Typography>
                   </Link>
                 </Tooltip>

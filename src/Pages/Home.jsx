@@ -56,6 +56,7 @@ function Home() {
                     sm: "span 6",
                     md: "span 4",
                     lg: open ? "span 12" : "span 4",
+                    marginBottom: 24
                   },
                 }}
               >
@@ -67,6 +68,7 @@ function Home() {
                     bgcolor: "rgba(255,255,255,0.1)",
                     borderRadius: "8px",
                     marginBottom: 1,
+                    marginRight: 2,
                   }}
                 />
                 <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>

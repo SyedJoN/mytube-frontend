@@ -11,24 +11,32 @@ import Interaction from "./Interaction";
 
 function Description({ data, subscriberCount }) {
   const [expanded, setExpanded] = useState(false);
-  const [isPressed, setIsPressed] = useState(false);
 
-  const handleToggle = (e) => {
-    e.stopPropagation();
-    setExpanded((prev) => !prev);
+ const handleMouseDown = (e) => {
+  const target = e.currentTarget.querySelector("vt-interaction");
+  if (!target) return;
+
+  target.classList.add("down");
+  target.classList.remove("animate");
+   if (expanded) {
+      target.classList.remove("down");
+      target.classList.remove("animate");
+    }
+  
+  const onMouseUp = () => {
+    target.classList.remove("down");
+    target.classList.add("animate");
+ if (expanded) {
+      target.classList.remove("animate");
+    }
+    document.removeEventListener("mouseup", onMouseUp);
   };
 
-  const handleRipple = (e) => {
-    setIsPressed(false);
-    e.currentTarget.classList.remove("down");
-  };
-  const handleRippleDown = (e) => {
-    setIsPressed(true);
-    e.currentTarget.classList.add("down");
-  };
-
+  document.addEventListener("mouseup", onMouseUp);
+};
   return (
     <Card
+      onMouseDown={handleMouseDown}
       sx={{
         position: "relative",
         backgroundColor: "rgba(255,255,255,0.1)",
@@ -38,8 +46,11 @@ function Description({ data, subscriberCount }) {
         paddingBottom: expanded ? "32px" : "8px",
         maxHeight: expanded ? "none" : "120px",
         overflow: "hidden",
+        cursor: expanded ? "" : "pointer"
       }}
-      onClick={() => setExpanded(true)}
+      onClick={(e) => {
+        if (!expanded) setExpanded(true);
+      }}
     >
       <CardContent sx={{ padding: "8px 0" }}>
         <Typography variant="body2" color="rgb(255,255,255)" fontWeight={500}>
@@ -55,18 +66,16 @@ function Description({ data, subscriberCount }) {
           <span
             role="button"
             style={{ cursor: "pointer" }}
-            onClick={() => setExpanded(true)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setExpanded(true);
+            }}
           >
             {!expanded ? "more" : ""}
           </span>
         </Typography>
         {expanded && (
-          <Typography
-            onClick={() => setExpanded(false)}
-            variant="body2"
-            color="rgb(255,255,255)"
-            fontWeight={500}
-          >
+          <Typography variant="body2" color="rgb(255,255,255)" fontWeight={500}>
             <span
               role="button"
               style={{
@@ -114,7 +123,7 @@ function Description({ data, subscriberCount }) {
         }
       />
 
-     {!expanded && <Interaction id="display-interaction" /> } 
+      {<Interaction expanded={expanded} id="display-interaction" />}
     </Card>
   );
 }

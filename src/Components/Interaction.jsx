@@ -1,22 +1,21 @@
 import React from "react";
 import { Box } from "@mui/material";
+import { useScratch } from "react-use";
 
-const Interaction = ({ id }) => {
-  const handleRipple = (e) => {
-    e.currentTarget.classList.remove("down");
-  };
-  const handleRippleDown = (e) => {
-    e.currentTarget.classList.add("down");
-  };
+const Interaction = ({ id, expanded }) => {
+
+
+
   return (
     <Box
       id={id}
-      onMouseDown={handleRippleDown}
-      onMouseUp={handleRipple}
+
       sx={{
         position: "absolute",
         inset: 0,
-        cursor: "pointer"
+        cursor: "pointer",
+        margin: id == "video-interaction" ? "-4px" : "",
+        pointerEvents: "none"
       }}
       component="vt-interaction"
     >
@@ -24,11 +23,12 @@ const Interaction = ({ id }) => {
         className="fill"
         sx={{
           position: "absolute",
-          borderRadius: "12px",
+          borderRadius: id != "video-interaction" ? "12px" : "4px",
           inset: 0,
           background: "#fff",
           opacity: 0,
           pointerEvents: "none",
+          willChange: "opacity",
         }}
       />
 
@@ -36,7 +36,7 @@ const Interaction = ({ id }) => {
         className="stroke"
         sx={{
           position: "absolute",
-          borderRadius: "12px",
+          borderRadius: id !== "video-interaction" ? "12px" : "4px",
           inset: 0,
           border: "1px solid #fff",
           opacity: 0,
