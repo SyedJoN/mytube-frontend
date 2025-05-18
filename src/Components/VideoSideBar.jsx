@@ -12,6 +12,9 @@ import Button from "@mui/material/Button";
 import { useQuery } from "@tanstack/react-query";
 import ButtonGroup from "@mui/material/ButtonGroup";
 import { Box, Typography, useTheme } from "@mui/material";
+import handleMouseDown from "../helper/intertactionHelper";
+import Interaction from "./Interaction";
+
 
 function VideoSideBar() {
     const theme = useTheme();
@@ -35,6 +38,7 @@ function VideoSideBar() {
         <>
           {videos.map((video) => (
             <Box
+
               sx={{
                 marginBottom: 2,
               }}
@@ -54,7 +58,7 @@ function VideoSideBar() {
                   activeOptionsId={activeOptionsId}
                   setActiveOptionsId={setActiveOptionsId}
                 />
-       
+
             </Box>
           ))}
         </>

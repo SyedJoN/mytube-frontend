@@ -101,20 +101,20 @@ function Home() {
                 </Box>
               </Grid>
             ))
-          : videos.map((video) => (
+          : videos.map((video, index) => (
               <Grid
                 sx={{
-                  flexGrow: "1!important",
+                  flexGrow: index === (video.length - 1) ? "0" : "1",
                   marginRight: "8px",
                   marginLeft: "8px",
                 }}
                 key={video._id}
                 size={{
                   xs: 12,
-                  sm: 5.2,
-                  md: 3.5,
-                  lg: 3.5,
-                  xl: open ? 2.9 : 2.7,
+                  sm: 5.6,
+                  md: 5.7,
+                  lg: 3.82,
+                  xl: open ? 3.88 : 2.89,
                 }}
               >
                 <VideoCard

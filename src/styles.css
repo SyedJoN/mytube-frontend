@@ -14,9 +14,15 @@ body {
     background: #0f0f0f!important;
     margin: 0!important;
     overflow-y: scroll!important;
-    overflow-x: inherit;
+    overflow-x: hidden;
     
 }
+
+/* img {
+  user-drag: none;
+  -webkit-user-drag: none;
+} */
+
 vt-interaction.down .fill {
   opacity: 0.1;
 }
@@ -27,6 +33,7 @@ vt-interaction.animate:not(.down) .fill {
 vt-interaction.animate:not(.down) .stroke {
   animation: rippleFade 0.4s ease-in-out forwards;
 }
+
 @keyframes rippleFadeFill {
   0% {
     opacity: 0.0865;

@@ -34,6 +34,7 @@ import formatDuration from "../utils/formatDuration";
 import { useNavigate } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
 import Interaction from "./Interaction";
+import handleMouseDown from "../helper/intertactionHelper";
 
 const ExpandMore = styled((props) => {
   const { expand, ...other } = props;
@@ -82,8 +83,8 @@ function VideoCard({
   setActiveOptionsId,
   ...props
 }) {
-  const [expanded, setExpanded] = React.useState(false);
   const navigate = useNavigate();
+  const interactionRef = React.useRef(null);
   const theme = useTheme();
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
   const imgRef = React.useRef(null);
@@ -118,17 +119,6 @@ function VideoCard({
 
     console.log("videoID", videoId);
   };
-
-  const [isPressed, setIsPressed] = React.useState(false);
-
-  const handleMouseDown = (e) => {
-    // Prevent ripple if click is on icon menu
-    if (e.target.closest(".no-ripple")) return;
-    setIsPressed(true);
-  };
-
-  const handleMouseUp = () => setIsPressed(false);
-  const handleMouseLeave = () => setIsPressed(false);
 
   const handleChannelClick = () => {
     navigate({
@@ -297,6 +287,10 @@ function VideoCard({
         </Card>
       ) : video ? (
         <Card
+          onMouseDown={(e) => {
+            handleMouseDown(e);
+            e.stopPropagation();
+          }}
           sx={{
             position: "relative",
             transition: "0.3s ease-in-out",
@@ -309,33 +303,42 @@ function VideoCard({
             backgroundColor: "transparent",
           }}
         >
-         
+          <Box
+            sx={{
+              display: "flex",
+              flex: "none",
+              maxWidth: "500px",
+              width: "168px",
+              paddingRight: 1,
+            }}
+          >
             <Box
+              width="100%"
               sx={{
-                display: "flex",
-                flex: "none",
-                maxWidth: "500px",
-                width: "168px",
-                paddingRight: 1,
+                position: "relative",
+                display: "block",
+                paddingTop: "56.25%",
+                height: "0",
               }}
             >
               <Box
-                width="100%"
                 sx={{
-                  position: "relative",
-                  display: "block",
-                  paddingTop: "56.25%",
-                  height: "0",
+                  position: "absolute",
+                  width: "100%",
+                  height: "100%",
+                  top: "50%",
+                  left: "0%",
+                  transform: "translateY(-50%)",
                 }}
               >
-                <Box
-                  sx={{
-                    position: "absolute",
-                    width: "100%",
-                    height: "100%",
-                    top: "50%",
-                    left: "0%",
-                    transform: "translateY(-50%)",
+                <Link
+                  to={`/watch/${videoId}`}
+                  style={{ textDecoration: "none" }}
+                  onDragEnd={() => {
+                    if (interactionRef.current) {
+                      interactionRef.current.classList.remove("down");
+                      interactionRef.current.classList.add("animate");
+                    }
                   }}
                 >
                   <CardMedia
@@ -344,8 +347,10 @@ function VideoCard({
                       width: "100%",
                       height: "100%",
                       objectFit: "cover",
+                      userSelect: "none",
                     }}
                     component="img"
+                    draggable="false"
                     image={thumbnail}
                   />
                   <Box
@@ -360,6 +365,7 @@ function VideoCard({
                       height: "20px",
                       backgroundColor: "rgba(0,0,0,0.6)",
                       borderRadius: "6px",
+                      userSelect: "none",
                     }}
                   >
                     <Typography
@@ -371,149 +377,193 @@ function VideoCard({
                       {formatDuration(duration)}
                     </Typography>
                   </Box>
-                </Box>
+                </Link>
               </Box>
             </Box>
-       
+          </Box>
+
           <CardContent
             sx={{
               backgroundColor: theme.palette.primary.main,
               display: "flex",
               flexDirection: "column",
               padding: "0!important",
+              paddingRight: "24px!important",
               minWidth: 0,
             }}
           >
-            <CardHeader
-              sx={{
-                display: "flex",
-                flexDirection: "row",
-                alignItems: "flex-start",
-                padding: 0,
-                "& .MuiCardHeader-content": {
-                  position: "relative",
-                  display: "flex",
-                  flexDirection: "column",
-                  overflow: "hidden",
-                  minWidth: 0,
-                },
+            <Link
+              to={`/watch/${videoId}`}
+              style={{ textDecoration: "none" }}
+              onDragEnd={() => {
+                if (interactionRef.current) {
+                  interactionRef.current.classList.remove("down");
+                  interactionRef.current.classList.add("animate");
+                }
               }}
-              title={
-                <Typography
-                  variant="h8"
-                  color="#f1f1f1"
-                  sx={{
-                    display: "-webkit-box",
-                    fontSize: "0.85rem",
-                    WebkitBoxOrient: "vertical",
-                    WebkitLineClamp: 2, // Ensures 2 lines max
+            >
+              <CardHeader
+                sx={{
+                  display: "flex",
+                  flexDirection: "row",
+                  alignItems: "flex-start",
+                  padding: 0,
+                  "& .MuiCardHeader-content": {
+                    position: "relative",
+                    display: "flex",
+                    flexDirection: "column",
                     overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    paddingRight: "24px",
-                    fontWeight: 600,
-                    lineHeight: 1.5,
-                  }}
-                >
-                  {title}
-                </Typography>
-              }
-              subheader={
-                <>
-                  <Tooltip title={fullName} placement="top-start">
-                    <Link
-                      style={{
-                        display: "inline-block",
-                        verticalAlign: "top",
-                        textDecoration: "none",
+                    minWidth: 0,
+                  },
+                  "& .css-1ro85z9-MuiTypography-root": {
+                    lineHeight: 0.5,
+                  },
+                }}
+                title={
+                  <Tooltip
+                    disableInteractive
+                    title={title}
+                    placement="bottom"
+                    slotProps={{
+                      popper: {
+                        modifiers: [
+                          {
+                            name: "offset",
+                            options: {
+                              offset: [0, -20],
+                            },
+                          },
+                        ],
+                      },
+                      tooltip: {
+                        sx: {
+                          whiteSpace: "nowrap",
+                          backgroundColor: "#1f1f1f",
+                          maxWidth: 700,
+                          color: "#f1f1f1",
+                          fontSize: "0.75rem",
+                          border: "1px solid #f1f1f1",
+                          borderRadius: "0",
+                          padding: "4px",
+                        },
+                      },
+                    }}
+                  >
+                    <Typography
+                      variant="h8"
+                      color="#f1f1f1"
+                      sx={{
+                        display: "-webkit-box",
+                        fontSize: "0.85rem",
+                        WebkitBoxOrient: "vertical",
+                        WebkitLineClamp: 2, // Ensures 2 lines max
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        fontWeight: 600,
+                        lineHeight: 1.5,
+                        userSelect: "none",
                       }}
-                      to={`/@${owner}`}
                     >
-                      <Typography fontSize="0.75rem" color="#aaa">
+                      {title}
+                    </Typography>
+                  </Tooltip>
+                }
+                subheader={
+                  <>
+                    <Tooltip
+                      disableInteractive
+                      title={fullName}
+                      placement="top-start"
+                    >
+                      <Typography
+                        sx={{
+                          display: "inline-block",
+                          verticalAlign: "top",
+                          textDecoration: "none",
+                          userSelect: "none",
+                        }}
+                        fontSize="0.75rem"
+                        color="#aaa"
+                      >
                         {fullName}
                       </Typography>
-                    </Link>
-                  </Tooltip>
-                  <Typography fontSize="0.75rem" color="#aaa">
-                    <span
-                      style={{
-                        display: "inline-block",
-                        verticalAlign: "top",
-                        lineHeight: "0.6",
-                      }}
-                    >
-                      {views} {views === 1 ? "view" : "views"} &bull;{" "}
-                      {createdAt}
-                    </span>
-                  </Typography>
-                </>
-              }
-              action={
-                <>
-                  <IconButton
-                    disableRipple
-                    className="no-ripple"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleToggleOptions(videoId);
-                    }}
-                    sx={{
-                      position: "absolute",
-                      padding: 0,
-                      right: "-8px",
-                      top: "0",
-                      zIndex: "9999",
-                    }}
-                    aria-label="settings"
-                  >
-                    <MoreVertIcon
-                      sx={{ color: "#fff", borderRadius: "50px" }}
-                    />
-
-                    <Interaction id="interaction" />
-                  </IconButton>
-
-                  {activeOptionsId === videoId && (
-                    <Box
-                      id="create-menu"
-                      sx={{
-                        position: "absolute",
-                        top: "20px",
-                        right: "0",
-                        borderRadius: "12px",
-                        backgroundColor: "#282828",
-                        zIndex: 2,
-                        paddingY: 1,
-                      }}
-                    >
-                      <MenuItem
-                        sx={{
-                          paddingTop: 1,
-                          paddingLeft: "16px",
-                          paddingRight: "36px",
-                          gap: "3px",
-                          "&:hover": {
-                            backgroundColor: "rgba(255,255,255,0.1)",
-                          },
+                    </Tooltip>
+                    <Typography fontSize="0.75rem" color="#aaa">
+                      <span
+                        style={{
+                          display: "inline-block",
+                          verticalAlign: "top",
+                          userSelect: "none",
                         }}
                       >
-                        <OutlinedFlagOutlinedIcon sx={{ color: "#f1f1f1" }} />
-                        <Typography
-                          variant="body2"
-                          marginLeft="10px"
-                          color="#f1f1f1"
-                        >
-                          Report
-                        </Typography>
-                      </MenuItem>
-                    </Box>
-                  )}
-                </>
-              }
-            />
+                        {views} {views === 1 ? "view" : "views"} &bull;{" "}
+                        {createdAt}
+                      </span>
+                    </Typography>
+                  </>
+                }
+              />
+            </Link>
           </CardContent>
-           <Link to={`/watch/${videoId}`} style={{ textDecoration: "none" }}>
-          <Interaction id="video-interaction" />
-          </Link>
+
+          <>
+            <IconButton
+              disableRipple
+              className="no-ripple"
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                handleMouseDown(e);
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleToggleOptions(videoId);
+              }}
+              sx={{
+                position: "absolute",
+                padding: 0,
+                right: "-8px",
+                top: "0",
+                zIndex: "999",
+              }}
+              aria-label="settings"
+            >
+              <MoreVertIcon sx={{ color: "#fff", borderRadius: "50px" }} />
+
+              <Interaction id="interaction" />
+            </IconButton>
+            {activeOptionsId === videoId && (
+              <Box
+                id="create-menu"
+                sx={{
+                  position: "absolute",
+                  top: "20px",
+                  right: "0",
+                  borderRadius: "12px",
+                  backgroundColor: "#282828",
+                  zIndex: 2,
+                  paddingY: 1,
+                }}
+              >
+                <MenuItem
+                  sx={{
+                    paddingTop: 1,
+                    paddingLeft: "16px",
+                    paddingRight: "36px",
+                    gap: "3px",
+                    "&:hover": {
+                      backgroundColor: "rgba(255,255,255,0.1)",
+                    },
+                  }}
+                >
+                  <OutlinedFlagOutlinedIcon sx={{ color: "#f1f1f1" }} />
+                  <Typography variant="body2" marginLeft="10px" color="#f1f1f1">
+                    Report
+                  </Typography>
+                </MenuItem>
+              </Box>
+            )}
+          </>
+          <Interaction ref={interactionRef} id="video-interaction" />
         </Card>
       ) : search ? (
         <Card
@@ -707,19 +757,32 @@ function VideoCard({
           </CardContent>
         </Card>
       ) : profile ? (
-        <Link style={{ textDecoration: "none" }} to={`/watch/${videoId}`}>
-          <Card
-            sx={{
-              position: "relative",
-              transition: "0.3s ease-in-out",
-              padding: 0,
-              cursor: "pointer",
-              overflow: "hidden",
-              borderRadius: "10px",
-              boxShadow: "none",
-              display: "block",
-              paddingTop: "",
-              backgroundColor: "transparent",
+        <Card
+          onMouseDown={(e) => {
+            handleMouseDown(e);
+            e.stopPropagation();
+          }}
+          sx={{
+            position: "relative",
+            transition: "0.3s ease-in-out",
+            padding: 0,
+            cursor: "pointer",
+            overflow: "visible",
+            borderRadius: "10px",
+            boxShadow: "none",
+            display: "block",
+            paddingTop: "",
+            backgroundColor: "transparent",
+          }}
+        >
+          <Link
+            to={`/watch/${videoId}`}
+            style={{ textDecoration: "none" }}
+            onDragEnd={() => {
+              if (interactionRef.current) {
+                interactionRef.current.classList.remove("down");
+                interactionRef.current.classList.add("animate");
+              }
             }}
           >
             <Box
@@ -773,57 +836,85 @@ function VideoCard({
                 </Typography>
               </Box>
             </Box>
-
+          </Link>
+          <Box sx={{ position: "relative", display: "flex" }}>
             <CardContent
               sx={{
                 backgroundColor: theme.palette.primary.main,
                 padding: 0,
+                paddingRight: "24px",
                 paddingTop: "10px",
               }}
             >
-              <CardHeader
-                sx={{
-                  alignItems: "flex-start",
-                  padding: 0,
-                  "& .MuiCardHeader-content": {
-                    overflow: "hidden", // Prevents content overflow
-                    minWidth: 0, // Ensures proper flex behavior
-                  },
+              <Link
+                to={`/watch/${videoId}`}
+                style={{ textDecoration: "none" }}
+                onDragEnd={() => {
+                  if (interactionRef.current) {
+                    interactionRef.current.classList.remove("down");
+                    interactionRef.current.classList.add("animate");
+                  }
                 }}
-                action={
-                  <IconButton aria-label="settings">
-                    <MoreVertIcon sx={{ color: "#fff" }} />
-                  </IconButton>
-                }
-                title={
-                  <Typography
-                    variant="body2"
-                    color="#f1f1f1"
-                    sx={{
-                      display: "-webkit-box",
-                      fontSize: "0.85rem",
-                      WebkitBoxOrient: "vertical",
-                      overflow: "hidden",
-                      WebkitLineClamp: 2, // Ensures 2 lines max
-                      textOverflow: "ellipsis",
-                      fontWeight: 600,
-                    }}
-                  >
-                    {title}
-                  </Typography>
-                }
-                subheader={
-                  <Typography variant="body2" color="#aaa">
-                    <span>
-                      {views} {views === 1 ? "view" : "views"} &bull;{" "}
-                      {createdAt}
-                    </span>
-                  </Typography>
-                }
-              />
+              >
+                <CardHeader
+                  sx={{
+                    alignItems: "flex-start",
+                    padding: 0,
+                    "& .MuiCardHeader-content": {
+                      overflow: "hidden", // Prevents content overflow
+                      minWidth: 0, // Ensures proper flex behavior
+                    },
+                  }}
+                  title={
+                    <Typography
+                      variant="body2"
+                      color="#f1f1f1"
+                      sx={{
+                        display: "-webkit-box",
+                        fontSize: "0.85rem",
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                        WebkitLineClamp: 2, // Ensures 2 lines max
+                        textOverflow: "ellipsis",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {title}
+                    </Typography>
+                  }
+                  subheader={
+                    <Typography variant="body2" color="#aaa">
+                      <span>
+                        {views} {views === 1 ? "view" : "views"} &bull;{" "}
+                        {createdAt}
+                      </span>
+                    </Typography>
+                  }
+                />
+              </Link>
             </CardContent>
-          </Card>
-        </Link>
+            <IconButton 
+            sx={{
+              width: "40px",
+              height: "40px",
+              borderRadius: "50%",
+              position: "absolute",
+              padding: 0,
+              right: "-13px"
+            }}
+             disableRipple
+              className="no-ripple"
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                handleMouseDown(e);
+              }}
+            aria-label="settings">
+              <MoreVertIcon sx={{ color: "#fff" }} />
+                 <Interaction id="interaction" circle={true} />
+            </IconButton>
+          </Box>
+          <Interaction ref={interactionRef} id="video-interaction" />
+        </Card>
       ) : (
         playlist && (
           <Box

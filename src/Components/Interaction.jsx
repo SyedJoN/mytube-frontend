@@ -2,20 +2,17 @@ import React from "react";
 import { Box } from "@mui/material";
 import { useScratch } from "react-use";
 
-const Interaction = ({ id, expanded }) => {
-
-
-
+const Interaction = React.forwardRef(({ id, circle }, ref) => {
   return (
     <Box
       id={id}
-
+      ref={ref}
       sx={{
         position: "absolute",
         inset: 0,
         cursor: "pointer",
         margin: id == "video-interaction" ? "-4px" : "",
-        pointerEvents: "none"
+        pointerEvents: "none",
       }}
       component="vt-interaction"
     >
@@ -23,7 +20,12 @@ const Interaction = ({ id, expanded }) => {
         className="fill"
         sx={{
           position: "absolute",
-          borderRadius: id != "video-interaction" ? "12px" : "4px",
+          borderRadius: circle
+            ? "50%"
+            : id !== "video-interaction"
+              ? "12px"
+              : "4px",
+
           inset: 0,
           background: "#fff",
           opacity: 0,
@@ -36,7 +38,12 @@ const Interaction = ({ id, expanded }) => {
         className="stroke"
         sx={{
           position: "absolute",
-          borderRadius: id !== "video-interaction" ? "12px" : "4px",
+          borderRadius: circle
+            ? "50%"
+            : id !== "video-interaction"
+              ? "12px"
+              : "4px",
+
           inset: 0,
           border: "1px solid #fff",
           opacity: 0,
@@ -46,6 +53,6 @@ const Interaction = ({ id, expanded }) => {
       />
     </Box>
   );
-};
+});
 
 export default Interaction;

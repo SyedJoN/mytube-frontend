@@ -8,35 +8,14 @@ import { getColor } from "../utils/getColor";
 import formatDate from "../utils/formatDate";
 import { Typography } from "@mui/material";
 import Interaction from "./Interaction";
+import handleMouseDown from "../helper/intertactionHelper";
 
 function Description({ data, subscriberCount }) {
   const [expanded, setExpanded] = useState(false);
 
- const handleMouseDown = (e) => {
-  const target = e.currentTarget.querySelector("vt-interaction");
-  if (!target) return;
-
-  target.classList.add("down");
-  target.classList.remove("animate");
-   if (expanded) {
-      target.classList.remove("down");
-      target.classList.remove("animate");
-    }
-  
-  const onMouseUp = () => {
-    target.classList.remove("down");
-    target.classList.add("animate");
- if (expanded) {
-      target.classList.remove("animate");
-    }
-    document.removeEventListener("mouseup", onMouseUp);
-  };
-
-  document.addEventListener("mouseup", onMouseUp);
-};
   return (
     <Card
-      onMouseDown={handleMouseDown}
+      onMouseDown={(e) => handleMouseDown(e, expanded)}
       sx={{
         position: "relative",
         backgroundColor: "rgba(255,255,255,0.1)",
@@ -46,7 +25,7 @@ function Description({ data, subscriberCount }) {
         paddingBottom: expanded ? "32px" : "8px",
         maxHeight: expanded ? "none" : "120px",
         overflow: "hidden",
-        cursor: expanded ? "" : "pointer"
+        cursor: expanded ? "" : "pointer",
       }}
       onClick={(e) => {
         if (!expanded) setExpanded(true);
