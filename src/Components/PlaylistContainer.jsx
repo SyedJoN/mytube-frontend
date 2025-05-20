@@ -9,6 +9,7 @@ import {
   CardHeader,
   useTheme,
   Tooltip,
+  useMediaQuery,
 } from "@mui/material";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
@@ -28,6 +29,7 @@ const PlaylistContainer = ({ playlistId, playlistData, videoId }) => {
   const [bgColor, setBgColor] = useState("rgba(0,0,0,0.6)");
   const fac = new FastAverageColor();
   const theme = useTheme();
+  const isCustomWidth = useMediaQuery("(max-width:1014px)");
 
   console.log("data playlist", playlistData);
   const handleImageLoad = () => {
@@ -52,12 +54,13 @@ const PlaylistContainer = ({ playlistId, playlistData, videoId }) => {
     <Box
       component={"playlist-container"}
       sx={{
+        mb: 3,
         display: "flex",
         flexDirection: "column",
         maxHeight: "703px",
         border: "1px solid rgba(255, 255, 255, 0.18)",
-        borderRadius: "12px",
-        overflow: "hidden",
+        borderRadius: "8px",
+        overflow: "hidden"
       }}
     >
       <Box
@@ -65,6 +68,7 @@ const PlaylistContainer = ({ playlistId, playlistData, videoId }) => {
         sx={{
           background: "#1f1f1f",
           padding: "12px 6px 0 16px",
+          borderRadius: "8px",
         }}
       >
         <Box
@@ -75,7 +79,7 @@ const PlaylistContainer = ({ playlistId, playlistData, videoId }) => {
             overflow: "visible",
           }}
         >
-          <Box variant="body2" color="#f1f1f1">
+          <Box sx={{maxWidth: "100%"}} variant="body2" color="#f1f1f1">
             <Typography
               sx={{
                 display: "-webkit-box",
@@ -377,7 +381,7 @@ const PlaylistContainer = ({ playlistId, playlistData, videoId }) => {
                               fontWeight: 600,
                               lineHeight: 1.5,
                               userSelect: "none",
-                              width: "265px",
+                              width: "208px",
                             }}
                           >
                             {video.title}

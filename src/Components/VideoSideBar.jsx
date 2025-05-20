@@ -36,24 +36,22 @@ function VideoSideBar() {
 
       {videos.length > 0 ? (
         <Grid
+        spacing={isCustomWidth ? 2 : 0}
           container
           sx={{
             marginTop: isCustomWidth ? "16px" : "",
+            
           }}
         >
           {videos.map((video) => (
             <React.Fragment key={video._id}>
               {isCustomWidth ? (
                 <Grid
-                  sx={{
-                    marginBottom: 2,
-                    marginLeft: "16px",
-                  }}
-             
+
                   size={{
                     xs: 12,
-                    sm: 5.6,
-                    md: 3.7,
+                    sm: 6,
+                    md: 4,
                     lg: 3.8,
                     xl: open ? 3.88 : 2.89,
                   }}
@@ -72,7 +70,7 @@ function VideoSideBar() {
                   />
                 </Grid>
               ) : (
-                <Box key={video._id} sx={{ marginBottom: 2, width: "100%" }}>
+                <Box key={video._id} sx={{ marginBottom: 1, flexGrow: "1!important", width: "100%" }}>
                   <VideoCard
                     owner={video?.owner?.username}
                     videoId={video._id}

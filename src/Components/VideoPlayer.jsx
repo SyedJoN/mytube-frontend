@@ -24,7 +24,7 @@ import { useNavigate } from "@tanstack/react-router";
 import PlaylistContainer from "./PlaylistContainer";
 
 function VideoPlayer({ videoId, playlistId }) {
-  console.log("videoId", videoId)
+  console.log("videoId", videoId);
   const context = useContext(OpenContext);
   let { data: dataContext } = context;
   const isAuthenticated = dataContext || null;
@@ -129,11 +129,15 @@ function VideoPlayer({ videoId, playlistId }) {
 
   const buttonRef = useRef(null);
 
-    const { data:playlistData, isLoading: isPlaylistLoading, isError:isPlaylistError } = useQuery({
-      queryKey: ["playlists", playlistId],
-      queryFn: () => fetchPlaylistById(playlistId),
-    });
-  
+  const {
+    data: playlistData,
+    isLoading: isPlaylistLoading,
+    isError: isPlaylistError,
+  } = useQuery({
+    queryKey: ["playlists", playlistId],
+    queryFn: () => fetchPlaylistById(playlistId),
+  });
+
   useEffect(() => {
     const newCount = userData?.data?.subscribersCount ?? 0;
     if (subscriberCount !== newCount) {
@@ -225,7 +229,8 @@ function VideoPlayer({ videoId, playlistId }) {
             {data?.data?.title}
           </Typography>
         </Box>
-        <Box
+           {!isCustomWidth && 
+             <Box
           sx={{
             display: "flex",
             flexWrap: "wrap",
@@ -336,10 +341,15 @@ function VideoPlayer({ videoId, playlistId }) {
             setActiveAlertId={setActiveAlertId}
           />
         </Box>
-        <Description
-          data={data}
-          subscriberCount={userData?.data?.subscribersCount}
-        />
+}
+      
+       {!isCustomWidth &&
+          <Description
+            data={data}
+            subscriberCount={userData?.data?.subscribersCount}
+          />
+       }
+       
         {!isCustomWidth && (
           <CommentSection
             isAuthenticated={isAuthenticated}
@@ -356,12 +366,138 @@ function VideoPlayer({ videoId, playlistId }) {
           flexGrow: isCustomWidth ? "1" : "0",
           maxWidth: "426px!important",
           minWidth: isCustomWidth ? "100%" : "300px!important",
-          py: 3,
+          py: isCustomWidth ? 0 : 3,
           px: isCustomWidth ? 3 : 0,
           pr: 3,
         }}
       >
-       {playlistId &&  <PlaylistContainer playlistId={playlistId} playlistData={playlistData} videoId={videoId}/> }
+        {playlistId && (
+          <PlaylistContainer
+            playlistId={playlistId}
+            playlistData={playlistData}
+            videoId={videoId}
+          />
+        )}
+         {isCustomWidth &&
+          <Box
+          sx={{
+            display: "flex",
+            flexWrap: "wrap",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: {
+              xs: "0",
+              sm: "24",
+            },
+          }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              marginTop: 1,
+              position: "relative",
+              minWidth: "calc(50% - 6px)",
+            }}
+          >
+            <CardHeader
+              sx={{
+                alignItems: "flex-start",
+                padding: 0,
+                "& .MuiCardHeader-content": {
+                  overflow: "hidden",
+                  minWidth: 0,
+                },
+                "& .css-1r9wl67-MuiCardHeader-avatar": {
+                  marginRight: "12px",
+                },
+              }}
+              avatar={
+                <Link
+                  style={{
+                    textDecoration: "none",
+                  }}
+                  to={`/@${owner}`}
+                >
+                  <Avatar
+                    src={
+                      data?.data?.owner?.avatar
+                        ? data?.data?.owner?.avatar
+                        : null
+                    }
+                    sx={{
+                      bgcolor: getColor(data?.data?.owner?.fullName),
+                      cursor: "pointer",
+                    }}
+                  >
+                    {data?.data?.owner?.fullName
+                      ? data?.data?.owner?.fullName.charAt(0).toUpperCase()
+                      : "?"}
+                  </Avatar>
+                </Link>
+              }
+              title={
+                <Tooltip
+                  title={data?.data?.owner?.fullName}
+                  placement="top-start"
+                >
+                  <Link
+                    style={{
+                      textDecoration: "none",
+                    }}
+                    to={`/@${owner}`}
+                  >
+                    <Typography
+                      variant="p"
+                      color="#f1f1f1"
+                      sx={{ cursor: "pointer" }}
+                    >
+                      {data?.data?.owner?.fullName}
+                    </Typography>
+                  </Link>
+                </Tooltip>
+              }
+              subheader={
+                <>
+                  <Typography variant="body2" color="#aaa" fontSize="0.8rem">
+                    <span>
+                      {subscriberCount}{" "}
+                      {subscriberCount === 1 ? "subscriber" : "subscribers"}
+                    </span>
+                  </Typography>
+                </>
+              }
+            />
+
+            <SubscribeButton
+              isAuthenticated={isAuthenticated}
+              channelName={channelName}
+              channelId={channelId}
+              userData={userData}
+              initialSubscribed={userData?.data?.isSubscribedTo}
+              initialSubscribers={userData?.data?.subscribersCount}
+              user={user}
+              activeAlertId={activeAlertId}
+              setActiveAlertId={setActiveAlertId}
+            />
+          </Box>
+          <LikeDislikeButtons
+            dataContext={dataContext}
+            isAuthenticated={isAuthenticated}
+            data={data}
+            videoId={videoId}
+            activeAlertId={activeAlertId}
+            setActiveAlertId={setActiveAlertId}
+          />
+        </Box>
+        }
+
+        {isCustomWidth && 
+          <Description
+            data={data}
+            subscriberCount={userData?.data?.subscribersCount}
+          />
+        }
         <VideoSideBar />
         {isCustomWidth && (
           <CommentSection

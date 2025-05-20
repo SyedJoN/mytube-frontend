@@ -110,7 +110,6 @@ function Home() {
               ))
             : videos.map((video, index) => (
                 <Grid
-          
                   sx={{
                     marginLeft: "16px"
                   }}
