@@ -10,8 +10,9 @@ const Interaction = React.forwardRef(({ id, circle }, ref) => {
       sx={{
         position: "absolute",
         inset: 0,
+        top: id == "playlist-interaction" ? "-8px" : "",
         cursor: "pointer",
-        margin: id == "video-interaction" ? "-4px" : "",
+        margin: id == "video-interaction" || "playlist-interaction" ? "-4px" : "",
         pointerEvents: "none",
       }}
       component="vt-interaction"

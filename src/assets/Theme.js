@@ -30,10 +30,11 @@ let theme = createTheme({
         xs: 0,   // Mobile screen
         sm: 600, // Small tablets
         md: 792, // Tablets
-        lg: 1185, // Laptops
+        lg: 1284, // Laptops
         xl: 1920, // Desktops
       },
     },
+   
   });
 theme = responsiveFontSizes(theme, {
   factor: 1.2, // Default 2.0 hota hai, kam kar diya

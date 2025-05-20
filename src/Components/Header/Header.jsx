@@ -186,7 +186,7 @@ function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
             sx={{
               minHeight: "var(--toolbar-height)",
               "@media (min-width:600px)": {
-                minHeight: "var(--toolbar-height)", // 👈 override default
+                minHeight: "var(--toolbar-height)", 
               },
             }}
           >

@@ -19,18 +19,22 @@ import { LikeDislikeButtons } from "./LikeDislikeButton";
 import Description from "./Description";
 import VideoSideBar from "./VideoSideBar";
 import theme from "../assets/Theme";
-import { wrap } from "lodash";
+import { fetchPlaylistById } from "../apis/playlistFn";
 import { useNavigate } from "@tanstack/react-router";
+import PlaylistContainer from "./PlaylistContainer";
 
-function VideoPlayer({ videoId }) {
+function VideoPlayer({ videoId, playlistId }) {
+  console.log("videoId", videoId)
   const context = useContext(OpenContext);
   let { data: dataContext } = context;
   const isAuthenticated = dataContext || null;
   const navigate = useNavigate();
-
+  useEffect(() => {
+    console.log("test context", dataContext);
+  }, [dataContext]);
   const theme = useTheme();
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isCustomWidth = useMediaQuery("(max-width:1014px)");
 
   const rotateAnimation = keyframes`
   0% { transform: rotate(0deg); }
@@ -125,6 +129,11 @@ function VideoPlayer({ videoId }) {
 
   const buttonRef = useRef(null);
 
+    const { data:playlistData, isLoading: isPlaylistLoading, isError:isPlaylistError } = useQuery({
+      queryKey: ["playlists", playlistId],
+      queryFn: () => fetchPlaylistById(playlistId),
+    });
+  
   useEffect(() => {
     const newCount = userData?.data?.subscribersCount ?? 0;
     if (subscriberCount !== newCount) {
@@ -173,18 +182,18 @@ function VideoPlayer({ videoId }) {
   return (
     <Grid
       container
-      direction={isTablet ? "column" : "row"}
+      direction={isCustomWidth ? "column" : "row"}
       spacing={0}
       sx={{
         flexWrap: "noWrap",
-        justifyContent: !isTablet ? "center" : "flex-start",
-        alignItems: isTablet ? "center" : "flex-start",
+        justifyContent: !isCustomWidth ? "center" : "flex-start",
+        alignItems: isCustomWidth ? "center" : "flex-start",
         flexGrow: 1,
       }}
     >
       <Grid
         size={{ xs: 12, sm: 11.5, md: 8 }}
-        sx={{ p: 3, width: isTablet ? "100%!important" : "" }}
+        sx={{ p: 3, width: isCustomWidth ? "100%!important" : "" }}
       >
         <video
           width="100%"
@@ -195,10 +204,10 @@ function VideoPlayer({ videoId }) {
           onTimeUpdate={handleTimeUpdate}
           style={{ aspectRatio: "16/9", borderRadius: "8px" }}
         >
-            {data?.data?.videoFile && (
-    <source src={data?.data?.videoFile} type="video/mp4" />
-  )}
-  Your browser does not support the video tag.
+          {data?.data?.videoFile && (
+            <source src={data?.data?.videoFile} type="video/mp4" />
+          )}
+          Your browser does not support the video tag.
         </video>
         <Box marginTop="8px">
           <Typography
@@ -257,7 +266,11 @@ function VideoPlayer({ videoId }) {
                   to={`/@${owner}`}
                 >
                   <Avatar
-                    src={data?.data?.owner?.avatar ? data?.data?.owner?.avatar : null}
+                    src={
+                      data?.data?.owner?.avatar
+                        ? data?.data?.owner?.avatar
+                        : null
+                    }
                     sx={{
                       bgcolor: getColor(data?.data?.owner?.fullName),
                       cursor: "pointer",
@@ -270,7 +283,10 @@ function VideoPlayer({ videoId }) {
                 </Link>
               }
               title={
-                <Tooltip title={data?.data?.owner?.fullName} placement="top-start">
+                <Tooltip
+                  title={data?.data?.owner?.fullName}
+                  placement="top-start"
+                >
                   <Link
                     style={{
                       textDecoration: "none",
@@ -324,7 +340,7 @@ function VideoPlayer({ videoId }) {
           data={data}
           subscriberCount={userData?.data?.subscribersCount}
         />
-        {!isTablet && (
+        {!isCustomWidth && (
           <CommentSection
             isAuthenticated={isAuthenticated}
             videoId={videoId}
@@ -337,16 +353,17 @@ function VideoPlayer({ videoId }) {
       <Grid
         size={{ xs: 12, sm: 12, md: 4 }}
         sx={{
-          flexGrow: isTablet ? "1" : "0",
-          width: "402px!important",
-          minWidth: isTablet ? "100%" : "300px!important",
+          flexGrow: isCustomWidth ? "1" : "0",
+          maxWidth: "426px!important",
+          minWidth: isCustomWidth ? "100%" : "300px!important",
           py: 3,
-          px: isTablet ? 3 : 0,
+          px: isCustomWidth ? 3 : 0,
           pr: 3,
         }}
       >
+       {playlistId &&  <PlaylistContainer playlistId={playlistId} playlistData={playlistData} videoId={videoId}/> }
         <VideoSideBar />
-        {isTablet && (
+        {isCustomWidth && (
           <CommentSection
             isAuthenticated={isAuthenticated}
             videoId={videoId}

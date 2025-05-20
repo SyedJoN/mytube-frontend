@@ -158,6 +158,7 @@ export default function AccountMenu() {
           </IconButton>
           <Tooltip title="Account settings">
             <IconButton
+            sx={{padding: 0}}
               onClick={handleClick}
               size="small"
               aria-controls={open ? "account-menu" : undefined}

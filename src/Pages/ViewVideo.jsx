@@ -4,11 +4,11 @@ import { useParams } from '@tanstack/react-router'; // ✅ Correct way to get ro
 
 
 
-function ViewVideo({videoId}) {
+function ViewVideo({videoId, playlistId}) {
 
   return (
     <>
-      <VideoPlayer videoId={videoId} />
+      <VideoPlayer videoId={videoId} playlistId={playlistId} />
     </>
   );
 }

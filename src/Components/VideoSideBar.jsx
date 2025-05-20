@@ -11,13 +11,12 @@ import formatDate from "../utils/formatDate";
 import Button from "@mui/material/Button";
 import { useQuery } from "@tanstack/react-query";
 import ButtonGroup from "@mui/material/ButtonGroup";
-import { Box, Typography, useTheme } from "@mui/material";
+import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
 import handleMouseDown from "../helper/intertactionHelper";
 import Interaction from "./Interaction";
 
-
 function VideoSideBar() {
-    const theme = useTheme();
+  const theme = useTheme();
   const {
     data: listVideoData,
     isLoading: isLoadingList,
@@ -29,39 +28,69 @@ function VideoSideBar() {
   });
   const [activeOptionsId, setActiveOptionsId] = React.useState(null);
   const videos = listVideoData?.data?.docs || [];
+  const isCustomWidth = useMediaQuery("(max-width:1014px)");
 
   return (
     <>
       {isErrorList && <Typography>Error: {errorList.message}</Typography>}
 
       {videos.length > 0 ? (
-        <>
+        <Grid
+          container
+          sx={{
+            marginTop: isCustomWidth ? "16px" : "",
+          }}
+        >
           {videos.map((video) => (
-            <Box
-
-              sx={{
-                marginBottom: 2,
-              }}
-              key={video._id}
-            >
-         
-                <VideoCard
-                  owner={video?.owner?.username}
-                  videoId={video._id}
-                  thumbnail={video.thumbnail}
-                  title={video.title}
-                  video={true}
-                  fullName={video.owner.fullName}
-                  views={video.views}
-                  duration={video.duration}
-                  createdAt={formatDate(video.createdAt)}
-                  activeOptionsId={activeOptionsId}
-                  setActiveOptionsId={setActiveOptionsId}
-                />
-
-            </Box>
+            <React.Fragment key={video._id}>
+              {isCustomWidth ? (
+                <Grid
+                  sx={{
+                    marginBottom: 2,
+                    marginLeft: "16px",
+                  }}
+             
+                  size={{
+                    xs: 12,
+                    sm: 5.6,
+                    md: 3.7,
+                    lg: 3.8,
+                    xl: open ? 3.88 : 2.89,
+                  }}
+                >
+                  <VideoCard
+                    owner={video?.owner?.username}
+                    thumbnail={video.thumbnail}
+                    title={video.title}
+                    home={true}
+                    fullName={video.owner.fullName}
+                    views={video.views}
+                    duration={video.duration}
+                    createdAt={formatDate(video.createdAt)}
+                    activeOptionsId={activeOptionsId}
+                    setActiveOptionsId={setActiveOptionsId}
+                  />
+                </Grid>
+              ) : (
+                <Box key={video._id} sx={{ marginBottom: 2, width: "100%" }}>
+                  <VideoCard
+                    owner={video?.owner?.username}
+                    videoId={video._id}
+                    thumbnail={video.thumbnail}
+                    title={video.title}
+                    video={true}
+                    fullName={video.owner.fullName}
+                    views={video.views}
+                    duration={video.duration}
+                    createdAt={formatDate(video.createdAt)}
+                    activeOptionsId={activeOptionsId}
+                    setActiveOptionsId={setActiveOptionsId}
+                  />
+                </Box>
+              )}
+            </React.Fragment>
           ))}
-        </>
+        </Grid>
       ) : (
         isLoadingList &&
         Array.from(new Array(12)).map((_, index) => (

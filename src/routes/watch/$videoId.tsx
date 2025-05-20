@@ -1,14 +1,14 @@
-import { createFileRoute } from '@tanstack/react-router'
-import React from 'react'
-import ViewVideo from '../../Pages/ViewVideo'
-import { useParams } from '@tanstack/react-router'
+import { createFileRoute, useSearch } from "@tanstack/react-router";
+import React from "react";
+import ViewVideo from "../../Pages/ViewVideo";
 
 export const Route = createFileRoute("/watch/$videoId")({
-  component: RouteComponent
-})
+  component: RouteComponent,
+});
 
 function RouteComponent() {
- const { videoId } = useParams({ strict: false }); 
+  const { videoId } = Route.useParams();
+  const search = Route.useSearch();
 
-  return <ViewVideo videoId={videoId} />
+  return <ViewVideo videoId={videoId} playlistId={search?.list} />;
 }

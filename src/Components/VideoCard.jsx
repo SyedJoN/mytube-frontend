@@ -79,6 +79,7 @@ function VideoCard({
   video,
   profile,
   playlist,
+  playlistId,
   activeOptionsId,
   setActiveOptionsId,
   ...props
@@ -91,6 +92,9 @@ function VideoCard({
   const [bgColor, setBgColor] = React.useState("rgba(0,0,0,0.6)"); // default fallback
   const fac = new FastAverageColor();
   const colors = [red, blue, green, purple, orange, deepOrange, pink];
+  const playlistVideoId = playlist?.videos?.map((video) => {
+    return video._id;
+  });
 
   const getColor = (name) => {
     if (!name) return red[500];
@@ -359,8 +363,9 @@ function VideoCard({
                       justifyContent: "center",
                       alignItems: "center",
                       position: "absolute",
-                      bottom: "4px",
-                      right: "4px",
+                      bottom: "0",
+                      right: "0",
+                      margin: "8px",
                       width: "35px",
                       height: "20px",
                       backgroundColor: "rgba(0,0,0,0.6)",
@@ -529,14 +534,14 @@ function VideoCard({
             >
               <MoreVertIcon sx={{ color: "#fff", borderRadius: "50px" }} />
 
-              <Interaction id="interaction" />
+              <Interaction id="interaction" circle={true} />
             </IconButton>
             {activeOptionsId === videoId && (
               <Box
                 id="create-menu"
                 sx={{
                   position: "absolute",
-                  top: "20px",
+                  top: "28px",
                   right: "0",
                   borderRadius: "12px",
                   backgroundColor: "#282828",
@@ -893,24 +898,25 @@ function VideoCard({
                 />
               </Link>
             </CardContent>
-            <IconButton 
-            sx={{
-              width: "40px",
-              height: "40px",
-              borderRadius: "50%",
-              position: "absolute",
-              padding: 0,
-              right: "-13px"
-            }}
-             disableRipple
+            <IconButton
+              sx={{
+                width: "40px",
+                height: "40px",
+                borderRadius: "50%",
+                position: "absolute",
+                padding: 0,
+                right: "-13px",
+              }}
+              disableRipple
               className="no-ripple"
               onMouseDown={(e) => {
                 e.stopPropagation();
                 handleMouseDown(e);
               }}
-            aria-label="settings">
+              aria-label="settings"
+            >
               <MoreVertIcon sx={{ color: "#fff" }} />
-                 <Interaction id="interaction" circle={true} />
+              <Interaction id="interaction" circle={true} />
             </IconButton>
           </Box>
           <Interaction ref={interactionRef} id="video-interaction" />
@@ -921,11 +927,15 @@ function VideoCard({
             sx={{
               position: "relative",
               display: "block",
-              width: "100%",
+              width: "210px",
               height: "100%",
             }}
           >
             <Card
+              onMouseDown={(e) => {
+                handleMouseDown(e);
+                e.stopPropagation();
+              }}
               sx={{
                 position: "relative",
                 transition: "0.3s ease-in-out",
@@ -939,121 +949,138 @@ function VideoCard({
                 backgroundColor: "transparent",
               }}
             >
-              <Box
-                sx={{
-                  position: "relative",
-                  display: "block",
-                  width: "100%",
-                  background: "none",
+              <Link
+                to="/watch/$videoId"
+                params={{ videoId: playlistVideoId[0] }}
+                search={{ list: playlistId }}
+                style={{ textDecoration: "none" }}
+                onDragEnd={() => {
+                  if (interactionRef.current) {
+                    interactionRef.current.classList.remove("down");
+                    interactionRef.current.classList.add("animate");
+                  }
                 }}
               >
                 <Box
                   sx={{
-                    position: "absolute",
-                    height: "100%",
-                    left: "12px",
-                    right: "12px",
-                    top: "-8px",
-                    backgroundColor: bgColor,
-                    borderRadius: "12px",
-                    opacity: "50%",
-                  }}
-                ></Box>
-                <Box
-                  sx={{
-                    position: "absolute",
-                    height: "100%",
-                    left: "8px",
-                    right: "8px",
-                    top: "-4px",
-                    borderTop: "1px solid #0f0f0f",
-                    marginTop: "-1px",
-                    backgroundColor: bgColor,
-                    borderRadius: "12px",
-                  }}
-                ></Box>
-
-                <Box
-                  sx={{
                     position: "relative",
                     display: "block",
-                    overflow: "hidden",
-                    borderTop: "1px solid #0f0f0f",
-                    marginTop: "-1px",
                     width: "100%",
-                    paddingTop: "56.25%",
-                    borderRadius: "12px",
-                    backgroundColor: "transparent",
-                    "&:hover .hover-overlay": {
-                      opacity: 1, // Show overlay and text on hover
-                    },
+                    background: "none",
                   }}
                 >
-                  <Box height="100%" position="absolute" top="0" left="0">
-                    <CardMedia
-                      sx={{
-                        borderRadius: "12px",
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                        aspectRatio: "16/9",
-                      }}
-                      crossOrigin="anonymous"
-                      component="img"
-                      image={thumbnail}
-                      ref={imgRef}
-                      onLoad={handleImageLoad}
-                    />
-                  </Box>
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      height: "100%",
+                      left: "12px",
+                      right: "12px",
+                      top: "-8px",
+                      backgroundColor: bgColor,
+                      borderRadius: "12px",
+                      opacity: "50%",
+                    }}
+                  ></Box>
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      height: "100%",
+                      left: "8px",
+                      right: "8px",
+                      top: "-4px",
+                      borderTop: "1px solid #0f0f0f",
+                      marginTop: "-1px",
+                      backgroundColor: bgColor,
+                      borderRadius: "12px",
+                    }}
+                  ></Box>
 
                   <Box
-                    className="hover-overlay"
                     sx={{
-                      position: "absolute",
-                      inset: 0,
-                      background: "rgba(0, 0, 0, 0.5)",
-                      display: "flex",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      opacity: 0,
-                      color: "#fff",
-                      fontWeight: "400",
-                      fontSize: "1rem",
+                      position: "relative",
+                      display: "block",
+                      overflow: "hidden",
+                      borderTop: "1px solid #0f0f0f",
+                      marginTop: "-1px",
+                      width: "100%",
+                      paddingTop: "56.25%",
+                      borderRadius: "12px",
+                      backgroundColor: "transparent",
+                      "&:hover .hover-overlay": {
+                        opacity: 1, // Show overlay and text on hover
+                      },
                     }}
                   >
-                    <PlayArrowIcon sx={{ marginRight: 1 }} />
-                    Play All
-                  </Box>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      position: "absolute",
-                      bottom: "4px",
-                      right: "4px",
-                      width: "75px",
-                      height: "20px",
-                      backgroundColor: "rgba(0,0,0,0.3)",
-                      borderRadius: "5px",
-                    }}
-                  >
-                    <Typography
+                    <Box height="100%" position="absolute" top="0" left="0">
+                      <CardMedia
+                        sx={{
+                          borderRadius: "12px",
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                          aspectRatio: "16/9",
+                          userSelect: "none",
+                        }}
+                        crossOrigin="anonymous"
+                        ref={imgRef}
+                        component="img"
+                        image={thumbnail}
+                        onLoad={handleImageLoad}
+                        draggable={false}
+                      />
+                    </Box>
+                    <Box
+                      className="hover-overlay"
                       sx={{
+                        position: "absolute",
+                        inset: 0,
+                        background: "rgba(0, 0, 0, 0.5)",
                         display: "flex",
                         justifyContent: "center",
                         alignItems: "center",
+                        opacity: 0,
+                        color: "#fff",
+                        fontWeight: "400",
+                        fontSize: "1rem",
+                        userSelect: "none",
+                        pointerEvents: "none",
                       }}
-                      variant="body2"
-                      color="#f1f1f1"
-                      fontSize="0.75rem"
-                      lineHeight="0"
                     >
-                      <PlaylistPlayOutlinedIcon /> {videoCount}{" "}
-                      {videoCount === 1 ? "video" : "videos"}
-                    </Typography>
+                      <PlayArrowIcon sx={{ marginRight: 1 }} />
+                      Play All
+                    </Box>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        position: "absolute",
+                        bottom: "0",
+                        right: "0",
+                        margin: "4px",
+                        width: "75px",
+                        height: "20px",
+                        backgroundColor: "rgba(0,0,0,0.3)",
+                        borderRadius: "5px",
+                      }}
+                    >
+                      <Typography
+                        sx={{
+                          display: "flex",
+                          justifyContent: "center",
+                          alignItems: "center",
+                        }}
+                        variant="body2"
+                        color="#f1f1f1"
+                        fontSize="0.75rem"
+                        lineHeight="0"
+                      >
+                        <PlaylistPlayOutlinedIcon /> {videoCount}{" "}
+                        {videoCount === 1 ? "video" : "videos"}
+                      </Typography>
+                    </Box>
                   </Box>
                 </Box>
-              </Box>
+              </Link>
               <CardContent
                 sx={{
                   backgroundColor: theme.palette.primary.main,
@@ -1061,39 +1088,51 @@ function VideoCard({
                   paddingTop: "10px",
                 }}
               >
-                <CardHeader
-                  sx={{
-                    alignItems: "flex-start",
-                    padding: 0,
-                    "& .MuiCardHeader-content": {
-                      overflow: "hidden", // Prevents content overflow
-                      minWidth: 0, // Ensures proper flex behavior
-                    },
+                <Link
+                  to={`/watch/${videoId}`}
+                  style={{ textDecoration: "none" }}
+                  onDragEnd={() => {
+                    if (interactionRef.current) {
+                      interactionRef.current.classList.remove("down");
+                      interactionRef.current.classList.add("animate");
+                    }
                   }}
-                  title={
-                    <Typography
-                      variant="body2"
-                      color="#f1f1f1"
-                      sx={{
-                        display: "-webkit-box",
-                        fontSize: "0.85rem",
-                        WebkitBoxOrient: "vertical",
-                        overflow: "hidden",
-                        WebkitLineClamp: 2, // Ensures 2 lines max
-                        textOverflow: "ellipsis",
-                        fontWeight: 600,
-                      }}
-                    >
-                      {title}
-                    </Typography>
-                  }
-                  subheader={
-                    <Typography variant="body2" color="#aaa">
-                      <span>view full playlist</span>
-                    </Typography>
-                  }
-                />
+                >
+                  <CardHeader
+                    sx={{
+                      alignItems: "flex-start",
+                      padding: 0,
+                      "& .MuiCardHeader-content": {
+                        overflow: "hidden", // Prevents content overflow
+                        minWidth: 0, // Ensures proper flex behavior
+                      },
+                    }}
+                    title={
+                      <Typography
+                        variant="body2"
+                        color="#f1f1f1"
+                        sx={{
+                          display: "-webkit-box",
+                          fontSize: "0.85rem",
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                          WebkitLineClamp: 2, // Ensures 2 lines max
+                          textOverflow: "ellipsis",
+                          fontWeight: 600,
+                        }}
+                      >
+                        {title}
+                      </Typography>
+                    }
+                    subheader={
+                      <Typography variant="body2" color="#aaa">
+                        <span>view full playlist</span>
+                      </Typography>
+                    }
+                  />
+                </Link>
               </CardContent>
+              <Interaction ref={interactionRef} id="playlist-interaction" />
             </Card>
           </Box>
         )

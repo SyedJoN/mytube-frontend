@@ -7,15 +7,16 @@ const fetchUserPlaylists = async (userId) => {
   return res.data;
 };
 
+const fetchPlaylistById = async (playlistId) => {
+    const res = await axios.get(`${BASE_URL}/${playlistId}`);
+    return res.data; // ✅ No need for resolve()
+  };
 // const videoView = async (videoId) => {
 //   const res = await axios.post(`${BASE_URL}/${videoId}/view`, {})
 //   return res.data;
 // }
 
-// const fetchVideoById = async (videoId) => {
-//     const res = await axios.get(`${BASE_URL}/${videoId}`);
-//     return res.data; // ✅ No need for resolve()
-//   };
+
 
 // const publishVideo = async(formData) => {
 //     const res = await axios.post(`${BASE_URL}/publish-video`, formData, {
@@ -27,4 +28,4 @@ const fetchUserPlaylists = async (userId) => {
 //     return res.data;
 // }
 
-export { fetchUserPlaylists };
+export { fetchUserPlaylists, fetchPlaylistById };

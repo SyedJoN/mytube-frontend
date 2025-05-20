@@ -1,7 +1,13 @@
 import React, { useContext } from "react";
 import VideoCard from "../Components/VideoCard";
 import Grid from "@mui/material/Grid";
-import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
+import {
+  Box,
+  Typography,
+  useMediaQuery,
+  useTheme,
+  Container,
+} from "@mui/material";
 import {
   useQuery,
   QueryClient,
@@ -39,100 +45,101 @@ function Home() {
           No videos available
         </Typography>
       )}
-
-      <Grid
-        container
-        sx={{
-          marginTop: "16px",
-        }}
-      >
-        {isLoading
-          ? Array.from(new Array(12)).map((_, index) => (
-              <Grid
-                key={index}
-                sx={{
-                  gridColumn: {
-                    xs: "span 12",
-                    sm: "span 6",
-                    md: "span 4",
-                    lg: open ? "span 12" : "span 4",
-                    marginBottom: 24
-                  },
-                }}
-              >
-                <Skeleton
-                  variant="rectangular"
-                  width={300}
-                  height={180}
+     
+        <Grid
+          container
+          sx={{
+            paddingX: "16px",
+            marginTop: "16px",
+          }}
+        >
+          {isLoading
+            ? Array.from(new Array(12)).map((_, index) => (
+                <Grid
+                  key={index}
                   sx={{
-                    bgcolor: "rgba(255,255,255,0.1)",
-                    borderRadius: "8px",
-                    marginBottom: 1,
-                    marginRight: 2,
+                    gridColumn: {
+                      xs: "span 12",
+                      sm: "span 6",
+                      md: "span 4",
+                      lg: open ? "span 12" : "span 4",
+                      marginBottom: 24,
+                    },
                   }}
-                />
-                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                >
                   <Skeleton
-                    variant="circular"
-                    width={40}
-                    height={40}
+                    variant="rectangular"
+                    width={300}
+                    height={180}
                     sx={{
                       bgcolor: "rgba(255,255,255,0.1)",
-                      borderRadius: "50px",
+                      borderRadius: "8px",
                       marginBottom: 1,
+                      marginRight: 2,
                     }}
                   />
-                  <Box sx={{ flex: 1 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                     <Skeleton
+                      variant="circular"
+                      width={40}
+                      height={40}
                       sx={{
                         bgcolor: "rgba(255,255,255,0.1)",
+                        borderRadius: "50px",
+                        marginBottom: 1,
                       }}
-                      width="80%"
-                      height={30}
                     />
-                    <Skeleton
-                      sx={{
-                        bgcolor: "rgba(255,255,255,0.1)",
-                      }}
-                      width="50%"
-                      height={30}
-                    />
+                    <Box sx={{ flex: 1 }}>
+                      <Skeleton
+                        sx={{
+                          bgcolor: "rgba(255,255,255,0.1)",
+                        }}
+                        width="80%"
+                        height={30}
+                      />
+                      <Skeleton
+                        sx={{
+                          bgcolor: "rgba(255,255,255,0.1)",
+                        }}
+                        width="50%"
+                        height={30}
+                      />
+                    </Box>
                   </Box>
-                </Box>
-              </Grid>
-            ))
-          : videos.map((video, index) => (
-              <Grid
-                sx={{
-                  flexGrow: index === (video.length - 1) ? "0" : "1",
-                  marginRight: "8px",
-                  marginLeft: "8px",
-                }}
-                key={video._id}
-                size={{
-                  xs: 12,
-                  sm: 5.6,
-                  md: 5.7,
-                  lg: 3.82,
-                  xl: open ? 3.88 : 2.89,
-                }}
-              >
-                <VideoCard
-                  owner={video.owner?.username}
-                  videoId={video._id}
-                  home={true}
-                  thumbnail={video.thumbnail}
-                  title={video.title}
-                  avatar={video.owner.avatar}
-                  open={open}
-                  fullName={video.owner.fullName}
-                  views={video.views}
-                  duration={video.duration}
-                  createdAt={formatDate(video.createdAt)}
-                />
-              </Grid>
-            ))}
-      </Grid>
+                </Grid>
+              ))
+            : videos.map((video, index) => (
+                <Grid
+          
+                  sx={{
+                    marginLeft: "16px"
+                  }}
+                  key={video._id}
+                  size={{
+                    xs: 12,
+                    sm: 5.6,
+                    md: 5.7,
+                    lg: 3.83,
+                    xl: open ? 3.88 : 2.89,
+                  }}
+                >
+                  <VideoCard
+                    owner={video.owner?.username}
+                    videoId={video._id}
+                    home={true}
+                    thumbnail={video.thumbnail}
+                    title={video.title}
+                    avatar={video.owner.avatar}
+                    open={open}
+                    fullName={video.owner.fullName}
+                    views={video.views}
+                    duration={video.duration}
+                    createdAt={formatDate(video.createdAt)}
+                  />
+                </Grid>
+              ))}
+        </Grid>
+   
     </Box>
   );
 }
