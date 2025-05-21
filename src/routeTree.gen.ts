@@ -11,15 +11,21 @@
 // Import Routes
 
 import { Route as rootRoute } from './routes/__root'
+import { Route as WatchImport } from './routes/watch'
 import { Route as UsernameImport } from './routes/$username'
 import { Route as IndexImport } from './routes/index'
-import { Route as WatchVideoIdImport } from './routes/watch/$videoId'
 import { Route as SearchQueryImport } from './routes/search/$query'
 import { Route as UsernameVideosImport } from './routes/$username.videos'
 import { Route as UsernamePlaylistsImport } from './routes/$username.playlists'
 import { Route as UsernameCommunityImport } from './routes/$username.community'
 
 // Create/Update Routes
+
+const WatchRoute = WatchImport.update({
+  id: '/watch',
+  path: '/watch',
+  getParentRoute: () => rootRoute,
+} as any)
 
 const UsernameRoute = UsernameImport.update({
   id: '/$username',
@@ -30,12 +36,6 @@ const UsernameRoute = UsernameImport.update({
 const IndexRoute = IndexImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const WatchVideoIdRoute = WatchVideoIdImport.update({
-  id: '/watch/$videoId',
-  path: '/watch/$videoId',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -81,6 +81,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UsernameImport
       parentRoute: typeof rootRoute
     }
+    '/watch': {
+      id: '/watch'
+      path: '/watch'
+      fullPath: '/watch'
+      preLoaderRoute: typeof WatchImport
+      parentRoute: typeof rootRoute
+    }
     '/$username/community': {
       id: '/$username/community'
       path: '/community'
@@ -109,13 +116,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SearchQueryImport
       parentRoute: typeof rootRoute
     }
-    '/watch/$videoId': {
-      id: '/watch/$videoId'
-      path: '/watch/$videoId'
-      fullPath: '/watch/$videoId'
-      preLoaderRoute: typeof WatchVideoIdImport
-      parentRoute: typeof rootRoute
-    }
   }
 }
 
@@ -140,32 +140,32 @@ const UsernameRouteWithChildren = UsernameRoute._addFileChildren(
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$username': typeof UsernameRouteWithChildren
+  '/watch': typeof WatchRoute
   '/$username/community': typeof UsernameCommunityRoute
   '/$username/playlists': typeof UsernamePlaylistsRoute
   '/$username/videos': typeof UsernameVideosRoute
   '/search/$query': typeof SearchQueryRoute
-  '/watch/$videoId': typeof WatchVideoIdRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$username': typeof UsernameRouteWithChildren
+  '/watch': typeof WatchRoute
   '/$username/community': typeof UsernameCommunityRoute
   '/$username/playlists': typeof UsernamePlaylistsRoute
   '/$username/videos': typeof UsernameVideosRoute
   '/search/$query': typeof SearchQueryRoute
-  '/watch/$videoId': typeof WatchVideoIdRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
   '/$username': typeof UsernameRouteWithChildren
+  '/watch': typeof WatchRoute
   '/$username/community': typeof UsernameCommunityRoute
   '/$username/playlists': typeof UsernamePlaylistsRoute
   '/$username/videos': typeof UsernameVideosRoute
   '/search/$query': typeof SearchQueryRoute
-  '/watch/$videoId': typeof WatchVideoIdRoute
 }
 
 export interface FileRouteTypes {
@@ -173,44 +173,44 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/$username'
+    | '/watch'
     | '/$username/community'
     | '/$username/playlists'
     | '/$username/videos'
     | '/search/$query'
-    | '/watch/$videoId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/$username'
+    | '/watch'
     | '/$username/community'
     | '/$username/playlists'
     | '/$username/videos'
     | '/search/$query'
-    | '/watch/$videoId'
   id:
     | '__root__'
     | '/'
     | '/$username'
+    | '/watch'
     | '/$username/community'
     | '/$username/playlists'
     | '/$username/videos'
     | '/search/$query'
-    | '/watch/$videoId'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   UsernameRoute: typeof UsernameRouteWithChildren
+  WatchRoute: typeof WatchRoute
   SearchQueryRoute: typeof SearchQueryRoute
-  WatchVideoIdRoute: typeof WatchVideoIdRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   UsernameRoute: UsernameRouteWithChildren,
+  WatchRoute: WatchRoute,
   SearchQueryRoute: SearchQueryRoute,
-  WatchVideoIdRoute: WatchVideoIdRoute,
 }
 
 export const routeTree = rootRoute
@@ -225,8 +225,8 @@ export const routeTree = rootRoute
       "children": [
         "/",
         "/$username",
-        "/search/$query",
-        "/watch/$videoId"
+        "/watch",
+        "/search/$query"
       ]
     },
     "/": {
@@ -239,6 +239,9 @@ export const routeTree = rootRoute
         "/$username/playlists",
         "/$username/videos"
       ]
+    },
+    "/watch": {
+      "filePath": "watch.tsx"
     },
     "/$username/community": {
       "filePath": "$username.community.tsx",
@@ -254,9 +257,6 @@ export const routeTree = rootRoute
     },
     "/search/$query": {
       "filePath": "search/$query.tsx"
-    },
-    "/watch/$videoId": {
-      "filePath": "watch/$videoId.tsx"
     }
   }
 }

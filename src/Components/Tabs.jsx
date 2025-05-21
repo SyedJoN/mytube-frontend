@@ -49,13 +49,18 @@ export default function BasicTabs({ username, tabPaths }) {
   const inputRef = React.useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
-  const currentPath = location.pathname;
-  const currentTabIndex = tabPaths.findIndex((p) =>
-    currentPath.includes(`/${p.toLowerCase()}`)
-  );
 
-  const handleChange = (_, newValue) => {
-    navigate({ to: `/@${username}/${tabPaths[newValue].toLowerCase()}` });
+  const currentTabIndex = React.useMemo(() => {
+    const matched = tabPaths.findIndex((path) =>
+      location.pathname.toLowerCase().includes(`/${path.toLowerCase()}`)
+    );
+    return matched === -1 ? 0 : matched;
+  }, [location.pathname, tabPaths]);
+
+  const handleTabChange = (_, newValue) => {
+    navigate({
+      to: `/@${username}/${tabPaths[newValue].toLowerCase()}`,
+    });
   };
 
   React.useEffect(() => {
@@ -66,9 +71,7 @@ export default function BasicTabs({ username, tabPaths }) {
 
   const handleSearch = () => {
     setSearch(true);
-    if (search && inputRef.current) {
-      inputRef.current.click();
-    }
+    setTimeout(() => inputRef.current?.focus(), 0);
   };
 
   // const handleTabSwitch = (tab) => {
@@ -83,8 +86,8 @@ export default function BasicTabs({ username, tabPaths }) {
     <Container fixed>
       <Box>
         <Tabs
-          value={currentTabIndex === -1 ? 0 : currentTabIndex}
-          onChange={handleChange}
+          value={currentTabIndex}
+          onChange={handleTabChange}
           sx={{
             "& .MuiTabs-indicator": {
               backgroundColor: "#f1f1f1",
@@ -94,40 +97,40 @@ export default function BasicTabs({ username, tabPaths }) {
           aria-label="basic tabs example"
         >
           {tabPaths?.map((tab) => (
-               <Tab
-            disableTouchRipple
-            label={tab}
-              onClick={() => navigate({ to: `/@${username}/${tab.toLowerCase()}` })}
-            {...a11yProps(0)}
-            sx={{
-              position: "relative",
-              textTransform: "none",
-              minWidth: 6,
-              color: "#f1f1f1",
-              fontSize: "1rem",
-              fontWeight: "600",
-              padding: "0",
-              alignItems: "center",
-              marginRight: 3,
-              "&::after": {
-                content: '""',
-                position: "absolute",
-                bottom: 0,
-                left: 0,
-                height: "2px",
-                width: "100%",
-                opacity: 0,
-                backgroundColor: "rgba(255,255,255,0.6)",
-                transition: "opacity 0.3s ease",
-              },
-              "&:hover::after": {
-                opacity: 1,
-              },
-            }}
-          />
-            ))}
-        
-
+            <Tab
+              disableTouchRipple
+              label={tab}
+              onClick={() =>
+                navigate({ to: `/@${username}/${tab.toLowerCase()}` })
+              }
+              {...a11yProps(0)}
+              sx={{
+                position: "relative",
+                textTransform: "none",
+                minWidth: 6,
+                color: "#f1f1f1",
+                fontSize: "1rem",
+                fontWeight: "600",
+                padding: "0",
+                alignItems: "center",
+                marginRight: 3,
+                "&::after": {
+                  content: '""',
+                  position: "absolute",
+                  bottom: 0,
+                  left: 0,
+                  height: "2px",
+                  width: "100%",
+                  opacity: 0,
+                  backgroundColor: "rgba(255,255,255,0.6)",
+                  transition: "opacity 0.3s ease",
+                },
+                "&:hover::after": {
+                  opacity: 1,
+                },
+              }}
+            />
+          ))}
 
           <ClickAwayListener onClickAway={() => setSearch(false)}>
             <Tab
@@ -176,7 +179,6 @@ export default function BasicTabs({ username, tabPaths }) {
           </ClickAwayListener>
         </Tabs>
       </Box>
-
     </Container>
   );
 }

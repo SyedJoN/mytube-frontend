@@ -33,14 +33,14 @@ function Description({ data, subscriberCount }) {
     >
       <CardContent sx={{ padding: "8px 0" }}>
         <Typography variant="body2" color="rgb(255,255,255)" fontWeight={500}>
-          {data.data.views} {data.data.views === 1 ? "view" : "views"} •{" "}
-          {formatDate(data.data.createdAt)}
+          {data?.data?.views} {data?.data?.views === 1 ? "view" : "views"} •{" "}
+          {formatDate(data?.data?.createdAt)}
         </Typography>
 
         <Typography variant="body2" color="rgb(255,255,255)">
           {expanded
-            ? data.data.description || ""
-            : `${data.data.description?.slice(0, 100) || ""}... `}
+            ? data?.data?.description || ""
+            : `${data?.data?.description?.slice(0, 100) || ""}... `}
 
           <span
             role="button"
@@ -83,15 +83,15 @@ function Description({ data, subscriberCount }) {
         }}
         avatar={
           <Avatar
-            src={data.data.owner.avatar || null}
+            src={data?.owner?.avatar || null}
             sx={{ bgcolor: getColor(data?.data?.owner?.fullName) }}
           >
-            {data.data.owner.fullName?.charAt(0).toUpperCase() || "?"}
+            {data?.data?.owner?.fullName?.charAt(0).toUpperCase() || "?"}
           </Avatar>
         }
         title={
           <Typography variant="body1" color="rgb(255,255,255)">
-            {data.data.owner.fullName}
+            {data?.data?.owner?.fullName}
           </Typography>
         }
         subheader={

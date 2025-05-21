@@ -29,9 +29,7 @@ function VideoPlayer({ videoId, playlistId }) {
   let { data: dataContext } = context;
   const isAuthenticated = dataContext || null;
   const navigate = useNavigate();
-  useEffect(() => {
-    console.log("test context", dataContext);
-  }, [dataContext]);
+
   const theme = useTheme();
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
   const isCustomWidth = useMediaQuery("(max-width:1014px)");
@@ -136,6 +134,7 @@ function VideoPlayer({ videoId, playlistId }) {
   } = useQuery({
     queryKey: ["playlists", playlistId],
     queryFn: () => fetchPlaylistById(playlistId),
+    enabled: !!playlistId, // only fetch when playlistId is truthy
   });
 
   useEffect(() => {
@@ -183,6 +182,24 @@ function VideoPlayer({ videoId, playlistId }) {
       to: `/@${owner}`,
     });
   };
+
+  const handleVideoEnd = () => {
+    if (!playlistId || !playlistData?.data?.videos?.length) return;
+
+    const videos = playlistData.data.videos;
+    const currentIndex = videos.findIndex((v) => v._id === videoId);
+    if (currentIndex === -1) return;
+
+    const nextIndex = (currentIndex + 1) % videos.length;
+    const nextVideoId = videos[nextIndex]._id;
+    if (nextIndex !== 0) {
+      navigate({
+        to: "/watch",
+        search: playlistId ? { v: nextVideoId, list: playlistId, index: nextIndex } : undefined,
+      });
+    }
+  };
+
   return (
     <Grid
       container
@@ -206,6 +223,7 @@ function VideoPlayer({ videoId, playlistId }) {
           controls
           autoPlay
           onTimeUpdate={handleTimeUpdate}
+          onEnded={handleVideoEnd}
           style={{ aspectRatio: "16/9", borderRadius: "8px" }}
         >
           {data?.data?.videoFile && (
@@ -229,127 +247,127 @@ function VideoPlayer({ videoId, playlistId }) {
             {data?.data?.title}
           </Typography>
         </Box>
-           {!isCustomWidth && 
-             <Box
-          sx={{
-            display: "flex",
-            flexWrap: "wrap",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: {
-              xs: "0",
-              sm: "24",
-            },
-          }}
-        >
+        {!isCustomWidth && (
           <Box
             sx={{
               display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "space-between",
               alignItems: "center",
-              marginTop: 1,
-              position: "relative",
-              minWidth: "calc(50% - 6px)",
+              gap: {
+                xs: "0",
+                sm: "24",
+              },
             }}
           >
-            <CardHeader
+            <Box
               sx={{
-                alignItems: "flex-start",
-                padding: 0,
-                "& .MuiCardHeader-content": {
-                  overflow: "hidden",
-                  minWidth: 0,
-                },
-                "& .css-1r9wl67-MuiCardHeader-avatar": {
-                  marginRight: "12px",
-                },
+                display: "flex",
+                alignItems: "center",
+                marginTop: 1,
+                position: "relative",
+                minWidth: "calc(50% - 6px)",
               }}
-              avatar={
-                <Link
-                  style={{
-                    textDecoration: "none",
-                  }}
-                  to={`/@${owner}`}
-                >
-                  <Avatar
-                    src={
-                      data?.data?.owner?.avatar
-                        ? data?.data?.owner?.avatar
-                        : null
-                    }
-                    sx={{
-                      bgcolor: getColor(data?.data?.owner?.fullName),
-                      cursor: "pointer",
-                    }}
-                  >
-                    {data?.data?.owner?.fullName
-                      ? data?.data?.owner?.fullName.charAt(0).toUpperCase()
-                      : "?"}
-                  </Avatar>
-                </Link>
-              }
-              title={
-                <Tooltip
-                  title={data?.data?.owner?.fullName}
-                  placement="top-start"
-                >
+            >
+              <CardHeader
+                sx={{
+                  alignItems: "flex-start",
+                  padding: 0,
+                  "& .MuiCardHeader-content": {
+                    overflow: "hidden",
+                    minWidth: 0,
+                  },
+                  "& .css-1r9wl67-MuiCardHeader-avatar": {
+                    marginRight: "12px",
+                  },
+                }}
+                avatar={
                   <Link
                     style={{
                       textDecoration: "none",
                     }}
                     to={`/@${owner}`}
                   >
-                    <Typography
-                      variant="p"
-                      color="#f1f1f1"
-                      sx={{ cursor: "pointer" }}
+                    <Avatar
+                      src={
+                        data?.data?.owner?.avatar
+                          ? data?.data?.owner?.avatar
+                          : null
+                      }
+                      sx={{
+                        bgcolor: getColor(data?.data?.owner?.fullName),
+                        cursor: "pointer",
+                      }}
                     >
-                      {data?.data?.owner?.fullName}
-                    </Typography>
+                      {data?.data?.owner?.fullName
+                        ? data?.data?.owner?.fullName.charAt(0).toUpperCase()
+                        : "?"}
+                    </Avatar>
                   </Link>
-                </Tooltip>
-              }
-              subheader={
-                <>
-                  <Typography variant="body2" color="#aaa" fontSize="0.8rem">
-                    <span>
-                      {subscriberCount}{" "}
-                      {subscriberCount === 1 ? "subscriber" : "subscribers"}
-                    </span>
-                  </Typography>
-                </>
-              }
-            />
+                }
+                title={
+                  <Tooltip
+                    title={data?.data?.owner?.fullName}
+                    placement="top-start"
+                  >
+                    <Link
+                      style={{
+                        textDecoration: "none",
+                      }}
+                      to={`/@${owner}`}
+                    >
+                      <Typography
+                        variant="p"
+                        color="#f1f1f1"
+                        sx={{ cursor: "pointer" }}
+                      >
+                        {data?.data?.owner?.fullName}
+                      </Typography>
+                    </Link>
+                  </Tooltip>
+                }
+                subheader={
+                  <>
+                    <Typography variant="body2" color="#aaa" fontSize="0.8rem">
+                      <span>
+                        {subscriberCount}{" "}
+                        {subscriberCount === 1 ? "subscriber" : "subscribers"}
+                      </span>
+                    </Typography>
+                  </>
+                }
+              />
 
-            <SubscribeButton
+              <SubscribeButton
+                isAuthenticated={isAuthenticated}
+                channelName={channelName}
+                channelId={channelId}
+                userData={userData}
+                initialSubscribed={userData?.data?.isSubscribedTo}
+                initialSubscribers={userData?.data?.subscribersCount}
+                user={user}
+                activeAlertId={activeAlertId}
+                setActiveAlertId={setActiveAlertId}
+              />
+            </Box>
+            <LikeDislikeButtons
+              dataContext={dataContext}
               isAuthenticated={isAuthenticated}
-              channelName={channelName}
-              channelId={channelId}
-              userData={userData}
-              initialSubscribed={userData?.data?.isSubscribedTo}
-              initialSubscribers={userData?.data?.subscribersCount}
-              user={user}
+              data={data}
+              videoId={videoId}
               activeAlertId={activeAlertId}
               setActiveAlertId={setActiveAlertId}
             />
           </Box>
-          <LikeDislikeButtons
-            dataContext={dataContext}
-            isAuthenticated={isAuthenticated}
-            data={data}
-            videoId={videoId}
-            activeAlertId={activeAlertId}
-            setActiveAlertId={setActiveAlertId}
-          />
-        </Box>
-}
-      
-       {!isCustomWidth &&
+        )}
+
+        {!isCustomWidth && (
           <Description
             data={data}
             subscriberCount={userData?.data?.subscribersCount}
           />
-       }
-       
+        )}
+
         {!isCustomWidth && (
           <CommentSection
             isAuthenticated={isAuthenticated}
@@ -378,126 +396,126 @@ function VideoPlayer({ videoId, playlistId }) {
             videoId={videoId}
           />
         )}
-         {isCustomWidth &&
-          <Box
-          sx={{
-            display: "flex",
-            flexWrap: "wrap",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: {
-              xs: "0",
-              sm: "24",
-            },
-          }}
-        >
+        {isCustomWidth && (
           <Box
             sx={{
               display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "space-between",
               alignItems: "center",
-              marginTop: 1,
-              position: "relative",
-              minWidth: "calc(50% - 6px)",
+              gap: {
+                xs: "0",
+                sm: "24",
+              },
             }}
           >
-            <CardHeader
+            <Box
               sx={{
-                alignItems: "flex-start",
-                padding: 0,
-                "& .MuiCardHeader-content": {
-                  overflow: "hidden",
-                  minWidth: 0,
-                },
-                "& .css-1r9wl67-MuiCardHeader-avatar": {
-                  marginRight: "12px",
-                },
+                display: "flex",
+                alignItems: "center",
+                marginTop: 1,
+                position: "relative",
+                minWidth: "calc(50% - 6px)",
               }}
-              avatar={
-                <Link
-                  style={{
-                    textDecoration: "none",
-                  }}
-                  to={`/@${owner}`}
-                >
-                  <Avatar
-                    src={
-                      data?.data?.owner?.avatar
-                        ? data?.data?.owner?.avatar
-                        : null
-                    }
-                    sx={{
-                      bgcolor: getColor(data?.data?.owner?.fullName),
-                      cursor: "pointer",
-                    }}
-                  >
-                    {data?.data?.owner?.fullName
-                      ? data?.data?.owner?.fullName.charAt(0).toUpperCase()
-                      : "?"}
-                  </Avatar>
-                </Link>
-              }
-              title={
-                <Tooltip
-                  title={data?.data?.owner?.fullName}
-                  placement="top-start"
-                >
+            >
+              <CardHeader
+                sx={{
+                  alignItems: "flex-start",
+                  padding: 0,
+                  "& .MuiCardHeader-content": {
+                    overflow: "hidden",
+                    minWidth: 0,
+                  },
+                  "& .css-1r9wl67-MuiCardHeader-avatar": {
+                    marginRight: "12px",
+                  },
+                }}
+                avatar={
                   <Link
                     style={{
                       textDecoration: "none",
                     }}
                     to={`/@${owner}`}
                   >
-                    <Typography
-                      variant="p"
-                      color="#f1f1f1"
-                      sx={{ cursor: "pointer" }}
+                    <Avatar
+                      src={
+                        data?.data?.owner?.avatar
+                          ? data?.data?.owner?.avatar
+                          : null
+                      }
+                      sx={{
+                        bgcolor: getColor(data?.data?.owner?.fullName),
+                        cursor: "pointer",
+                      }}
                     >
-                      {data?.data?.owner?.fullName}
-                    </Typography>
+                      {data?.data?.owner?.fullName
+                        ? data?.data?.owner?.fullName.charAt(0).toUpperCase()
+                        : "?"}
+                    </Avatar>
                   </Link>
-                </Tooltip>
-              }
-              subheader={
-                <>
-                  <Typography variant="body2" color="#aaa" fontSize="0.8rem">
-                    <span>
-                      {subscriberCount}{" "}
-                      {subscriberCount === 1 ? "subscriber" : "subscribers"}
-                    </span>
-                  </Typography>
-                </>
-              }
-            />
+                }
+                title={
+                  <Tooltip
+                    title={data?.data?.owner?.fullName}
+                    placement="top-start"
+                  >
+                    <Link
+                      style={{
+                        textDecoration: "none",
+                      }}
+                      to={`/@${owner}`}
+                    >
+                      <Typography
+                        variant="p"
+                        color="#f1f1f1"
+                        sx={{ cursor: "pointer" }}
+                      >
+                        {data?.data?.owner?.fullName}
+                      </Typography>
+                    </Link>
+                  </Tooltip>
+                }
+                subheader={
+                  <>
+                    <Typography variant="body2" color="#aaa" fontSize="0.8rem">
+                      <span>
+                        {subscriberCount}{" "}
+                        {subscriberCount === 1 ? "subscriber" : "subscribers"}
+                      </span>
+                    </Typography>
+                  </>
+                }
+              />
 
-            <SubscribeButton
+              <SubscribeButton
+                isAuthenticated={isAuthenticated}
+                channelName={channelName}
+                channelId={channelId}
+                userData={userData}
+                initialSubscribed={userData?.data?.isSubscribedTo}
+                initialSubscribers={userData?.data?.subscribersCount}
+                user={user}
+                activeAlertId={activeAlertId}
+                setActiveAlertId={setActiveAlertId}
+              />
+            </Box>
+            <LikeDislikeButtons
+              dataContext={dataContext}
               isAuthenticated={isAuthenticated}
-              channelName={channelName}
-              channelId={channelId}
-              userData={userData}
-              initialSubscribed={userData?.data?.isSubscribedTo}
-              initialSubscribers={userData?.data?.subscribersCount}
-              user={user}
+              data={data}
+              videoId={videoId}
               activeAlertId={activeAlertId}
               setActiveAlertId={setActiveAlertId}
             />
           </Box>
-          <LikeDislikeButtons
-            dataContext={dataContext}
-            isAuthenticated={isAuthenticated}
-            data={data}
-            videoId={videoId}
-            activeAlertId={activeAlertId}
-            setActiveAlertId={setActiveAlertId}
-          />
-        </Box>
-        }
+        )}
 
-        {isCustomWidth && 
+        {isCustomWidth && (
           <Description
             data={data}
             subscriberCount={userData?.data?.subscribersCount}
           />
-        }
+        )}
         <VideoSideBar />
         {isCustomWidth && (
           <CommentSection

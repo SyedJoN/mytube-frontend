@@ -118,7 +118,10 @@ function VideoCard({
   };
   const handleCardClick = () => {
     navigate({
-      to: `/watch/${videoId}`,
+      to: "/watch",
+      search: {
+        v: videoId,
+      },
     });
 
     console.log("videoID", videoId);
@@ -224,30 +227,60 @@ function VideoCard({
                   {fullName ? fullName.charAt(0).toUpperCase() : "?"}
                 </Avatar>
               )}
-
               <Box sx={{ overflowX: "hidden", paddingRight: "24px" }}>
-                <Typography
-                  onClick={handleCardClick}
-                  variant="body2"
-                  color="#f1f1f1"
-                  sx={{
-                    display: "-webkit-box",
-                    fontSize: "0.85rem",
-                    WebkitBoxOrient: "vertical",
-                    maxWidth: "300px",
-                    overflow: "hidden",
-                    WebkitLineClamp: 2, // Clamp text to 2 lines
-                    textOverflow: "ellipsis",
-                    fontWeight: 600,
-                    height: "auto", // Ensure height is dynamic
-                    maxHeight: "3.5em", // Define max height based on line-clamp
+                <Tooltip
+                  disableInteractive
+                  title={title}
+                  placement="bottom"
+                  slotProps={{
+                    popper: {
+                      modifiers: [
+                        {
+                          name: "offset",
+                          options: {
+                            offset: [0, -20],
+                          },
+                        },
+                      ],
+                    },
+                    tooltip: {
+                      sx: {
+                        whiteSpace: "nowrap",
+                        backgroundColor: "#1f1f1f",
+                        maxWidth: 700,
+                        color: "#f1f1f1",
+                        fontSize: "0.75rem",
+                        border: "1px solid #f1f1f1",
+                        borderRadius: "0",
+                        padding: "4px",
+                      },
+                    },
                   }}
                 >
-                  {title}
-                </Typography>
+                  <Typography
+                    onClick={handleCardClick}
+                    variant="body2"
+                    color="#f1f1f1"
+                    sx={{
+                      display: "-webkit-box",
+                      fontSize: "0.85rem",
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                      WebkitLineClamp: 2,
+                      textOverflow: "ellipsis",
+                      fontWeight: 600,
+                      height: "auto",
+                      maxHeight: "3.5em",
+                    }}
+                  >
+                    {title}
+                  </Typography>
+                </Tooltip>
+
                 {fullName && (
                   <>
                     <Tooltip
+                      disableInteractive
                       title={fullName}
                       placement="top-start"
                       slotProps={{
@@ -261,8 +294,9 @@ function VideoCard({
                         variant="body2"
                         color="#aaa"
                         sx={{
+                          display: "inline-block",
                           "&:hover": {
-                            color: "#ccc",
+                            color: "#fff",
                           },
                         }}
                       >
@@ -336,7 +370,8 @@ function VideoCard({
                 }}
               >
                 <Link
-                  to={`/watch/${videoId}`}
+                  to="/watch"
+                  search={{ v: videoId }}
                   style={{ textDecoration: "none" }}
                   onDragEnd={() => {
                     if (interactionRef.current) {
@@ -398,7 +433,8 @@ function VideoCard({
             }}
           >
             <Link
-              to={`/watch/${videoId}`}
+              to="/watch"
+              search={{ v: videoId }}
               style={{ textDecoration: "none" }}
               onDragEnd={() => {
                 if (interactionRef.current) {
@@ -781,7 +817,8 @@ function VideoCard({
           }}
         >
           <Link
-            to={`/watch/${videoId}`}
+            to="/watch"
+            search={{ v: videoId }}
             style={{ textDecoration: "none" }}
             onDragEnd={() => {
               if (interactionRef.current) {
@@ -852,7 +889,8 @@ function VideoCard({
               }}
             >
               <Link
-                to={`/watch/${videoId}`}
+                to="/watch"
+                search={{ v: videoId }}
                 style={{ textDecoration: "none" }}
                 onDragEnd={() => {
                   if (interactionRef.current) {
@@ -950,9 +988,8 @@ function VideoCard({
               }}
             >
               <Link
-                to="/watch/$videoId"
-                params={{ videoId: playlistVideoId[0] }}
-                search={{ list: playlistId }}
+                to="/watch"
+                search={{ v: playlistVideoId[0], list: playlistId }}
                 style={{ textDecoration: "none" }}
                 onDragEnd={() => {
                   if (interactionRef.current) {
@@ -1089,7 +1126,8 @@ function VideoCard({
                 }}
               >
                 <Link
-                  to={`/watch/${videoId}`}
+                  to="/watch"
+                  search={{ v: videoId }}
                   style={{ textDecoration: "none" }}
                   onDragEnd={() => {
                     if (interactionRef.current) {

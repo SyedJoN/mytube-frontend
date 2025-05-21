@@ -12,7 +12,7 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import CloseIcon from "@mui/icons-material/Close";
 import formatDuration from "../utils/formatDuration";
 import RepeatIcon from "@mui/icons-material/Repeat";
@@ -30,8 +30,11 @@ const PlaylistContainer = ({ playlistId, playlistData, videoId }) => {
   const fac = new FastAverageColor();
   const theme = useTheme();
   const isCustomWidth = useMediaQuery("(max-width:1014px)");
+  const location = useLocation();
 
-  console.log("data playlist", playlistData);
+  const videos = playlistData?.data?.videos || [];
+  const activeIndex = videos.findIndex((video) => video._id === videoId);
+
   const handleImageLoad = () => {
     if (imgRef.current) {
       fac
@@ -42,11 +45,6 @@ const PlaylistContainer = ({ playlistId, playlistData, videoId }) => {
         .catch((err) => console.log("Color extraction error:", err));
     }
   };
-
-  const videos = playlistData?.data?.videos || [];
-
-  const activeIndex = videos.findIndex((video) => video._id === videoId);
-
   const activeVideo = videos.find((video) => video._id === videoId);
   const activeVideoTitle = activeVideo?.title || "";
 
@@ -60,7 +58,7 @@ const PlaylistContainer = ({ playlistId, playlistData, videoId }) => {
         maxHeight: "703px",
         border: "1px solid rgba(255, 255, 255, 0.18)",
         borderRadius: "8px",
-        overflow: "hidden"
+        overflow: "hidden",
       }}
     >
       <Box
@@ -79,7 +77,7 @@ const PlaylistContainer = ({ playlistId, playlistData, videoId }) => {
             overflow: "visible",
           }}
         >
-          <Box sx={{maxWidth: "100%"}} variant="body2" color="#f1f1f1">
+          <Box sx={{ maxWidth: "100%" }} variant="body2" color="#f1f1f1">
             <Typography
               sx={{
                 display: "-webkit-box",
@@ -196,6 +194,7 @@ const PlaylistContainer = ({ playlistId, playlistData, videoId }) => {
             sx={{
               position: "relative",
               display: "flex",
+              alignItems: "center",
               padding: "4px 8px 4px 0",
               background: videoId === video._id ? bgColor : "none",
 
@@ -213,12 +212,11 @@ const PlaylistContainer = ({ playlistId, playlistData, videoId }) => {
             id="list-item"
           >
             <Link
-              to="/watch/$videoId"
-              params={{ videoId: video._id }}
-              search={{ list: playlistId }}
-              style={{ textDecoration: "none" }}
+              to="/watch"
+              search={{ v: video._id, list: playlistId, index: index + 1 }}
+              style={{ display: "block", flexGrow: 1, textDecoration: "none", minWidth: 0 }}
             >
-              <Box sx={{ display: "flex" }}>
+              <Box sx={{ display: "flex", alignItems: "center" }}>
                 <IconButton sx={{ padding: "0" }}>
                   {videoId === video._id ? (
                     <ArrowRightIcon sx={{ color: "#f1f1f1" }} />
@@ -239,19 +237,7 @@ const PlaylistContainer = ({ playlistId, playlistData, videoId }) => {
                     </Typography>
                   )}
                 </IconButton>
-                <Card
-                  sx={{
-                    position: "relative",
-                    transition: "0.3s ease-in-out",
-                    padding: 0,
-                    cursor: "pointer",
-                    overflow: "visible",
-                    borderRadius: "8px",
-                    boxShadow: "none",
-                    display: "flex",
-                    backgroundColor: "transparent",
-                  }}
-                >
+          
                   <Box
                     sx={{
                       display: "flex",
@@ -381,7 +367,7 @@ const PlaylistContainer = ({ playlistId, playlistData, videoId }) => {
                               fontWeight: 600,
                               lineHeight: 1.5,
                               userSelect: "none",
-                              width: "208px",
+                              maxWidth: "100%",
                             }}
                           >
                             {video.title}
@@ -412,33 +398,33 @@ const PlaylistContainer = ({ playlistId, playlistData, videoId }) => {
                       }
                     />
                   </CardContent>
-                </Card>
-
-                <IconButton
-                  id="menu"
-                  disableRipple
-                  className="hover-overlay"
-                  onMouseDown={(e) => {
-                    e.stopPropagation();
-                    handleMouseDown(e);
-                  }}
-                  sx={{
-                    display: "flex",
-                    flexDirection: "column",
-                    flex: 1,
-                    flexBasis: 0,
-                    justifyContent: "center",
-                    padding: 0,
-                    opacity: 0,
-                  }}
-                  aria-label="settings"
-                >
-                  <MoreVertIcon sx={{ color: "#fff", borderRadius: "50px" }} />
-
-                  <Interaction id="interaction" circle={true} />
-                </IconButton>
+               
               </Box>
             </Link>
+            <IconButton
+              id="menu"
+              disableRipple
+              className="hover-overlay"
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                handleMouseDown(e);
+              }}
+              sx={{
+                maxWidth: "30px",
+                width: "30px",
+                height: "30px",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                padding: 0,
+                opacity: 0,
+              }}
+              aria-label="settings"
+            >
+              <MoreVertIcon sx={{ color: "#fff", borderRadius: "50px" }} />
+
+              <Interaction id="interaction" circle={true} />
+            </IconButton>
           </Box>
         ))}
       </Box>

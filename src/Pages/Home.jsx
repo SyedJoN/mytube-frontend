@@ -108,7 +108,7 @@ function Home() {
                   </Box>
                 </Grid>
               ))
-            : videos.map((video, index) => (
+            : videos.map((video) => (
                 <Grid
                   sx={{
                     marginLeft: "16px"
@@ -118,7 +118,7 @@ function Home() {
                     xs: 12,
                     sm: 5.6,
                     md: 5.7,
-                    lg: 3.83,
+                    lg: open ? 3.8 : 2.8,
                     xl: open ? 3.88 : 2.89,
                   }}
                 >
