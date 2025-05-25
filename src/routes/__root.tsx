@@ -19,6 +19,7 @@ import Header from "../Components/Header/Header";
 import { getCurrentUser } from "../apis/userFn";
 import { throttle } from "lodash";
 import { SnackbarProvider } from "../Contexts/SnackbarContext";
+import { ProgressBar } from "../ProgressBar";
 
 // Context for managing drawer state
 type OpenContextType = {
@@ -126,8 +127,10 @@ function RouteComponent() {
   useEffect(() => {
     if (home || search || userProfile) {
       setOpen(true);
+    } else {
+      setOpen(false)
     }
-  }, [home, search, userProfile, watch]);
+  }, [home, search, userProfile]);
 
   const toggleDrawer = () => setOpen((prev) => !prev);
 
@@ -136,8 +139,6 @@ function RouteComponent() {
     queryFn: getCurrentUser,
   });
 
-  console.log(data);
-  console.log("✅ OpenContext.Provider is wrapping the app");
 
   return (
     // ✅ Wrap everything inside QueryClientProvider
@@ -157,6 +158,7 @@ function RouteComponent() {
         <Box
           component="main"
           sx={{
+            position: "relative",
             display: "flex",
             overflowY: "visible",
             marginTop: "var(--toolbar-height)",
@@ -172,6 +174,7 @@ function RouteComponent() {
             backgroundColor: theme.palette.primary.main,
           }}
         >
+          <ProgressBar/>
           <Outlet />
         </Box>
       </OpenContext.Provider>

@@ -3,7 +3,6 @@ import VideoCard from "./VideoCard";
 import Grid from "@mui/material/Grid";
 import { Link } from "@tanstack/react-router";
 import Skeleton from "@mui/material/Skeleton";
-import { fetchVideos } from "../apis/videoFn";
 import CardHeader from "@mui/material/CardHeader";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
@@ -15,26 +14,17 @@ import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
 import handleMouseDown from "../helper/intertactionHelper";
 import Interaction from "./Interaction";
 
-function VideoSideBar() {
+function VideoSideBar({filteredVideos, isLoadingList, isErrorList, errorList}) {
   const theme = useTheme();
-  const {
-    data: listVideoData,
-    isLoading: isLoadingList,
-    isError: isErrorList,
-    error: errorList,
-  } = useQuery({
-    queryKey: ["videos"],
-    queryFn: fetchVideos,
-  });
+
   const [activeOptionsId, setActiveOptionsId] = React.useState(null);
-  const videos = listVideoData?.data?.docs || [];
   const isCustomWidth = useMediaQuery("(max-width:1014px)");
 
   return (
     <>
       {isErrorList && <Typography>Error: {errorList.message}</Typography>}
 
-      {videos.length > 0 ? (
+      {filteredVideos.length > 0 ? (
         <Grid
         spacing={isCustomWidth ? 2 : 0}
           container
@@ -43,7 +33,7 @@ function VideoSideBar() {
             
           }}
         >
-          {videos.map((video) => (
+          {filteredVideos.map((video) => (
             <React.Fragment key={video._id}>
               {isCustomWidth ? (
                 <Grid

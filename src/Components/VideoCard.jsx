@@ -164,8 +164,10 @@ function VideoCard({
               },
             }}
           >
+            <Link to="/watch"
+            search={{v: videoId}}
+            >
             <Box
-              onClick={handleCardClick}
               height="100%"
               position="absolute"
               top="0"
@@ -184,6 +186,7 @@ function VideoCard({
                 image={thumbnail}
               />
             </Box>
+            </Link>
             <Box
               sx={{
                 display: "flex",
@@ -219,15 +222,20 @@ function VideoCard({
           >
             <Box sx={{ display: "flex" }}>
               {avatar && (
+                
                 <Avatar
-                  onClick={handleChannelClick}
+                onClick={handleChannelClick}
                   src={avatar ? avatar : null}
                   sx={{ bgcolor: getColor(fullName), marginRight: "16px" }}
                 >
                   {fullName ? fullName.charAt(0).toUpperCase() : "?"}
                 </Avatar>
+             
               )}
+             
               <Box sx={{ overflowX: "hidden", paddingRight: "24px" }}>
+                     <Link to="/watch"
+                  search={{v: videoId}}>
                 <Tooltip
                   disableInteractive
                   title={title}
@@ -258,7 +266,6 @@ function VideoCard({
                   }}
                 >
                   <Typography
-                    onClick={handleCardClick}
                     variant="body2"
                     color="#f1f1f1"
                     sx={{
@@ -276,9 +283,12 @@ function VideoCard({
                     {title}
                   </Typography>
                 </Tooltip>
+              </Link>
 
                 {fullName && (
                   <>
+                       <Link to={`/@${owner}`}
+                >
                     <Tooltip
                       disableInteractive
                       title={fullName}
@@ -303,7 +313,7 @@ function VideoCard({
                         {fullName}
                       </Typography>
                     </Tooltip>
-
+</Link>
                     <Typography variant="body2" color="#aaa">
                       <span>
                         {views} {views === 1 ? "view" : "views"} &bull;{" "}
@@ -313,6 +323,7 @@ function VideoCard({
                   </>
                 )}
               </Box>
+
             </Box>
 
             <IconButton

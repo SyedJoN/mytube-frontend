@@ -7,15 +7,14 @@ import theme from "./assets/Theme";
 import { routeTree } from "./routeTree.gen";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
-import "./styles.css"; // ✅ Ensure styles are applied
+import NProgress from "nprogress";
+import "./styles.css"; // your global styles
+import { ProgressBar } from "./ProgressBar";
 
-// ✅ Create a QueryClient instance
 const queryClient = new QueryClient();
-
-// ✅ Create the router
 const router = createRouter({ routeTree });
 
-// ✅ Declare router types for TanStack Router
+
 declare module "@tanstack/react-router" {
   interface Register {
     router: typeof router;
@@ -26,16 +25,15 @@ const rootElement = document.getElementById("root")!;
 if (!rootElement.innerHTML) {
   const root = ReactDOM.createRoot(rootElement);
   root.render(
-<StrictMode>
-{/* ✅ Wrap everything inside QueryClientProvider */}
-<QueryClientProvider client={queryClient}>
+    <StrictMode>
+      <QueryClientProvider client={queryClient}>
         <ThemeProvider theme={theme}>
           <RouterProvider router={router}>
+            {/* Your app content will go here */}
+            <TanStackRouterDevtools router={router} />
           </RouterProvider>
         </ThemeProvider>
       </QueryClientProvider>
-      </StrictMode>
-      
-
+    </StrictMode>
   );
 }

@@ -96,7 +96,6 @@ function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
                width: "40px",
                height: "40px",
                m: 0,
-               zIndex: 999999,
                borderRadius: "50px",
                "&:hover": {
                  background: "rgba(255,255,255,0.1)",
@@ -817,7 +816,7 @@ function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
       {watch && (
         <Drawer
           container={container}
-          variant="temporary"
+          variant="persistent"
           open={open}
           sx={{
             "& .MuiDrawer-paper": {

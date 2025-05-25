@@ -8,6 +8,7 @@
   --toolbar-height: 56px;
   --base-background: #181818;
   --text-secondary: #aaa;
+  --progress-color: linear-gradient(to right, #eb2d2d, #ee4a4a);
 }
 
 body {
@@ -18,10 +19,98 @@ body {
     
 }
 
-/* img {
-  user-drag: none;
-  -webkit-user-drag: none;
-} */
+
+.video-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 700px;
+}
+
+video {
+  width: 100%;
+  display: block;
+  margin-bottom: 10px;
+}
+#video-container:hover .video-controls {
+  opacity: 1 !important;
+}
+
+.custom-progress {
+  width: 100%;
+  height: 3px;
+  appearance: none;
+  background: var(--progress-color);
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+}
+.progress-bar {
+  background: var(--progress-color);
+
+}
+.custom-progress::-webkit-slider-thumb {
+  appearance: none;
+ height: 14px;       
+  width: 14px;
+  background: radial-gradient(ellipse at center, #eb2d2d, #ee4a4a);
+  border-radius: 50%;
+  border: none;
+  outline: "none";
+}
+
+.custom-progress::-moz-range-thumb {
+  height: 14px;       
+  width: 14px;
+    background: radial-gradient(ellipse at center, #eb2d2d, #ee4a4a);
+  border-radius: 50%;
+  border: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; /* Remove default style */
+  appearance: none;
+  height: 14px;       /* Size of the thumb */
+  width: 14px;
+  background: radial-gradient(ellipse at center, #eb2d2d, #ee4a4a);
+  border-radius: 50%;  /* Make it round */
+  cursor: pointer;
+  margin-top: 0px;
+  box-shadow: 0 0 2px rgba(0,0,0,0.5);
+  transition: background 0.3s ease;
+}
+/* 
+/* input[type="range"]::-webkit-slider-thumb:hover {
+  background: #1769aa; /* Hover color */
+ */ */
+
+/* Firefox */
+input[type="range"]::-moz-range-thumb {
+  height: 20px;
+  width: 20px;
+  background: #2196f3;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 0 2px rgba(0,0,0,0.5);
+  transition: background 0.3s ease;
+}
+
+input[type="range"]::-moz-range-thumb:hover {
+  background: #1769aa;
+}
+
+/* Force the nprogress bar to sit on top without disrupting layout */
+#nprogress .bar {
+  background: red !important;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  z-index: 9999;
+}
+#nprogress .spinner {
+  display: none !important;
+}
 
 vt-interaction.down .fill {
   opacity: 0.1;

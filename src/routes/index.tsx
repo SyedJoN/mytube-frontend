@@ -6,6 +6,7 @@ import Home from '../Pages/Home';
 
 export const Route = createFileRoute('/')({
   component: Index,
+
 })
 
 function Index() {

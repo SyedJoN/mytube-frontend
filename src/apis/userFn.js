@@ -58,6 +58,23 @@ const getUserChannelProfile = async (username) => {
     }
   };
 
+   const addToWatchHistory = async (data) => {
+    try {
+      console.log("pohanch gai", data)
+      const res = await axios.post(`${BASE_URL}/history`, data, {
+        withCredentials: true,
+      });
+      return res.data;
+    } catch (error) {
+      console.error("Axios Error:", error.response?.data); // Log the actual response
+  
+      throw new Error(
+        error.response?.data?.message || "Something went wrong. Please try again!"
+      );
+    }
+  };
+
+
   const logoutUser = async () => {
     try {
       const res = await axios.post(`${BASE_URL}/logout`, {}, {
@@ -74,4 +91,6 @@ const getUserChannelProfile = async (username) => {
   };
 
 
-export {getCurrentUser, getUserChannelProfile, registerUser, loginUser, logoutUser}
+
+
+export {getCurrentUser, getUserChannelProfile, registerUser, loginUser, logoutUser, addToWatchHistory}
