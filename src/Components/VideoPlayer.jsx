@@ -12,7 +12,8 @@ import { shuffleArray } from "../helper/shuffle";
 import { getColor } from "../utils/getColor";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PauseIcon from "@mui/icons-material/Pause";
-import { Box, CardMedia, IconButton, Typography } from "@mui/material";
+import FastForwardIcon from "@mui/icons-material/FastForward";
+import { Box, CardMedia, Icon, IconButton, Typography } from "@mui/material";
 import SkipPreviousIcon from "@mui/icons-material/SkipPrevious";
 import SkipNextIcon from "@mui/icons-material/SkipNext";
 import {
@@ -39,10 +40,13 @@ import theme from "../assets/Theme";
 import { fetchPlaylistById } from "../apis/playlistFn";
 import { useNavigate } from "@tanstack/react-router";
 import PlaylistContainer from "./PlaylistContainer";
+import { MorphingIcon } from "./IconMorph";
 
 function VideoPlayer({ videoId, playlistId }) {
   const context = useContext(OpenContext);
+  const [videoWidth, setVideoWidth] = useState(0);
   const videoRef = useRef(null);
+
   let { data: dataContext } = context;
   const isAuthenticated = dataContext || null;
   const queryClient = useQueryClient();
@@ -54,6 +58,7 @@ function VideoPlayer({ videoId, playlistId }) {
   const prevVideoRef = useRef(null);
   const [progress, setProgress] = useState(0);
   const [bufferedPercent, setBufferedPercent] = useState(0);
+  const barRef = useRef();
 
   useEffect(() => {
     const video = videoRef.current;
@@ -77,7 +82,6 @@ function VideoPlayer({ videoId, playlistId }) {
       setBufferedPercent(percent);
     };
 
- 
     const events = [
       "loadedmetadata",
       "progress",
@@ -184,10 +188,10 @@ function VideoPlayer({ videoId, playlistId }) {
       });
 
       currentStep++;
-      setTimeout(animateFireworks, 10); 
+      setTimeout(animateFireworks, 10);
     };
 
-    animateFireworks(); 
+    animateFireworks();
   };
   const { mutate: sendHistoryMutation } = useMutation({
     mutationFn: (data) => addToWatchHistory(data),
@@ -252,36 +256,107 @@ function VideoPlayer({ videoId, playlistId }) {
   );
   const [viewCounted, setViewCounted] = useState(false);
   const [activeAlertId, setActiveAlertId] = useState(null);
+  var thumbWidth = 13;
+  const [BarWidth, setBarWidth] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(() => {
+    return videoRef.current ? !videoRef.current.paused : false;
+  });
+  const [isLongPress, setIsLongPress] = useState(false);
+  let pressTimer = useRef(null);
 
+
+  useEffect(() => {
+  if (!sliderRef.current || !videoRef.current) return;
+
+  const observer = new ResizeObserver(() => {
+    setBarWidth(sliderRef.current.offsetWidth);
+    setVideoWidth(videoRef.current.offsetWidth - 24);
+  });
+
+  observer.observe(sliderRef.current);
+  observer.observe(videoRef.current);
+
+  return () => observer.disconnect();
+}, []);
   const buttonRef = useRef(null);
+
+  const sliderRef = useRef(null);
+
+  const handleSeekMove = (e) => {
+    if (!sliderRef.current || !videoRef.current) return;
+
+    const rect = sliderRef.current.getBoundingClientRect();
+    const offsetX = e.clientX - rect.left;
+    const newProgress = Math.min(
+      Math.max((offsetX / rect.width) * 100, 0),
+      100
+    );
+
+    const newTime = (videoRef.current.duration * newProgress) / 100;
+    videoRef.current.currentTime = newTime;
+    setProgress(newProgress);
+  };
+
+  const handleSeekEnd = () => {
+    window.removeEventListener("mousemove", handleSeekMove);
+    window.removeEventListener("mouseup", handleSeekEnd);
+  };
+
+  const handleSeekStart = (e) => {
+    e.preventDefault();
+    window.addEventListener("mousemove", handleSeekMove);
+    window.addEventListener("mouseup", handleSeekEnd);
+  };
+
+  const handleClickSeek = (e) => {
+    if (!sliderRef.current || !videoRef.current) return;
+    const rect = sliderRef.current.getBoundingClientRect();
+    const offsetX = e.clientX - rect.left;
+    const newProgress = Math.min(
+      Math.max((offsetX / rect.width) * 100, 0),
+      100
+    );
+
+    const newTime = (videoRef.current.duration * newProgress) / 100;
+    videoRef.current.currentTime = newTime;
+    setProgress(newProgress);
+  };
+
+
   useEffect(() => {
     const video = videoRef.current;
+    if (!video) return;
 
     const updateBuffered = () => {
-      if (!video) return;
+      try {
+        const buffered = video.buffered;
+        const duration = video.duration;
 
-      const buffered = video.buffered;
-      const duration = video.duration;
+        if (buffered.length > 0 && duration > 0) {
+          const bufferedEnd = buffered.end(buffered.length - 1);
+          const percent = (bufferedEnd / duration) * 100;
+          setBufferedPercent(percent);
+        } else {
+          setBufferedPercent(0);
+        }
+      } catch (e) {
 
-      if (buffered.length > 0 && duration > 0) {
-        const bufferedEnd = buffered.end(buffered.length - 1);
-        const percent = (bufferedEnd / duration) * 100;
-        setBufferedPercent(percent);
+        console.warn("Buffered read error", e);
+        setBufferedPercent(0);
       }
     };
 
-    if (video) {
-      video.addEventListener("loadedmetadata", updateBuffered);
-      video.addEventListener("progress", updateBuffered);
-    }
+    video.addEventListener("loadedmetadata", updateBuffered);
+    video.addEventListener("progress", updateBuffered);
+
+
+    updateBuffered();
 
     return () => {
-      if (video) {
-        video.removeEventListener("loadedmetadata", updateBuffered);
-        video.removeEventListener("progress", updateBuffered);
-      }
+      video.removeEventListener("loadedmetadata", updateBuffered);
+      video.removeEventListener("progress", updateBuffered);
     };
-  }, []);
+  }, [videoRef.current, videoId]);
 
   const handleNext = () => {
     if (!videoRef.current) return;
@@ -344,7 +419,7 @@ function VideoPlayer({ videoId, playlistId }) {
   } = useQuery({
     queryKey: ["playlists", playlistId],
     queryFn: () => fetchPlaylistById(playlistId),
-    enabled: !!playlistId, 
+    enabled: !!playlistId,
   });
   const playlistVideos = playlistData?.data?.videos || [];
   const index = playlistVideos?.findIndex((video) => video._id === videoId);
@@ -370,7 +445,7 @@ function VideoPlayer({ videoId, playlistId }) {
   const handleForwardSeek = useCallback(() => {
     videoRef.current?.play();
     if (videoRef.current) videoRef.current.currentTime += 5;
-  }, []); 
+  }, []);
 
   const handleBackwardSeek = useCallback(() => {
     videoRef.current?.play();
@@ -439,12 +514,7 @@ function VideoPlayer({ videoId, playlistId }) {
     }
   };
 
-  const handleSeek = (e) => {
-    const newProgress = e.target.value;
-    const video = videoRef.current;
-    video.currentTime = (newProgress / 100) * video.duration;
-    setProgress(newProgress);
-  };
+
 
   const handleVideoEnd = () => {
     if (index >= playlistVideos.length - 1) return;
@@ -461,14 +531,42 @@ function VideoPlayer({ videoId, playlistId }) {
   const togglePlayPause = (e) => {
     e.stopPropagation();
     const video = videoRef.current;
+    const icon = e.currentTarget.querySelector(".playback-icons");
+    if (icon) {
+      icon.classList.add("ripple");
+    }
     if (!video) return;
     if (video.paused) {
+      setIsPlaying(false);
+
       video.play();
     } else {
+      setIsPlaying(true);
+
       video.pause();
     }
   };
 
+  const DoubleSpeed = (e) => {
+    const video = videoRef.current;
+    if (!video) return;
+    pressTimer.current = setTimeout(() => {
+      setIsLongPress(true);
+      videoRef.current.playbackRate = 2.0;
+    }, 300); 
+  };
+  const exitDoubleSpeed = (e) => {
+    const video = videoRef.current;
+    if (!video) return;
+    clearTimeout(pressTimer.current);
+
+    if (isLongPress) {
+      setIsLongPress(false);
+      videoRef.current.playbackRate = 1.0;
+    } else {
+      togglePlayPause(e); 
+    }
+  };
   return (
     <Grid
       container
@@ -509,18 +607,20 @@ function VideoPlayer({ videoId, playlistId }) {
             </video>
 
             <div
+              ref={barRef}
               className="video-controls"
               style={{
-                opacity: 0,
-                transition: "opacity 0.3s ease",
                 position: "absolute",
+                opacity: 0,
+                width: `${videoWidth}px`,
+                transition: "opacity .25s cubic-bezier(0,0,.2,1)",
                 bottom: 0,
-                left: 0,
-                right: 0,
-                height: "40px",
-                backgroundColor: "transparent",
+                height: "48px",
+                paddingTop: "3px",
+                textAlign: "left",
+                left: "12px",
                 borderRadius: "3px",
-                zIndex: 2,
+                zIndex: 59,
               }}
             >
               <Box sx={{ display: "flex", height: "100%" }}>
@@ -534,12 +634,12 @@ function VideoPlayer({ videoId, playlistId }) {
                     />
                   </IconButton>
                 )}
-                <IconButton onClick={togglePlayPause} sx={{ color: "#f1f1f1" }}>
-                  {videoRef.current?.paused ? (
-                    <PlayArrowIcon sx={{ width: "1.25em", height: "1.25em" }} />
-                  ) : (
-                    <PauseIcon sx={{ width: "1.25em", height: "1.25em" }} />
-                  )}
+                <IconButton
+                  disableRipple
+                  onClick={togglePlayPause}
+                  sx={{ color: "#f1f1f1", padding: 0 }}
+                >
+                  <MorphingIcon isPlaying={isPlaying} />
                 </IconButton>
                 <Tooltip
                   slotProps={{
@@ -556,7 +656,7 @@ function VideoPlayer({ videoId, playlistId }) {
                     tooltip: {
                       sx: {
                         whiteSpace: "nowrap",
-                        backgroundColor: "rgba(15, 15, 15, 0.94)",
+                        backgroundColor: "rgba(0, 0, 0, 0.65)",
                         fontSize: "0.75rem",
                         borderRadius: "16px",
                         padding: "0",
@@ -623,6 +723,7 @@ function VideoPlayer({ videoId, playlistId }) {
                   placement="top"
                 >
                   <IconButton
+                  disableRipple
                     onClick={
                       playlistId && index < playlistVideos.length - 1
                         ? handleNextPlaylist
@@ -634,83 +735,177 @@ function VideoPlayer({ videoId, playlistId }) {
                   </IconButton>
                 </Tooltip>
               </Box>
-              <div
-                className="buffered-bar"
-                style={{
+              <Box
+                className="progress-bar-container"
+                sx={{
                   position: "absolute",
-                  top: "-9px",
-                  left: 0,
-                  height: "3px",
-                  width: `${bufferedPercent}%`,
-                  backgroundColor: "#888",
-                  borderRadius: "3px",
-                  zIndex: 1,
-                }}
-              />
-              <div
-                className="progress-bar"
-                style={{
-                  position: "absolute",
-                  top: "-9px",
-                  left: 0,
-                  width: `${progress}%`,
-                  height: "3px",
-                  borderRadius: "4px",
-                  zIndex: 2,
-                }}
-              />
-              <input
-                min="0"
-                type="range"
-                value={progress}
-                onChange={handleSeek}
-                className="custom-progress"
-                style={{
-                  position: "absolute",
-                  top: "-27px",
-                  left: 0,
+                  display: "block",
+                  bottom: "47px",
                   width: "100%",
-                  height: "100%",
-                  background: "transparent",
-                  zIndex: 2,
+                  height: "5px",
                 }}
-              />
+              >
+                <Box
+                  onClick={handleClickSeek}
+                  ref={sliderRef}
+                  component={"div"}
+                  role="slider"
+                  aria-valuemin={0}
+                  aria-valuenow={Math.ceil(videoRef.current?.currentTime)}
+                  aria-valuemax={Math.ceil(videoRef.current?.duration)}
+                  className="progress-bar"
+                  sx={{
+                    position: "absolute",
+                    width: "100%",
+                    height: "100%",
+                    touchAction: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      top: "-9px",
+                      left: 0,
+                      height: "15px",
+                      width: "100%",
+                    }}
+                  ></Box>
+                  <Box
+                    className="progress-list"
+                    sx={{
+                      position: "relative",
+                      height: "100%",
+                      transform: "scaleY(.6)",
+                      background: "rgba(255,255,255,0.2)",
+                      transition:
+                        "transform .1s cubic-bezier(0.4, 0, 1, 1), -webkit-transform .1s cubic-bezier(.4,0,1,1)",
+                    }}
+                  >
+                    <div
+                      className="load-progress"
+                      style={{
+                        position: "absolute",
+                        bottom: 0,
+                        left: 0,
+                        width: "100%",
+                        height: "100%",
+                        transform: `scaleX(${progress / 100})`,
+                        transformOrigin: "0 0",
+                        borderRadius: "4px",
+                        zIndex: 2,
+                       
+                      }}
+                    ></div>
+                    <div
+                      className="buffered-bar"
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        height: "100%",
+                        width: `${bufferedPercent}%`,
+                        backgroundColor: "#888",
+                        borderRadius: "3px",
+                        zIndex: 1,
+                        transition: "width 0.1s",
+                      }}
+                    />
+                  </Box>
+                  <Box
+                    onMouseDown={handleSeekStart}
+                    className="thumb-container"
+                    sx={{
+                      position: "absolute",
+                      left: `-${thumbWidth / 2}px`,
+                      top: "-4px",
+                      transform: `translateX(${(progress / 100) * BarWidth}px)`,
+                     
+                    }}
+                  >
+                    <div
+                      className="custom-thumb"
+                      style={{
+                        width: `${thumbWidth}px`,
+                        height: `${thumbWidth}px`,
+                        borderRadius: "50px",
+                        zIndex: 253,
+                        transition:
+                          "transform .1s cubic-bezier(.4,0,1,1),-webkit-transform .1s cubic-bezier(.4,0,1,1)",
+                      }}
+                    ></div>
+                  </Box>
+                </Box>
+              </Box>
             </div>
-            <Box
-              className="status-overlay"
-              sx={{
-                position: "absolute",
-                inset: 0,
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                opacity: 1,
-                color: "#fff",
-                fontWeight: "400",
-                fontSize: "1rem",
-                userSelect: "none",
-                pointerEvents: "none",
-              }}
-            >
-              {videoRef.current?.paused ? (
-                <PlayArrowIcon sx={{ height: "4rem", width: "4rem" }} />
-              ) : (
-                <PauseIcon sx={{ width: "4rem", height: "4rem" }} />
-              )}
-            </Box>
 
             <Box
-              onClick={togglePlayPause}
-              component="video-cover"
+              onMouseDown={DoubleSpeed}
+              onMouseUp={exitDoubleSpeed}
+              component={"video-cover"}
               sx={{
                 position: "absolute",
+                display: "flex",
+                justifyContent: "center",
                 inset: 0,
                 width: "100%",
-                height: "90%",
+                height: "100%",
                 cursor: "pointer",
                 pointerEvents: "all",
               }}
-            ></Box>
+            >
+              {isLongPress && (
+                <Box
+                  sx={{
+                    position: "absolute",
+                    top: "20px",
+                    width: "72px",
+                    height: "34px",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    fontSize: "1rem",
+                    color: "#f1f1f1",
+                    borderRadius: "50px",
+                    background: "rgba(0, 0, 0, 0.65)",
+                  }}
+                >
+                  <Typography variant="subtitle2" sx={{ paddingRight: 1 }}>
+                    2x{" "}
+                  </Typography>
+                  <FastForwardIcon sx={{ width: "1.1rem", height: "1.1rem" }} />
+                </Box>
+              )}
+
+              <Box
+                className="status-overlay"
+                sx={{
+                  position: "absolute",
+                  inset: 0,
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  opacity: 1,
+                  color: "#fff",
+                  fontWeight: "400",
+                  fontSize: "1rem",
+                  userSelect: "none",
+                  pointerEvents: "none",
+                }}
+              >
+                {isPlaying ? (
+                  <PlayArrowIcon
+                    className="playback-icons ripple"
+                    sx={{ height: "4rem", maxWidth: "4rem", padding: "12px" }}
+                  />
+                ) : (
+                  <PauseIcon
+                    className="playback-icons ripple"
+                    sx={{ maxWidth: "4rem", height: "4rem", padding: "12px" }}
+                  />
+                )}
+              </Box>
+            </Box>
           </Box>
         )}
 
