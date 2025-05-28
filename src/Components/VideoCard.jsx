@@ -254,7 +254,7 @@ function VideoCard({
                     tooltip: {
                       sx: {
                         whiteSpace: "nowrap",
-                        backgroundColor: "#1f1f1f",
+                        backgroundColor: "rgba(26,25,25,255)",
                         maxWidth: 700,
                         color: "#f1f1f1",
                         fontSize: "0.75rem",
@@ -490,7 +490,7 @@ function VideoCard({
                       tooltip: {
                         sx: {
                           whiteSpace: "nowrap",
-                          backgroundColor: "#1f1f1f",
+                          backgroundColor: "rgba(26,25,25,255)",
                           maxWidth: 700,
                           color: "#f1f1f1",
                           fontSize: "0.75rem",

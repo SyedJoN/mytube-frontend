@@ -48,6 +48,7 @@ function VideoSideBar({filteredVideos, isLoadingList, isErrorList, errorList}) {
                 >
                   <VideoCard
                     owner={video?.owner?.username}
+                    videoId={video._id}
                     thumbnail={video.thumbnail}
                     title={video.title}
                     home={true}
