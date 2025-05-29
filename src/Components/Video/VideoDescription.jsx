@@ -4,11 +4,11 @@ import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Box from "@mui/material/Box";
 import Avatar from "@mui/material/Avatar";
-import { getColor } from "../utils/getColor";
-import formatDate from "../utils/formatDate";
+import { getColor } from "../../utils/getColor";
+import formatDate from "../../utils/formatDate";
 import { Typography } from "@mui/material";
-import Interaction from "./Interaction";
-import handleMouseDown from "../helper/intertactionHelper";
+import Interaction from "../Utils/Interaction";
+import handleMouseDown from "../../helper/intertactionHelper";
 
 function Description({ data, subscriberCount }) {
   const [expanded, setExpanded] = useState(false);
@@ -82,12 +82,21 @@ function Description({ data, subscriberCount }) {
           "& .MuiCardHeader-content": { overflow: "hidden", minWidth: 0 },
         }}
         avatar={
-          <Avatar
-            src={data?.owner?.avatar || null}
-            sx={{ bgcolor: getColor(data?.data?.owner?.fullName) }}
-          >
-            {data?.data?.owner?.fullName?.charAt(0).toUpperCase() || "?"}
-          </Avatar>
+              <Avatar
+                            src={
+                              data?.data?.owner?.avatar
+                                ? data?.data?.owner?.avatar
+                                : null
+                            }
+                            sx={{
+                              bgcolor: getColor(data?.data?.owner?.fullName),
+                              cursor: "pointer",
+                            }}
+                          >
+                            {data?.data?.owner?.fullName
+                              ? data?.data?.owner?.fullName.charAt(0).toUpperCase()
+                              : "?"}
+                          </Avatar>
         }
         title={
           <Typography variant="body1" color="rgb(255,255,255)">

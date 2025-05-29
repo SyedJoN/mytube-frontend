@@ -12,7 +12,7 @@ import {
 } from "@mui/material";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import ClickAwayListener from "@mui/material/ClickAwayListener";
-import { OpenContext } from "../routes/__root";
+import { OpenContext } from "../../routes/__root";
 import { useNavigate, useLocation } from "@tanstack/react-router";
 
 function CustomTabPanel(props) {
@@ -96,9 +96,10 @@ export default function BasicTabs({ username, tabPaths }) {
           textColor="inherit"
           aria-label="basic tabs example"
         >
-          {tabPaths?.map((tab) => (
+          {tabPaths?.map((tab, index) => (
             <Tab
               disableTouchRipple
+              key={index}
               label={tab}
               onClick={() =>
                 navigate({ to: `/@${username}/${tab.toLowerCase()}` })

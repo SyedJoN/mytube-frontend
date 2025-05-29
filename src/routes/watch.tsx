@@ -1,7 +1,7 @@
 // routes/watch.tsx
 import { createFileRoute, useSearch } from "@tanstack/react-router";
 import React from "react";
-import ViewVideo from "../Pages/ViewVideo";
+import WatchVideo from "../Pages/WatchVideo";
 
 export const Route = createFileRoute("/watch")({
   component: RouteComponent,
@@ -14,5 +14,5 @@ export const Route = createFileRoute("/watch")({
 function RouteComponent() {
   const { v: videoId, list: playlistId } = Route.useSearch();
 
-  return <ViewVideo videoId={videoId} playlistId={playlistId} />;
+  return <WatchVideo videoId={videoId} playlistId={playlistId} />;
 }

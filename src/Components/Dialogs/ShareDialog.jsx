@@ -8,8 +8,8 @@ import {
   Button,
   TextField,
 } from "@mui/material";
-import ScrollableTabsButton from "./ScrollableTabs";
-import SimpleSnackbar from "./Snackbar";
+import ScrollableTabsButton from "../Tabs/ScrollableTabs";
+import SimpleSnackbar from "../Utils/Snackbar";
 import CloseIcon from "@mui/icons-material/Close";
 import FacebookIcon from "@mui/icons-material/Facebook";
 import WhatsAppIcon from "@mui/icons-material/WhatsApp";

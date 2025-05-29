@@ -1,5 +1,5 @@
 import React, { useContext } from "react";
-import VideoCard from "../Components/VideoCard";
+import VideoCard from "../Components/Video/VideoCard.jsx";
 import Grid from "@mui/material/Grid";
 import {
   Box,

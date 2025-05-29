@@ -1,5 +1,5 @@
 import * as React from "react";
-import { OpenContext } from "../routes/__root";
+import { OpenContext } from "../../routes/__root";
 import { useContext, useState } from "react";
 import { useLocation } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
@@ -37,8 +37,8 @@ import {
   red,
 } from "@mui/material/colors";
 
-import Signin from "./Signin";
-import { logoutUser } from "../apis/userFn";
+import Signin from "../Auth/Signin"
+import { logoutUser } from "../../apis/userFn";
 
 export default function AccountMenu() {
   const [anchorEl, setAnchorEl] = React.useState(null);

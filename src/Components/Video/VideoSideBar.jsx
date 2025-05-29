@@ -1,20 +1,25 @@
 import React from "react";
-import VideoCard from "./VideoCard";
+import VideoCard from "../Video/VideoCard";
 import Grid from "@mui/material/Grid";
 import { Link } from "@tanstack/react-router";
 import Skeleton from "@mui/material/Skeleton";
 import CardHeader from "@mui/material/CardHeader";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
-import formatDate from "../utils/formatDate";
+import formatDate from "../../utils/formatDate";
 import Button from "@mui/material/Button";
 import { useQuery } from "@tanstack/react-query";
 import ButtonGroup from "@mui/material/ButtonGroup";
 import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
-import handleMouseDown from "../helper/intertactionHelper";
-import Interaction from "./Interaction";
+import handleMouseDown from "../../helper/intertactionHelper";
+import Interaction from "../Utils/Interaction";
 
-function VideoSideBar({filteredVideos, isLoadingList, isErrorList, errorList}) {
+function VideoSideBar({
+  filteredVideos,
+  isLoadingList,
+  isErrorList,
+  errorList,
+}) {
   const theme = useTheme();
 
   const [activeOptionsId, setActiveOptionsId] = React.useState(null);
@@ -26,18 +31,16 @@ function VideoSideBar({filteredVideos, isLoadingList, isErrorList, errorList}) {
 
       {filteredVideos.length > 0 ? (
         <Grid
-        spacing={isCustomWidth ? 2 : 0}
+          spacing={isCustomWidth ? 2 : 0}
           container
           sx={{
             marginTop: isCustomWidth ? "16px" : "",
-            
           }}
         >
           {filteredVideos.map((video) => (
             <React.Fragment key={video._id}>
               {isCustomWidth ? (
                 <Grid
-
                   size={{
                     xs: 12,
                     sm: 6,
@@ -47,6 +50,7 @@ function VideoSideBar({filteredVideos, isLoadingList, isErrorList, errorList}) {
                   }}
                 >
                   <VideoCard
+                    verifyInteraction={true}
                     owner={video?.owner?.username}
                     videoId={video._id}
                     thumbnail={video.thumbnail}
@@ -61,8 +65,16 @@ function VideoSideBar({filteredVideos, isLoadingList, isErrorList, errorList}) {
                   />
                 </Grid>
               ) : (
-                <Box key={video._id} sx={{ marginBottom: 1, flexGrow: "1!important", width: "100%" }}>
+                <Box
+                  key={video._id}
+                  sx={{
+                    marginBottom: 1,
+                    flexGrow: "1!important",
+                    width: "100%",
+                  }}
+                >
                   <VideoCard
+                    verifyInteraction={true}
                     owner={video?.owner?.username}
                     videoId={video._id}
                     thumbnail={video.thumbnail}

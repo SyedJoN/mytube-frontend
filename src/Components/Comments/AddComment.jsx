@@ -9,21 +9,21 @@ import React, {
 } from "react";
 import { Box, Typography } from "@mui/material";
 import CardHeader from "@mui/material/CardHeader";
-import EmojiPickerWrapper from "./EmojiPickerWrapper";
-import SignInAlert from "./SignInAlert";
+import EmojiPickerWrapper from "../Utils/EmojiPickerWrapper";
+import SignInAlert from "../Dialogs/SignInAlert";
+
+
 import CircularProgress from "@mui/material/CircularProgress";
 import Button from "@mui/material/Button";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import Avatar from "@mui/material/Avatar";
-import { addComment } from "../apis/commentFn";
-import { OpenContext } from "../routes/__root";
+import { OpenContext } from "../../routes/__root";
 import Input from "@mui/material/Input";
 import InputLabel from "@mui/material/InputLabel";
 import PersonIcon from "@mui/icons-material/Person";
 import FormControl from "@mui/material/FormControl";
 const LazyEmojiPicker = lazy(() => import("emoji-picker-react"));
-import { useClickAway } from "react-use";
-import Signin from "./Signin";
+import Signin from "../Auth/Signin";
 
 import SentimentSatisfiedAltIcon from "@mui/icons-material/SentimentSatisfiedAlt";
 import TextField from "@mui/material/TextField";

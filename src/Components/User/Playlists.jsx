@@ -3,7 +3,7 @@ import { useLoaderData } from "@tanstack/react-router";
 import Grid from "@mui/material/Grid";
 import { Box } from "@mui/material";
 import formatDate from "../../utils/formatDate";
-import VideoCard from "../VideoCard";
+import VideoCard from "../Video/VideoCard";
 
 const Playlists = () => {
   const { userData } = useLoaderData({

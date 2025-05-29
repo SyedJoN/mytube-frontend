@@ -31,6 +31,13 @@ export const OpenContext = createContext<OpenContextType | undefined>(
   undefined
 );
 
+type UserInteractionContextType = {
+  isUserInteracted: boolean;
+  setIsUserInteracted: React.Dispatch<React.SetStateAction<boolean>>;
+};
+
+export const UserInteractionContext = createContext<UserInteractionContextType | undefined>(undefined)
+
 // 404 Page Component
 const NotFoundComponent = () => (
   <Box sx={{ textAlign: "center", mt: 5 }}>
@@ -38,7 +45,6 @@ const NotFoundComponent = () => (
   </Box>
 );
 
-// ✅ Define and Export `Route`
 export const Route = createRootRoute({
   component: RouteComponent,
   notFoundComponent: NotFoundComponent,
@@ -54,6 +60,7 @@ function RouteComponent() {
   const isLaptop = useMediaQuery(theme.breakpoints.down("lg"));
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
   const [open, setOpen] = useState(!(home || search || watch || userProfile));
+  const [isUserInteracted, setIsUserInteracted] = useState(false);
   const scrollYRef = React.useRef(0);
   const prevScrollRef = React.useRef(0);
 
@@ -81,7 +88,7 @@ function RouteComponent() {
     if (open && isLaptop) {
       scrollYRef.current = window.scrollY;
       body.style.position = "fixed";
-      body.style.top = `-${scrollYRef.current}px`; // Preserve scroll position
+      body.style.top = `-${scrollYRef.current}px`; 
       body.style.left = "0";
       body.style.right = "0";
       body.style.overflow = "revert!important";
@@ -89,7 +96,7 @@ function RouteComponent() {
       body.style.position = "";
       body.style.top = "";
       body.style.paddingRight = "0!important";
-      window.scrollTo(0, prevScrollRef.current); // Restore previous scroll position
+      window.scrollTo(0, prevScrollRef.current); 
     }
   }, [open, isLaptop]);
 
@@ -128,7 +135,7 @@ function RouteComponent() {
     if (home || search || userProfile) {
       setOpen(true);
     } else {
-      setOpen(false)
+      setOpen(false);
     }
   }, [home, search, userProfile]);
 
@@ -139,10 +146,9 @@ function RouteComponent() {
     queryFn: getCurrentUser,
   });
 
-
   return (
-    // ✅ Wrap everything inside QueryClientProvider
     <SnackbarProvider>
+      <UserInteractionContext.Provider value={{ isUserInteracted, setIsUserInteracted }}>
       <OpenContext.Provider value={{ open, setOpen, data: data || null }}>
         <CssBaseline />
 
@@ -164,20 +170,21 @@ function RouteComponent() {
             marginTop: "var(--toolbar-height)",
             marginLeft:
               isTablet || watch
-                ? "0" // If it's a mobile device, set marginLeft to 0
+                ? "0" 
                 : open && !isLaptop
-                  ? "var(--drawer-width)" // When open and not tablet, and not watching
+                  ? "var(--drawer-width)"
                   : !open || !isTablet
-                    ? "var(--mini-drawer-width)" // If not watching and not mobile
-                    : "0", // Default to 0
+                    ? "var(--mini-drawer-width)" 
+                    : "0", 
 
             backgroundColor: theme.palette.primary.main,
           }}
         >
-          <ProgressBar/>
+          <ProgressBar />
           <Outlet />
         </Box>
       </OpenContext.Provider>
+      </UserInteractionContext.Provider>
     </SnackbarProvider>
   );
 }

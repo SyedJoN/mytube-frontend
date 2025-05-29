@@ -1,9 +1,6 @@
 import React, { useContext, useState, useEffect, useRef } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { getUserChannelProfile } from "../../apis/userFn";
 import { OpenContext } from "../../routes/__root";
 import { getColor } from "../../utils/getColor";
-import Grid from "@mui/material/Grid";
 import { Outlet, useLocation, useParams } from "@tanstack/react-router";
 
 import {
@@ -16,12 +13,9 @@ import {
   useTheme,
   useMediaQuery,
 } from "@mui/material";
-import { SubscribeButton } from "../SubscribeButton";
-import formatDate from "../../utils/formatDate";
-import AlertDialog from "../Dialog";
-import StatsDialog from "../StatsDialog";
-import BasicTabs from "../Tabs";
-import VideoCard from "../VideoCard";
+import { SubscribeButton } from "../Subscribe/SubscribeButton";
+import StatsDialog from "../Dialogs/StatsDialog";
+import BasicTabs from "../Tabs/Tabs";
 import ManageButtons from "./ManageButtons";
 import UserVideos from "./UserVideos";
 

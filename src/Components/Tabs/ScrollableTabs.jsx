@@ -2,14 +2,14 @@ import * as React from "react";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import Box from "@mui/material/Box";
-import Whatsapp from "../Svgs/Whatsapp.jsx";
-import Facebook from "../Svgs/Facebook.jsx";
-import X from "../Svgs/X.jsx";
+import Whatsapp from "../../Svgs/Whatsapp.jsx";
+import Facebook from "../../Svgs/Facebook.jsx";
+import X from "../../Svgs/X.jsx";
 import { Typography } from "@mui/material";
-import Mail from "../Svgs/Mail.jsx";
-import Reddit from "../Svgs/Reddit.jsx";
-import LinkedIn from "../Svgs/LinkedIn.jsx";
-import Pinterest from "../Svgs/Pinterest.jsx";
+import Mail from "../../Svgs/Mail.jsx";
+import Reddit from "../../Svgs/Reddit.jsx";
+import LinkedIn from "../../Svgs/LinkedIn.jsx";
+import Pinterest from "../../Svgs/Pinterest.jsx";
 
 export default function ScrollableTabsButton({ shareUrl }) {
   const [value, setValue] = React.useState(0);

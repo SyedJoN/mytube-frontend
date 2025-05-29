@@ -30,11 +30,12 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import { Box, useMediaQuery, Paper } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useTheme } from "@mui/material/styles";
-import formatDuration from "../utils/formatDuration";
+import formatDuration from "../../utils/formatDuration";
 import { useNavigate } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
-import Interaction from "./Interaction";
-import handleMouseDown from "../helper/intertactionHelper";
+import Interaction from "../Utils/Interaction";
+import handleMouseDown from "../../helper/intertactionHelper";
+import { UserInteractionContext } from "../../routes/__root";
 
 const ExpandMore = styled((props) => {
   const { expand, ...other } = props;
@@ -82,20 +83,23 @@ function VideoCard({
   playlistId,
   activeOptionsId,
   setActiveOptionsId,
+  verifyInteraction,
   ...props
 }) {
   const navigate = useNavigate();
   const interactionRef = React.useRef(null);
   const theme = useTheme();
-  const isTablet = useMediaQuery(theme.breakpoints.down("md"));
   const imgRef = React.useRef(null);
-  const [bgColor, setBgColor] = React.useState("rgba(0,0,0,0.6)"); // default fallback
+  const [bgColor, setBgColor] = React.useState("rgba(0,0,0,0.6)");
   const fac = new FastAverageColor();
   const colors = [red, blue, green, purple, orange, deepOrange, pink];
   const playlistVideoId = playlist?.videos?.map((video) => {
     return video._id;
   });
+  const ctx = React.useContext(UserInteractionContext);
+  if (!ctx) throw new Error("UserInteractionContext not found");
 
+  const { setIsUserInteracted } = ctx;
   const getColor = (name) => {
     if (!name) return red[500];
     const index = name.charCodeAt(0) % colors.length;
@@ -136,6 +140,7 @@ function VideoCard({
     <>
       {home ? (
         <Card
+        onClick={()=> verifyInteraction && setIsUserInteracted(true)}
           sx={{
             position: "relative",
             transition: "0.3s ease-in-out",
@@ -164,28 +169,21 @@ function VideoCard({
               },
             }}
           >
-            <Link to="/watch"
-            search={{v: videoId}}
-            >
-            <Box
-              height="100%"
-              position="absolute"
-              top="0"
-              left="0"
-            >
-              <CardMedia
-                sx={{
-                  borderRadius: "10px",
-                  flexGrow: "1!important",
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  aspectRatio: "16/9",
-                }}
-                component="img"
-                image={thumbnail}
-              />
-            </Box>
+            <Link to="/watch" search={{ v: videoId }}>
+              <Box height="100%" position="absolute" top="0" left="0">
+                <CardMedia
+                  sx={{
+                    borderRadius: "10px",
+                    flexGrow: "1!important",
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    aspectRatio: "16/9",
+                  }}
+                  component="img"
+                  image={thumbnail}
+                />
+              </Box>
             </Link>
             <Box
               sx={{
@@ -222,98 +220,94 @@ function VideoCard({
           >
             <Box sx={{ display: "flex" }}>
               {avatar && (
-                
                 <Avatar
-                onClick={handleChannelClick}
+                  onClick={handleChannelClick}
                   src={avatar ? avatar : null}
                   sx={{ bgcolor: getColor(fullName), marginRight: "16px" }}
                 >
                   {fullName ? fullName.charAt(0).toUpperCase() : "?"}
                 </Avatar>
-             
               )}
-             
+
               <Box sx={{ overflowX: "hidden", paddingRight: "24px" }}>
-                     <Link to="/watch"
-                  search={{v: videoId}}>
-                <Tooltip
-                  disableInteractive
-                  title={title}
-                  placement="bottom"
-                  slotProps={{
-                    popper: {
-                      modifiers: [
-                        {
-                          name: "offset",
-                          options: {
-                            offset: [0, -20],
+                <Link to="/watch" search={{ v: videoId }}>
+                  <Tooltip
+                    disableInteractive
+                    title={title}
+                    placement="bottom"
+                    slotProps={{
+                      popper: {
+                        modifiers: [
+                          {
+                            name: "offset",
+                            options: {
+                              offset: [0, -20],
+                            },
                           },
-                        },
-                      ],
-                    },
-                    tooltip: {
-                      sx: {
-                        whiteSpace: "nowrap",
-                        backgroundColor: "rgba(26,25,25,255)",
-                        maxWidth: 700,
-                        color: "#f1f1f1",
-                        fontSize: "0.75rem",
-                        border: "1px solid #f1f1f1",
-                        borderRadius: "0",
-                        padding: "4px",
+                        ],
                       },
-                    },
-                  }}
-                >
-                  <Typography
-                    variant="body2"
-                    color="#f1f1f1"
-                    sx={{
-                      display: "-webkit-box",
-                      fontSize: "0.85rem",
-                      WebkitBoxOrient: "vertical",
-                      overflow: "hidden",
-                      WebkitLineClamp: 2,
-                      textOverflow: "ellipsis",
-                      fontWeight: 600,
-                      height: "auto",
-                      maxHeight: "3.5em",
+                      tooltip: {
+                        sx: {
+                          whiteSpace: "nowrap",
+                          backgroundColor: "rgba(26,25,25,255)",
+                          maxWidth: 700,
+                          color: "#f1f1f1",
+                          fontSize: "0.75rem",
+                          border: "1px solid #f1f1f1",
+                          borderRadius: "0",
+                          padding: "4px",
+                        },
+                      },
                     }}
                   >
-                    {title}
-                  </Typography>
-                </Tooltip>
-              </Link>
+                    <Typography
+                      variant="body2"
+                      color="#f1f1f1"
+                      sx={{
+                        display: "-webkit-box",
+                        fontSize: "0.85rem",
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                        WebkitLineClamp: 2,
+                        textOverflow: "ellipsis",
+                        fontWeight: 600,
+                        height: "auto",
+                        maxHeight: "3.5em",
+                      }}
+                    >
+                      {title}
+                    </Typography>
+                  </Tooltip>
+                </Link>
 
                 {fullName && (
                   <>
-                       <Link to={`/@${owner}`}
-                >
-                    <Tooltip
-                      disableInteractive
-                      title={fullName}
-                      placement="top-start"
-                      slotProps={{
-                        popper: {
-                          disablePortal: true,
-                        },
-                      }}
-                    >
-                      <Typography
-                        onClick={handleChannelClick}
-                        variant="body2"
-                        color="#aaa"
-                        sx={{
-                          display: "inline-block",
-                          "&:hover": {
-                            color: "#fff",
+                    <Link to={`/@${owner}`}>
+                      <Tooltip
+                        disableInteractive
+                        title={fullName}
+                        placement="top-start"
+                        slotProps={{
+                          popper: {
+                            disablePortal: true,
                           },
                         }}
                       >
-                        {fullName}
-                      </Typography>
-                    </Tooltip>
-</Link>
+                        <Typography
+                          onClick={handleChannelClick}
+                          variant="body2"
+                          color="#aaa"
+                          sx={{
+                            display: "inline-block",
+                            "&:hover": {
+                              color: "#fff",
+                            },
+                          }}
+                        >
+                          {fullName}
+                        </Typography>
+                      </Tooltip>
+                    </Link>
                     <Typography variant="body2" color="#aaa">
                       <span>
                         {views} {views === 1 ? "view" : "views"} &bull;{" "}
@@ -323,7 +317,6 @@ function VideoCard({
                   </>
                 )}
               </Box>
-
             </Box>
 
             <IconButton
@@ -336,6 +329,8 @@ function VideoCard({
         </Card>
       ) : video ? (
         <Card
+        onClick={()=> verifyInteraction && setIsUserInteracted(true)}
+
           onMouseDown={(e) => {
             handleMouseDown(e);
             e.stopPropagation();
@@ -508,7 +503,7 @@ function VideoCard({
                         display: "-webkit-box",
                         fontSize: "0.85rem",
                         WebkitBoxOrient: "vertical",
-                        WebkitLineClamp: 2, // Ensures 2 lines max
+                        WebkitLineClamp: 2,
                         overflow: "hidden",
                         textOverflow: "ellipsis",
                         fontWeight: 600,
@@ -736,7 +731,7 @@ function VideoCard({
                       display: "-webkit-box",
                       fontSize: "1.2rem",
                       WebkitBoxOrient: "vertical",
-                      WebkitLineClamp: 2, // Ensures 2 lines max
+                      WebkitLineClamp: 2, 
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "normal",
@@ -915,8 +910,8 @@ function VideoCard({
                     alignItems: "flex-start",
                     padding: 0,
                     "& .MuiCardHeader-content": {
-                      overflow: "hidden", // Prevents content overflow
-                      minWidth: 0, // Ensures proper flex behavior
+                      overflow: "hidden",
+                      minWidth: 0,
                     },
                   }}
                   title={
@@ -928,7 +923,7 @@ function VideoCard({
                         fontSize: "0.85rem",
                         WebkitBoxOrient: "vertical",
                         overflow: "hidden",
-                        WebkitLineClamp: 2, // Ensures 2 lines max
+                        WebkitLineClamp: 2, 
                         textOverflow: "ellipsis",
                         fontWeight: 600,
                       }}
@@ -1055,7 +1050,7 @@ function VideoCard({
                       borderRadius: "12px",
                       backgroundColor: "transparent",
                       "&:hover .hover-overlay": {
-                        opacity: 1, // Show overlay and text on hover
+                        opacity: 1, 
                       },
                     }}
                   >
@@ -1152,8 +1147,8 @@ function VideoCard({
                       alignItems: "flex-start",
                       padding: 0,
                       "& .MuiCardHeader-content": {
-                        overflow: "hidden", // Prevents content overflow
-                        minWidth: 0, // Ensures proper flex behavior
+                        overflow: "hidden", 
+                        minWidth: 0, 
                       },
                     }}
                     title={

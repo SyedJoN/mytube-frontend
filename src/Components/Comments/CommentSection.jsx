@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import AddComment from "./AddComment";
 import Comments from "./Comments";
 import { useQuery } from "@tanstack/react-query";
-import { getVideoComments } from "../apis/commentFn";
+import { getVideoComments } from "../../apis/commentFn";
 import Box from "@mui/material/Box";
 
 function CommentSection({
@@ -27,6 +27,8 @@ function CommentSection({
   });
 
   return (
+    <>
+    {commentsData && 
     <>
       <AddComment
         isAuthenticated={isAuthenticated}
@@ -58,6 +60,8 @@ function CommentSection({
           />
         ))}
       </Box>
+      </>
+}
     </>
   );
 }

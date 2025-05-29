@@ -1,17 +1,17 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { toggleSubscription } from "../apis/subscriptionFn";
+import { toggleSubscription } from "../../apis/subscriptionFn";
 import Button from "@mui/material/Button";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import { keyframes, positions } from "@mui/system";
-import { getUserChannelProfile } from "../apis/userFn";
+import { getUserChannelProfile } from "../../apis/userFn";
 import { useTheme } from "@mui/material/styles";
-import AlertDialog from "./Dialog";
-import SimpleSnackbar from "./Snackbar";
+import AlertDialog from "../Dialogs/Dialog";
+import SimpleSnackbar from "../Utils/Snackbar";
 import Box from "@mui/system/Box";
-import { useSnackbar } from "../Contexts/SnackbarContext";
-import Signin from "./Signin";
-import SignInAlert from "./SignInAlert";
+import { useSnackbar } from "../../Contexts/SnackbarContext";
+import Signin from "../Auth/Signin";
+import SignInAlert from "../Dialogs/SignInAlert";
 import { useMediaQuery } from "@mui/material";
 
 const rotateAnimation = keyframes`

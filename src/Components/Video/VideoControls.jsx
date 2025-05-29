@@ -1,13 +1,13 @@
 import React, { useState, forwardRef, useRef, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { MorphingIcon } from "../IconMorph";
+import { MorphingIcon } from "../Utils/IconMorph";
 import { Box, IconButton, Tooltip, Typography, CardMedia } from "@mui/material";
 import SkipPreviousIcon from "@mui/icons-material/SkipPrevious";
 import SkipNextIcon from "@mui/icons-material/SkipNext";
 
 
 const VideoControls = forwardRef(
-  ({ playlistId, bufferedPercent, filteredVideos, progress, setProgress, isPlaying, togglePlayPause, playlistVideos, index }, videoRef) => {
+  ({ playlistId, bufferedPercent, filteredVideos, progress, setProgress, isPlaying, togglePlayPause, playlistVideos, index, isUserInteracted }, videoRef) => {
     const navigate = useNavigate();
     var thumbWidth = 13;
       const sliderRef = useRef(null);
@@ -93,26 +93,34 @@ const VideoControls = forwardRef(
         },
       });
     };
-    useEffect(() => {
-      if (!sliderRef.current || !videoRef.current) return;
-      const rect = sliderRef.current.getBoundingClientRect();
-     setBarWidth(rect.width);
-      const observer = new ResizeObserver(() => {
-        setBarWidth(sliderRef.current?.offsetWidth);
-        setVideoWidth(videoRef.current?.offsetWidth - 24);
-      });
-    
-      observer.observe(sliderRef.current);
-      observer.observe(videoRef.current);
-    
-      return () => observer.disconnect();
-    }, []);
+   useEffect(() => {
+  if (!sliderRef.current || !videoRef.current) return;
+
+  const updateSizes = () => {
+    const rect = sliderRef.current.getBoundingClientRect();
+    setBarWidth(rect.width);
+    setVideoWidth(videoRef.current.offsetWidth - 24);
+  };
+
+  updateSizes(); // run once initially
+
+  const observer = new ResizeObserver(updateSizes);
+  observer.observe(sliderRef.current);
+  observer.observe(videoRef.current);
+
+  window.addEventListener("resize", updateSizes);
+
+  return () => {
+    observer.disconnect();
+    window.removeEventListener("resize", updateSizes);
+  };
+}, []);
     return (
       <div
         className="video-controls"
         style={{
           position: "absolute",
-          opacity: 0,
+          opacity: !isUserInteracted ? 1: 0,
           width: `${videoWidth}px`,
           transition: "opacity .25s cubic-bezier(0,0,.2,1)",
           bottom: 0,

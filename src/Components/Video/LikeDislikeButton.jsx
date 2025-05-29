@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
-import { toggleVideoLike } from "../apis/likeFn";
-import { toggleVideoDislike } from "../apis/dislikeFn";
-import SignInAlert from "./SignInAlert";
-import Signin from "./Signin";
+import { toggleVideoLike } from "../../apis/likeFn";
+import { toggleVideoDislike } from "../../apis/dislikeFn";
+import SignInAlert from "../Dialogs/SignInAlert";
+import Signin from "../Auth/Signin";
 import {
   Box,
   Button,

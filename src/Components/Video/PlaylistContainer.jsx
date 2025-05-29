@@ -14,15 +14,15 @@ import {
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "@tanstack/react-router";
 import CloseIcon from "@mui/icons-material/Close";
-import formatDuration from "../utils/formatDuration";
+import formatDuration from "../../utils/formatDuration";
 import RepeatIcon from "@mui/icons-material/Repeat";
 import ShuffleIcon from "@mui/icons-material/Shuffle";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ArrowRightIcon from "@mui/icons-material/ArrowRight";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import handleMouseDown from "../helper/intertactionHelper";
-import Interaction from "./Interaction";
-import { fetchPlaylistById } from "../apis/playlistFn";
+import handleMouseDown from "../../helper/intertactionHelper";
+import Interaction from "../Utils/Interaction";
+import { fetchPlaylistById } from "../../apis/playlistFn";
 import { FastAverageColor } from "fast-average-color";
 
 const PlaylistContainer = ({ playlistId, playlistData, videoId }) => {

@@ -6,13 +6,10 @@ import * as yup from "yup";
 import { TextField, Button } from "@mui/material";
 import { useForm } from "react-hook-form";
 import PropTypes from "prop-types";
-import { Avatar, Input } from "@mui/material";
-import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
-import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
+
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import CircularProgress from "@mui/material/CircularProgress";
-import Signin from "./Signin";
-import { registerUser } from "../apis/userFn";
+import { registerUser } from "../../apis/userFn";
 import LinearProgress from "@mui/material/LinearProgress";
 
 const Signup = (props) => {

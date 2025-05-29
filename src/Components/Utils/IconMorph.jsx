@@ -16,9 +16,9 @@ export const MorphingIcon = ({ isPlaying }) => {
       xmlns="http://www.w3.org/2000/svg"
     >
      <motion.path
-  d={paths[isPlaying ? "pause" : "play"] ?? ""}
-  initial={{ d: paths[isPlaying ? "pause" : "play"] ?? "" }}
-  animate={{ d: paths[isPlaying ? "pause" : "play"] ?? "" }}
+  d={paths[isPlaying ? "play" : "pause"] ?? ""}
+  initial={{ d: paths[isPlaying ? "play" : "pause"] ?? "" }}
+  animate={{ d: paths[isPlaying ? "play" : "pause"] ?? "" }}
   transition={{ duration: 0.3 }}
   fill="white"
 />

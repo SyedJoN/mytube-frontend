@@ -17,7 +17,7 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import LanguageIcon from "@mui/icons-material/Language";
-import { formatDayDate } from "../utils/formatDateDay";
+import { formatDayDate } from "../../utils/formatDateDay";
 import RecordVoiceOverIcon from "@mui/icons-material/RecordVoiceOver";
 import SlideshowIcon from "@mui/icons-material/Slideshow";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";

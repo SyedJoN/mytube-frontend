@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import Dialog from "@mui/material/Dialog";
 import Container from "@mui/material/Container";
-import { loginUser } from "../apis/userFn";
+import { loginUser } from "../../apis/userFn";
 import Box from "@mui/material/Box";
 import { yupResolver } from "@hookform/resolvers/yup";
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
