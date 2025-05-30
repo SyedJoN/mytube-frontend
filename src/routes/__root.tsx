@@ -38,6 +38,13 @@ type UserInteractionContextType = {
 
 export const UserInteractionContext = createContext<UserInteractionContextType | undefined>(undefined)
 
+export function useUserInteraction() {
+  const ctx = React.useContext(UserInteractionContext);
+  if (!ctx) {
+    throw new Error("useUserInteraction must be used within UserInteractionProvider");
+  }
+  return ctx;
+}
 // 404 Page Component
 const NotFoundComponent = () => (
   <Box sx={{ textAlign: "center", mt: 5 }}>

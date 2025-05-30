@@ -5,7 +5,7 @@ import { Grid, useMediaQuery } from "@mui/material";
 import VideoDetailsPanel from "../Components/Video/VideoDetailsPanel";
 import { useQuery } from "@tanstack/react-query";
 import { fetchVideoById, fetchVideos } from "../apis/videoFn";
-import { OpenContext, UserInteractionContext } from "../routes/__root";
+import { OpenContext, UserInteractionContext, useUserInteraction } from "../routes/__root";
 import CommentSection from "../Components/Comments/CommentSection";
 import PlaylistContainer from "../Components/Video/PlaylistContainer";
 import VideoSideBar from "../Components/Video/VideoSideBar";
@@ -16,11 +16,9 @@ import { getUserChannelProfile } from "../apis/userFn";
 function WatchVideo({ videoId, playlistId }) {
   const navigate = useNavigate();
   const context = useContext(OpenContext);
-  const userInteractionContext = useContext(UserInteractionContext);
   const [index, setIndex] = useState(0);
   const { data: dataContext } = context ?? {};
-  const { isUserInteracted } = userInteractionContext;
-  const { setIsUserInteracted } = userInteractionContext;
+const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
   const isAuthenticated = dataContext || null;
   const [activeAlertId, setActiveAlertId] = useState(null);
 

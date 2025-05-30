@@ -50,7 +50,6 @@ function VideoSideBar({
                   }}
                 >
                   <VideoCard
-                    verifyInteraction={true}
                     owner={video?.owner?.username}
                     videoId={video._id}
                     thumbnail={video.thumbnail}

@@ -29,6 +29,7 @@ import VideoControls from "./VideoControls";
 
 function VideoPlayer({
   dataContext,
+  isAuthenticated,
   videoId,
   playlistId,
   playlistVideos,
@@ -122,25 +123,38 @@ function VideoPlayer({
     (video) => video.video === videoId
   );
   const startTimeDuration = userPlayingVideo?.duration;
-  const handleLoadedMetadata = async () => {
-    const video = videoRef?.current;
-    if (!video) return;
+ const handleLoadedMetadata = async () => {
+  const video = videoRef?.current;
+  if (!video) return;
 
-    const isValidStart =
-      isFinite(startTimeDuration) &&
-      startTimeDuration > 0 &&
-      startTimeDuration < video.duration;
-    if (isValidStart && isUserInteracted) {
-      try {
-        video.currentTime = startTimeDuration;
-        await video.play();
-        setIsPlaying(true);
-      } catch (err) {
-        setIsPlaying(false);
-        console.warn("Video play failed:", err);
-      }
+  const isValidStart =
+    isFinite(startTimeDuration) &&
+    startTimeDuration > 0 &&
+    startTimeDuration < video.duration;
+
+  const shouldPlay =
+    isUserInteracted && (isAuthenticated ? isValidStart : true);
+
+  if (!shouldPlay) return;
+
+  try {
+    if (isAuthenticated && isValidStart) {
+      video.currentTime = startTimeDuration;
     }
-  };
+
+    await video.play();
+    setIsPlaying(true);
+  } catch (err) {
+    setIsPlaying(false);
+    console.warn("Video play failed:", err);
+  }
+};
+
+useEffect(() => {
+  if (location.pathname === "/") {
+    setIsUserInteracted(true);
+  }
+}, [location.pathname]);
 
   const rotateAnimation = keyframes`
   0% { transform: rotate(0deg); }
@@ -287,6 +301,7 @@ function VideoPlayer({
     if (videoRef.current) videoRef.current.currentTime -= 5;
   }, []);
   useEffect(() => {
+    
     const handleKeyPress = (e) => {
       if (e.key === "ArrowRight") {
         handleForwardSeek();
@@ -294,15 +309,19 @@ function VideoPlayer({
       if (e.key === "ArrowLeft") {
         handleBackwardSeek();
       }
+      if (e.code === "Space" || e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        togglePlayPause();
+      }
       if (e.shiftKey && e.key.toLowerCase() === "n") {
         handleNextVideo();
       }
     };
-    window.addEventListener("keydown", handleKeyPress);
+    document.addEventListener("keydown", handleKeyPress);
     return () => {
-      window.removeEventListener("keydown", handleKeyPress);
+     document.removeEventListener("keydown", handleKeyPress);
     };
-  }, [handleForwardSeek, handleBackwardSeek, handleNextVideo]);
+  }, [handleForwardSeek, handleBackwardSeek, handleNextVideo, togglePlayPause]);
 
   const watchTimeRef = useRef(0);
   const { mutate } = useMutation({
@@ -488,10 +507,7 @@ function VideoPlayer({
                   pointerEvents: "all",
                   "&:hover .large-play-btn": {
                     fill: "#f03",
-                    opacity: "1!important"
-                  },
-                   "&:hover .large-play-btn-container": {
-                    opacity: 1
+                    fillOpacity: "1"
                   },
                 }}
               >
@@ -501,12 +517,12 @@ function VideoPlayer({
                     position: "absolute",
                     left: "50%",
                     top: "50%",
-                    width: "78px",
-                    height: "58px",
+                    width: "68px",
+                    height: "48px",
                     marginLeft: "-34px",
                     marginTop: "-24px",
-                    transition: "opacity .25s cubic-bezier(0,0,.2,1)",
-                    opacity: "0.8"
+                    padding: "0",
+                    opacity: 1
                   }}
                 >
                   <svg
@@ -519,7 +535,7 @@ function VideoPlayer({
                     <path
                       className="large-play-btn"
                       d="M66.52,7.74c-0.78-2.93-2.49-5.41-5.42-6.19C55.79,.13,34,0,34,0S12.21,.13,6.9,1.55 C3.97,2.33,2.27,4.81,1.48,7.74C0.06,13.05,0,24,0,24s0.06,10.95,1.48,16.26c0.78,2.93,2.49,5.41,5.42,6.19 C12.21,47.87,34,48,34,48s21.79-0.13,27.1-1.55c2.93-0.78,4.64-3.26,5.42-6.19C67.94,34.95,68,24,68,24S67.94,13.05,66.52,7.74z"
-                      fill="#212121"
+                      fill="#212121" fillOpacity=".8"
                     ></path>
                     <path d="M 45,24 27,14 27,34" fill="#f1f1f1"></path>
                   </svg>

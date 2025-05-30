@@ -24,6 +24,10 @@ import handleMouseDown from "../../helper/intertactionHelper";
 import Interaction from "../Utils/Interaction";
 import { fetchPlaylistById } from "../../apis/playlistFn";
 import { FastAverageColor } from "fast-average-color";
+import {
+  UserInteractionContext,
+  useUserInteraction,
+} from "../../routes/__root";
 
 const PlaylistContainer = ({ playlistId, playlistData, videoId }) => {
   const imgRef = useRef(null);
@@ -32,6 +36,7 @@ const PlaylistContainer = ({ playlistId, playlistData, videoId }) => {
   const [secondaryColor, setSecondaryColor] = useState("#aaa");
   const fac = new FastAverageColor();
   const [collapsePlaylist, setCollapsePlayList] = useState(false);
+  const { setIsUserInteracted } = useUserInteraction();
 
   const videos = playlistData?.data?.videos || [];
   const activeIndex = videos.findIndex((video) => video._id === videoId);
@@ -39,30 +44,29 @@ const PlaylistContainer = ({ playlistId, playlistData, videoId }) => {
   useEffect(() => {
     console.log("test viidoes", videos);
   }, []);
-const handleImageLoad = () => {
+  const handleImageLoad = () => {
     if (imgRef.current) {
       fac
         .getColorAsync(imgRef.current)
         .then((color) => {
-           console.log("Full color object:", color);
-  console.log("color.rgba:", color.rgba);
+          console.log("Full color object:", color);
+          console.log("color.rgba:", color.rgba);
           setBgColor(color.rgba);
           const [r, g, b] = color.value;
-            const primaryColor = `rgb(
+          const primaryColor = `rgb(
           ${Math.max(0, Math.min(255, r * 2))},
           ${Math.max(0, Math.min(255, g * 2))},
           ${Math.max(0, Math.min(255, b * 2))}
         )`;
-         const secondaryColor = `rgb(
+          const secondaryColor = `rgb(
           ${Math.max(0, Math.min(255, r * 0.2))},
           ${Math.max(0, Math.min(255, g * 0.2))},
           ${Math.max(0, Math.min(255, b * 0.2))}
         )`;
 
-        setPrimaryColor(primaryColor);
-        setSecondaryColor(secondaryColor)
-        console.log("Text color:", textColor);
-          
+          setPrimaryColor(primaryColor);
+          setSecondaryColor(secondaryColor);
+          console.log("Text color:", textColor);
         })
         .catch((err) => console.log("Color extraction error:", err));
     }
@@ -275,6 +279,7 @@ const handleImageLoad = () => {
         >
           {playlistData?.data?.videos?.map((video, index) => (
             <Box
+              onClick={() => setIsUserInteracted(true)}
               key={video._id}
               sx={{
                 position: "relative",
@@ -481,7 +486,11 @@ const handleImageLoad = () => {
                                 userSelect: "none",
                               }}
                               fontSize="0.75rem"
-                              color={ video._id === videoId ? secondaryColor : "#f1f1f1"}
+                              color={
+                                video._id === videoId
+                                  ? secondaryColor
+                                  : "#f1f1f1"
+                              }
                             >
                               {video.owner?.username}
                             </Typography>

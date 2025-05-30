@@ -31,8 +31,30 @@ video {
   display: block;
   margin-bottom: 10px;
 }
+
 #video-container:hover .video-controls {
   opacity: 1 !important;
+}
+#video-container:hover .controls-background-overlay {
+  opacity: 1 !important;
+}
+
+.video-controls {
+  transition: opacity 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.controls-background-overlay {
+  height: 130px;
+    width: 100%;
+    display: block;
+    position: absolute;
+    bottom: 0px;
+    pointer-events: none;
+    transition: opacity 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.5));
+}
+.large-play-btn { 
+  transition: fill .1s cubic-bezier(.4,0,1,1), fill-opacity .1s cubic-bezier(.4,0,1,1);
 }
 
 .custom-thumb {
@@ -46,56 +68,28 @@ video {
   background: var(--progress-color);
 
 }
-.custom-thumb::-webkit-slider-thumb {
-  appearance: none;
- height: 14px;       
-  width: 14px;
-  background: radial-gradient(ellipse at center, #eb2d2d, #ee4a4a);
-  border-radius: 50%;
-  border: none;
-  outline: "none";
+/* .volume-container:hover .volume-panel {
+  width: 52px;
+  margin-right: 3px;
+
+} */
+.volume-slider-thumb::before, .volume-slider-thumb::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 64px;
+  height: 3px;
+  margin-top: -2px;
+}
+.volume-slider-thumb::before {
+  left: -58px;
+  background: #fff;
+}
+.volume-slider-thumb::after {
+  left: 16px;
+  background: rgba(255,255,255,.2);
 }
 
-.custom-thumb::-moz-range-thumb {
-  height: 14px;       
-  width: 14px;
-    background: radial-gradient(ellipse at center, #eb2d2d, #ee4a4a);
-  border-radius: 50%;
-  border: none;
-}
-input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none; /* Remove default style */
-  appearance: none;
-  height: 14px;       /* Size of the thumb */
-  width: 14px;
-  background: radial-gradient(ellipse at center, #eb2d2d, #ee4a4a);
-  border-radius: 50%;  /* Make it round */
-  cursor: pointer;
-  margin-top: 0px;
-  box-shadow: 0 0 2px rgba(0,0,0,0.5);
-  transition: background 0.3s ease;
-}
-/* 
-/* input[type="range"]::-webkit-slider-thumb:hover {
-  background: #1769aa; /* Hover color */
- */ */
-
-/* Firefox */
-input[type="range"]::-moz-range-thumb {
-  height: 20px;
-  width: 20px;
-  background: #2196f3;
-  border-radius: 50%;
-  cursor: pointer;
-  border: 2px solid #fff;
-  box-shadow: 0 0 2px rgba(0,0,0,0.5);
-}
-
-input[type="range"]::-moz-range-thumb:hover {
-  background: #1769aa;
-}
-
-/* Force the nprogress bar to sit on top without disrupting layout */
 #nprogress .bar {
   background: red !important;
   position: fixed;

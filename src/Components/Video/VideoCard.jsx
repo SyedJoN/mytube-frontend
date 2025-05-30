@@ -35,7 +35,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
 import Interaction from "../Utils/Interaction";
 import handleMouseDown from "../../helper/intertactionHelper";
-import { UserInteractionContext } from "../../routes/__root";
+import { UserInteractionContext, useUserInteraction } from "../../routes/__root";
 
 const ExpandMore = styled((props) => {
   const { expand, ...other } = props;
@@ -83,7 +83,6 @@ function VideoCard({
   playlistId,
   activeOptionsId,
   setActiveOptionsId,
-  verifyInteraction,
   ...props
 }) {
   const navigate = useNavigate();
@@ -96,10 +95,8 @@ function VideoCard({
   const playlistVideoId = playlist?.videos?.map((video) => {
     return video._id;
   });
-  const ctx = React.useContext(UserInteractionContext);
-  if (!ctx) throw new Error("UserInteractionContext not found");
+const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
 
-  const { setIsUserInteracted } = ctx;
   const getColor = (name) => {
     if (!name) return red[500];
     const index = name.charCodeAt(0) % colors.length;
@@ -140,7 +137,7 @@ function VideoCard({
     <>
       {home ? (
         <Card
-        onClick={()=> verifyInteraction && setIsUserInteracted(true)}
+        onClick={()=> setIsUserInteracted(true)}
           sx={{
             position: "relative",
             transition: "0.3s ease-in-out",
@@ -329,7 +326,7 @@ function VideoCard({
         </Card>
       ) : video ? (
         <Card
-        onClick={()=> verifyInteraction && setIsUserInteracted(true)}
+        onClick={()=> setIsUserInteracted(true)}
 
           onMouseDown={(e) => {
             handleMouseDown(e);
@@ -968,6 +965,7 @@ function VideoCard({
       ) : (
         playlist && (
           <Box
+          onClick={()=> setIsUserInteracted(true)}
             sx={{
               position: "relative",
               display: "block",
