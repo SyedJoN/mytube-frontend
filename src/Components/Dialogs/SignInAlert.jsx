@@ -15,10 +15,11 @@ function SignInAlert({
   leftVal,
   setActiveAlertId,
 }) {
-  if (!isOpen) return null;
     const theme = useTheme();
   const alertRef = useRef(null);
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
+  if (!isOpen) return null;
+
 
   return (
     <ClickAwayListener onClickAway={() => setActiveAlertId(null)}>
@@ -32,7 +33,7 @@ function SignInAlert({
         height: height,
         zIndex: 10,
       }}
-      open={isOpen}
+
     >
       <Paper
         elevation={2}
@@ -75,6 +76,7 @@ function SignInAlert({
                 textTransform: "none",
                 cursor: "pointer",
                 color: "#3ea6ff",
+                marginTop: "24px",
                 "&:hover": {
                   background: "#263850",
                 },
@@ -82,7 +84,6 @@ function SignInAlert({
                 width: "80px",
                 borderRadius: "50px!important",
               }}
-              marginTop="24px"
             >
               Sign in
             </Button>

@@ -5,22 +5,26 @@ import { Box, IconButton, Tooltip, Typography, CardMedia } from "@mui/material";
 import SkipPreviousIcon from "@mui/icons-material/SkipPrevious";
 import SkipNextIcon from "@mui/icons-material/SkipNext";
 import VolumeUpIcon from "@mui/icons-material/VolumeUp";
-import VolumeOffIcon from '@mui/icons-material/VolumeOff';
+import VolumeOffIcon from "@mui/icons-material/VolumeOff";
+import FullscreenIcon from '@mui/icons-material/Fullscreen';
 import formatDuration from "../../utils/formatDuration";
 
 const VideoControls = forwardRef(
   (
     {
       playlistId,
-      bufferedPercent,
+      bufferedVal,
       filteredVideos,
       progress,
       setProgress,
       isPlaying,
       togglePlayPause,
+      setShowIcon,
       playlistVideos,
       index,
       isUserInteracted,
+      isLongPress,
+      toggleFullScreen
     },
     videoRef
   ) => {
@@ -29,11 +33,13 @@ const VideoControls = forwardRef(
     const sliderRef = useRef(null);
     const volumeSliderRef = useRef(null);
     const prevVolumeRef = useRef(null);
-    
+
     const [volume, setVolume] = useState(40);
     const [BarWidth, setBarWidth] = useState(0);
     const [videoWidth, setVideoWidth] = useState(0);
     const [volumeMuted, setVolumeMuted] = useState(false);
+
+   
     const handleSeekMove = (e) => {
       if (!sliderRef.current || !videoRef.current) return;
 
@@ -120,7 +126,7 @@ const VideoControls = forwardRef(
         setVideoWidth(videoRef.current.offsetWidth - 24);
       };
 
-      updateSizes(); 
+      updateSizes();
 
       const observer = new ResizeObserver(updateSizes);
       observer.observe(sliderRef.current);
@@ -137,6 +143,7 @@ const VideoControls = forwardRef(
     // Volume
 
     const handleVolumeMove = (e) => {
+      e.preventDefault();
       if (!volumeSliderRef.current || !videoRef.current) return;
       setShowVolumePanel(true);
 
@@ -145,7 +152,7 @@ const VideoControls = forwardRef(
       const newVolume = Math.min(Math.max(offsetX / rect.width, 0), 1); // volume range: 0 to 1
 
       videoRef.current.volume = newVolume;
-      setVolume(Math.ceil(newVolume * 40));
+      setVolume(Math.round(newVolume * 40));
     };
 
     const handleVolumeEnd = () => {
@@ -167,7 +174,7 @@ const VideoControls = forwardRef(
       const newVolume = Math.min(Math.max(offsetX / rect.width, 0), 1);
 
       videoRef.current.volume = newVolume;
-      setVolume(Math.ceil(newVolume * 40));
+      setVolume(Math.round(newVolume * 40));
     };
 
     const handleVolumeHover = (e) => {
@@ -175,33 +182,43 @@ const VideoControls = forwardRef(
       console.log(e.clientX);
     };
 
-   const handleVolumeToggle = () => {
-  const video = videoRef.current;
-  if (!video) return;
+    const handleVolumeToggle = () => {
+      const video = videoRef.current;
+      if (!video) return;
 
-  if (!volumeMuted) {
- 
-    prevVolumeRef.current = video.volume;
-    video.volume = 0;
-    setVolume(0);
-    setVolumeMuted(true);
-  } else {
-  
-    const restoreVolume = prevVolumeRef.current > 0 ? prevVolumeRef.current : 1;
-    video.volume = restoreVolume;
-    setVolume(Math.ceil(restoreVolume * 40)); 
-    setVolumeMuted(false);
-  }
-};
+      if (!volumeMuted) {
+        prevVolumeRef.current = video.volume;
+        video.volume = 0;
+        setVolume(0);
+        setVolumeMuted(true);
+      } else {
+        const restoreVolume =
+          prevVolumeRef.current > 0 ? prevVolumeRef.current : 1;
+        video.volume = restoreVolume;
+        setVolume(Math.round(restoreVolume * 40));
+        setVolumeMuted(false);
+      }
+    };
 
     const [showVolumePanel, setShowVolumePanel] = useState(false);
+    const shouldShowOverlay = 
+  (!isLongPress && (
+    !isUserInteracted || showVolumePanel || !isPlaying
+  ));
+
     return (
       <>
-        <div
+        <Box
+          sx={{
+            opacity: isLongPress ? 0 : 1,
+          }}
+          className="controls-background-overlay"
+        ></Box>
+        <Box
           className="video-controls"
-          style={{
+          sx={{
             position: "absolute",
-            opacity: !isUserInteracted || showVolumePanel || !isPlaying ? 1 : 0,
+            opacity: shouldShowOverlay ? 1 : 0,
             width: `${videoWidth}px`,
             transition: "opacity .25s cubic-bezier(0,0,.2,1)",
             bottom: 0,
@@ -213,26 +230,21 @@ const VideoControls = forwardRef(
             zIndex: 59,
           }}
         >
-          <div
-            sx={{
-              opacity: !isPlaying ? 1 : 0,
-            }}
-            className="controls-background-overlay"
-          ></div>
-          <Box sx={{ display: "flex", height: "100%" }}>
+          <Box sx={{display: "flex", justifyContent: "space-between"}}>
+  <Box className="left-controls" sx={{ display: "flex", height: "100%" }}>
             {playlistId && index > 0 && (
               <IconButton
                 disableRipple
                 onClick={handlePrevPlaylist}
                 sx={{ color: "#f1f1f1" }}
               >
-                <SkipPreviousIcon sx={{ width: "1.25em", height: "1.25em" }} />
+                <SkipPreviousIcon />
               </IconButton>
             )}
             <IconButton
               disableRipple
-              onClick={togglePlayPause}
-              sx={{ color: "#f1f1f1", padding: 0 }}
+              onClick={()=> {togglePlayPause(); setShowIcon(false);}}
+              sx={{ color: "#f1f1f1", padding: "0 2px" , width: "46px", height: "48px" }}
             >
               <MorphingIcon isPlaying={isPlaying} />
             </IconButton>
@@ -324,9 +336,9 @@ const VideoControls = forwardRef(
                     ? handleNextPlaylist
                     : handleNext
                 }
-                sx={{ color: "#f1f1f1" }}
+                sx={{ color: "#f1f1f1", padding: "0", width: "48px"}}
               >
-                <SkipNextIcon sx={{ width: "1.25em", height: "1.25em" }} />
+                <SkipNextIcon sx={{}}/>
               </IconButton>
             </Tooltip>
             <Box
@@ -337,18 +349,19 @@ const VideoControls = forwardRef(
               sx={{ display: "flex" }}
             >
               <IconButton
-              onClick={handleVolumeToggle}
-
+                onClick={handleVolumeToggle}
                 disableRipple
                 sx={{
                   color: "#f1f1f1",
+                  padding: "0 2px",
+                  width: "48px", height: "100%"
                 }}
               >
-                {volumeMuted ? 
-                <VolumeOffIcon  sx={{ width: "1em", height: "1em" }}/> :
-                 <VolumeUpIcon sx={{ width: "1em", height: "1em" }} />
-                }
-               
+                {videoRef.current?.volume === 0 ? (
+                  <VolumeOffIcon />
+                ) : (
+                  <VolumeUpIcon />
+                )}
               </IconButton>
 
               <Box
@@ -366,7 +379,7 @@ const VideoControls = forwardRef(
                 role="slider"
                 aria-valuemin="0"
                 aria-valuemax="1"
-                aria-valuenow={Math.ceil(videoRef.current?.volume)}
+                aria-valuenow={Math.round(videoRef.current?.volume)}
               >
                 <Box
                   className="volume-slider"
@@ -404,6 +417,17 @@ const VideoControls = forwardRef(
               </Typography>
             </IconButton>
           </Box>
+           <Box className="right-controls" sx={{ display: "flex", height: "100%" }}>
+  <IconButton
+                disableRipple
+                onClick={handlePrevPlaylist}
+                sx={{ color: "#f1f1f1" }}
+              >
+                <FullscreenIcon onClick={toggleFullScreen} sx={{ width: "1.25em", height: "1.25em" }} />
+              </IconButton>
+           </Box>
+          </Box>
+        
           <Box
             className="progress-bar-container"
             sx={{
@@ -421,10 +445,10 @@ const VideoControls = forwardRef(
               role="slider"
               aria-valuemin={0}
               aria-valuenow={
-                videoRef.current ? Math.ceil(videoRef.current.currentTime) : 0
+                videoRef.current ? Math.round(videoRef.current.currentTime) : 0
               }
               aria-valuemax={
-                videoRef.current ? Math.ceil(videoRef.current.duration) : 0
+                videoRef.current ? Math.round(videoRef.current.duration) : 0
               }
               className="progress-bar"
               sx={{
@@ -476,7 +500,7 @@ const VideoControls = forwardRef(
                     top: 0,
                     left: 0,
                     height: "100%",
-                    width: `${bufferedPercent}%`,
+                    width: `${bufferedVal * BarWidth}px`,
                     backgroundColor: "#888",
                     borderRadius: "3px",
                     zIndex: 1,
@@ -508,7 +532,7 @@ const VideoControls = forwardRef(
               </Box>
             </Box>
           </Box>
-        </div>
+        </Box>
       </>
     );
   }

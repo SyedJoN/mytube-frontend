@@ -12,7 +12,6 @@ import CardHeader from "@mui/material/CardHeader";
 import EmojiPickerWrapper from "../Utils/EmojiPickerWrapper";
 import SignInAlert from "../Dialogs/SignInAlert";
 
-
 import CircularProgress from "@mui/material/CircularProgress";
 import Button from "@mui/material/Button";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
@@ -97,11 +96,10 @@ function AddComment({
 
   const toggleEmojiPicker = () => {
     if (showEmojiPicker === null) {
-      setShowEmojiPicker(true)
+      setShowEmojiPicker(true);
     } else {
       setShowEmojiPicker((prev) => !prev);
       setActiveEmojiPickerId(null);
-
     }
   };
 
@@ -149,10 +147,13 @@ function AddComment({
           <Signin open={isSignIn} onClose={() => setIsSignIn(false)} />
         </Box>
       )}
-      <Box marginTop="24px">
+      <Box sx={{marginTop: "24px"}} >
         <Typography variant="h6" color="rgb(255,255,255)" fontWeight={600}>
-          {commentsData?.length} Comments
-        </Typography>
+  {commentsData
+    ? `${commentsData.length} ${commentsData.length === 1 ? "Comment" : "Comments"}`
+    : "0 Comments"}
+</Typography>
+
         <Box sx={{ display: "flex", alignItems: "center", marginTop: "-6px" }}>
           <CardHeader
             sx={{
@@ -207,32 +208,38 @@ function AddComment({
               variant="standard"
             >
               <InputLabel
+              className="inputLabel-comment"
                 disabled={comment !== ""}
-                shrink
                 sx={{
                   color: "rgba(255,255,255,0.7)",
                   fontSize: "1.1rem",
                   transform: "translate(0, 23.5px) scale(0.75)",
+                  ...(!isAuthenticated && {
+        "&.Mui-focused": {
+          color: "rgba(255,255,255,0.7)",
+        }, })
                 }}
                 htmlFor="standard-adornment-amount"
               >
                 Add a comment...
               </InputLabel>
               <Input
+                readOnly={!isAuthenticated} 
                 multiline
                 value={comment}
                 onChange={handleInputChange}
-                onClick={(e) => handleInputClick(e)}
+                onClick={handleInputClick}
                 id="standard-adornment-amount"
                 sx={{
                   "&::before": {
                     borderBottom: "1px solid #717171 !important",
                   },
                   "&::after": {
-                    borderBottom: "2px solid rgb(255,255,255) !important",
+                    borderBottom: isAuthenticated ? "2px solid rgb(255,255,255) !important" : "revert",
                   },
                   "& textarea": {
                     color: "rgb(255,255,255) !important",
+                    
                   },
                   "&input:-webkit-autofill": {
                     WebkitBoxShadow: "0 0 0px 1000px #0f0f0f inset",
@@ -273,7 +280,10 @@ function AddComment({
               </IconButton>
               {showEmojiPicker && !activeEmojiPickerId && (
                 <Box sx={{ position: "absolute", left: "10px", zIndex: 100 }}>
-                  <EmojiPickerWrapper  setActiveEmojiPickerId={setShowEmojiPicker} onEmojiSelect={handleEmojiClick} />
+                  <EmojiPickerWrapper
+                    setActiveEmojiPickerId={setShowEmojiPicker}
+                    onEmojiSelect={handleEmojiClick}
+                  />
                 </Box>
               )}
             </Box>
