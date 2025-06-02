@@ -13,6 +13,28 @@ import FastForwardIcon from "@mui/icons-material/FastForward";
 import SmartDisplayIcon from "@mui/icons-material/SmartDisplay";
 import { Box, Icon, IconButton, Typography } from "@mui/material";
 import CircularProgress from "@mui/material/CircularProgress";
+import ArrowRightIcon from "@mui/icons-material/ArrowRight";
+import ArrowLeftIcon from "@mui/icons-material/ArrowLeft";
+
+const rotateAnimation = keyframes`
+  0% { transform: rotate(0deg); }
+  10% { transform: rotate(-15deg); }  /* Move left */
+  20% { transform: rotate(15deg); }   /* Move right */
+  30% { transform: rotate(-10deg); }  /* Move left */
+  40% { transform: rotate(10deg); }   /* Move right */
+  50% { transform: rotate(-8deg); }  /* Move left */
+  60% { transform: rotate(8deg); }   /* Move right */
+  70% { transform: rotate(0deg); }  /* Move left */
+  80% { transform: rotate(0deg); }   /* Move right */
+  90% { transform: rotate(0deg); }  /* Move left */
+  100% { transform: rotate(0deg); }   /* Back to center */
+`;
+const iconStyle = {
+  color: "#f1f1f1",
+  maxWidth: "52px",
+  height: "52px",
+  padding: "12px",
+};
 
 import {
   useQuery,
@@ -27,6 +49,9 @@ import { OpenContext } from "../../routes/__root";
 import { useLocation } from "@tanstack/react-router";
 import { useNavigate } from "@tanstack/react-router";
 import VideoControls from "./VideoControls";
+import VolumeUpIcon from "@mui/icons-material/VolumeUp";
+import VolumeOffIcon from "@mui/icons-material/VolumeOff";
+import VolumeDownIcon from "@mui/icons-material/VolumeDown";
 
 function VideoPlayer({
   dataContext,
@@ -49,6 +74,7 @@ function VideoPlayer({
   const location = useLocation();
   const prevVideoRef = useRef(null);
   const playIconRef = useRef(null);
+  const volumeIconRef = useRef(null);
   const buttonRef = useRef(null);
   const [progress, setProgress] = useState(0);
 
@@ -58,19 +84,31 @@ function VideoPlayer({
 
   const [isLongPress, setIsLongPress] = useState(false);
   const [showIcon, setShowIcon] = useState(false);
+  const [showVolumeIcon, setShowVolumeIcon] = useState(false);
+  const [volumeUp, setVolumeUp] = useState(false);
+  const [volumeDown, setVolumeDown] = useState(false);
+  const [volumeMuted, setVolumeMuted] = useState(false);
   const pressTimer = useRef(null);
   const clickTimeout = useRef(null);
   const [isBuffering, setIsBuffering] = useState(false);
   const [bufferedVal, setBufferedVal] = useState(0);
   const [showBufferingIndicator, setShowBufferingIndicator] = useState(false);
-const [loadingVideo, setLoadingVideo] = useState(true)
+  const [loadingVideo, setLoadingVideo] = useState(true);
+  const [isForwardSeek, setIsForwardSeek] = useState(false);
+  const [isBackwardSeek, setIsBackwardSeek] = useState(false);
+  const [volume, setVolume] = useState(40);
+  const [isVolumeChanged, setIsVolumeChanged] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isIncreased, setIsIncreased] = useState(false);
+  const [isDecreased, setIsDecreased] = useState(false);
+  const isFastPlayback = videoRef?.current?.playbackRate === 2.0;
+
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
     let isBufferingLocal = false;
     let lastTime = video.currentTime;
-    let timeoutId;
     let progressCheckId;
 
     const handleBufferingStart = () => {
@@ -98,14 +136,12 @@ const [loadingVideo, setLoadingVideo] = useState(true)
       if (video.paused) return;
 
       if (Math.abs(video.currentTime - lastTime) < 0.1) {
-
         handleBufferingStart();
       } else {
         handleBufferingEnd();
         lastTime = video.currentTime;
       }
     };
-
 
     progressCheckId = setInterval(checkProgress, 500);
 
@@ -121,16 +157,84 @@ const [loadingVideo, setLoadingVideo] = useState(true)
   useEffect(() => {
     let timeout;
 
-    if (isBuffering) {
+    if (isBuffering && !isForwardSeek && !isBackwardSeek) {
       timeout = setTimeout(() => {
         setShowBufferingIndicator(true);
-      }, 300);
+      }, 100);
     } else {
       setShowBufferingIndicator(false);
     }
 
     return () => clearTimeout(timeout);
-  }, [isBuffering]);
+  }, [isBuffering, isForwardSeek, isBackwardSeek, videoId]);
+
+const handleVolume = (key) => {
+  const video = videoRef.current;
+  if (!video) return;
+      setShowIcon(false);
+
+  const icon = volumeIconRef.current;
+  setShowVolumeIcon(true);
+  setIsVolumeChanged(true);
+
+  if (icon) {
+    icon.classList.remove("pressed");
+    void icon.offsetWidth;
+    icon.classList.add("pressed");
+  } else {
+    console.warn("volumeIconRef is null");
+  }
+
+  video.playbackRate = 1.0;
+  const step = 0.05;
+  if (key === "Up") {
+    setVolumeDown(false);
+    setIsMuted(false);
+    setVolumeUp(true);
+    const newVol = (video.volume = Math.min(1, video.volume + step));
+    setVolume(newVol * 40);
+  } else if (key === "Down") {
+    setVolumeUp(false);
+    const newVol = (video.volume = Math.max(0, video.volume - step));
+    if (newVol > 0) {
+      setVolumeDown(true);
+      setVolumeMuted(false);
+    } else {
+      setVolumeMuted(true);
+      setVolumeDown(false);
+    }
+    setVolume(newVol * 40);
+  }
+
+  setTimeout(() => {
+    setIsVolumeChanged(false);
+  }, 700);
+};
+
+  const updateVolumeStates = (volume) => {
+    if (volume === 0) {
+      setIsMuted(true);
+      setIsIncreased(false);
+      setIsDecreased(false);
+    } else if (volume > 0.5) {
+      setIsMuted(false);
+      setIsIncreased(true);
+      setIsDecreased(false);
+    } else if (volume < 0.55) {
+      setIsMuted(false);
+      setIsIncreased(false);
+      setIsDecreased(true);
+    } else {
+      setIsMuted(false);
+      setIsIncreased(false);
+      setIsDecreased(false);
+    }
+  };
+
+  useEffect(() => {
+    const normalizedVolume = volume / 40;
+    updateVolumeStates(normalizedVolume);
+  }, [volume]);
 
   const toggleFullScreen = useCallback(() => {
     const el = containerRef.current;
@@ -166,33 +270,33 @@ const [loadingVideo, setLoadingVideo] = useState(true)
     setIsUserInteracted(true);
   }, []);
 
-useEffect(() => {
-  const video = videoRef.current;
-  if (!video) return;
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
 
-  const handleLoadStart = () => setLoadingVideo(true);
-  const handleWaiting = () => setLoadingVideo(true);
-  const handleCanPlay = () => {
+    const handleLoadStart = () =>
+      !isForwardSeek && !isBackwardSeek && setLoadingVideo(true);
+    const handleWaiting = () =>
+      !isForwardSeek && !isBackwardSeek && setLoadingVideo(true);
+    const handleCanPlay = () => {
+      setLoadingVideo(false);
+    };
+    const handlePlaying = () => {
+      setLoadingVideo(false);
+    };
 
-    setLoadingVideo(false);
-  };
-  const handlePlaying = () => {
-    setLoadingVideo(false);
-  };
+    video.addEventListener("loadstart", handleLoadStart);
+    video.addEventListener("waiting", handleWaiting);
+    video.addEventListener("canplay", handleCanPlay);
+    video.addEventListener("playing", handlePlaying);
 
-  video.addEventListener("loadstart", handleLoadStart);
-  video.addEventListener("waiting", handleWaiting);
-  video.addEventListener("canplay", handleCanPlay);
-  video.addEventListener("playing", handlePlaying);
-
-  return () => {
-    video.removeEventListener("loadstart", handleLoadStart);
-    video.removeEventListener("waiting", handleWaiting);
-    video.removeEventListener("canplay", handleCanPlay);
-    video.removeEventListener("playing", handlePlaying);
-  };
-}, [videoRef.current, videoId]);
-
+    return () => {
+      video.removeEventListener("loadstart", handleLoadStart);
+      video.removeEventListener("waiting", handleWaiting);
+      video.removeEventListener("canplay", handleCanPlay);
+      video.removeEventListener("playing", handlePlaying);
+    };
+  }, [videoRef.current, videoId, isForwardSeek, isBackwardSeek]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -201,7 +305,6 @@ useEffect(() => {
     const updateBuffered = () => {
       try {
         if (video.buffered.length > 0 && video.duration > 0) {
- 
           const currentTime = video.currentTime;
           let bufferedEnd = video.buffered.end(0);
 
@@ -215,8 +318,8 @@ useEffect(() => {
             }
           }
 
-          const percent = bufferedEnd / video.duration;
-          setBufferedVal(percent);
+          const bufferProgress = bufferedEnd / video.duration;
+          setBufferedVal(bufferProgress);
         } else {
           setBufferedVal(0);
         }
@@ -241,7 +344,7 @@ useEffect(() => {
   const userPlayingVideo = dataContext?.data?.watchHistory?.find(
     (video) => video.video === videoId
   );
-  const startTimeDuration = userPlayingVideo?.duration;
+  let startTimeDuration = userPlayingVideo?.duration;
   const handleLoadedMetadata = async () => {
     const video = videoRef?.current;
     if (!video) return;
@@ -275,66 +378,6 @@ useEffect(() => {
     }
   }, [location.pathname]);
 
-  const rotateAnimation = keyframes`
-  0% { transform: rotate(0deg); }
-  10% { transform: rotate(-15deg); }  /* Move left */
-  20% { transform: rotate(15deg); }   /* Move right */
-  30% { transform: rotate(-10deg); }  /* Move left */
-  40% { transform: rotate(10deg); }   /* Move right */
-  50% { transform: rotate(-8deg); }  /* Move left */
-  60% { transform: rotate(8deg); }   /* Move right */
-  70% { transform: rotate(0deg); }  /* Move left */
-  80% { transform: rotate(0deg); }   /* Move right */
-  90% { transform: rotate(0deg); }  /* Move left */
-  100% { transform: rotate(0deg); }   /* Back to center */
-`;
-
-  const launchFireworks = () => {
-    if (!buttonRef.current) return;
-
-    const { left, top, width, height } =
-      buttonRef.current.getBoundingClientRect();
-
-    const steps = 10; // Number of steps from left to right
-    let currentStep = 0;
-
-    const animateFireworks = () => {
-      if (currentStep > steps || !buttonRef.current) return;
-
-      const originX =
-        (left + (width / steps) * currentStep) / window.innerWidth;
-      const originY = (top + height + 5) / window.innerHeight; // Just below the button
-
-      confetti({
-        particleCount: 1,
-        startVelocity: 2,
-        spread: 260,
-        ticks: 10,
-        gravity: 0,
-        scalar: 0.8,
-        shapes: ["star"],
-        colors: ["#C71585"], // Yellow Star
-        origin: { x: originX, y: originY },
-      });
-
-      confetti({
-        particleCount: 1,
-        startVelocity: 4,
-        spread: 260,
-        ticks: 10,
-        gravity: 0,
-        scalar: 1,
-        shapes: ["square"],
-        colors: ["#FFD700"],
-        origin: { x: originX, y: originY },
-      });
-
-      currentStep++;
-      setTimeout(animateFireworks, 10);
-    };
-
-    animateFireworks();
-  };
   const { mutate: sendHistoryMutation } = useMutation({
     mutationFn: (data) => addToWatchHistory(data),
     onSuccess: () => {
@@ -377,16 +420,37 @@ useEffect(() => {
     enabled: !!videoId,
   });
 
-
   const handleForwardSeek = useCallback(() => {
-    if (videoRef.current) videoRef.current.currentTime += 5;
-    videoRef.current?.play();
+    const video = videoRef.current;
+    if (!video) return;
+    setIsForwardSeek(true);
+
+    videoRef.current.currentTime += 5;
+    if (!video.paused) {
+      videoRef.current.play();
+      setIsPlaying(true);
+    }
+    video.playbackRate = 1.0;
+
+    setTimeout(() => setIsForwardSeek(false), 300);
   }, []);
 
   const handleBackwardSeek = useCallback(() => {
-    if (videoRef.current) videoRef.current.currentTime -= 5;
-    videoRef.current?.play();
+    const video = videoRef.current;
+    if (!video) return;
+    setIsBackwardSeek(true);
+    video.playbackRate = 1.0;
+    videoRef.current.currentTime -= 5;
+
+    if (!video.paused) {
+      videoRef.current.play();
+      setIsPlaying(true);
+    }
+    video.playbackRate = 1.0;
+
+    setTimeout(() => setIsBackwardSeek(false), 300);
   }, []);
+
   useEffect(() => {
     const handleKeyPress = (e) => {
       const activeElement = document.activeElement;
@@ -396,9 +460,6 @@ useEffect(() => {
           activeElement.tagName === "TEXTAREA" ||
           activeElement.isContentEditable);
 
-      if (isInputFocused) {
-        return;
-      }
       if (isInputFocused) return;
 
       if (e.key === "ArrowRight") {
@@ -410,6 +471,14 @@ useEffect(() => {
         togglePlayPause();
       } else if (e.shiftKey && e.key.toLowerCase() === "n") {
         handleNextVideo();
+      } else if (e.key.toLowerCase() === "f") {
+        toggleFullScreen();
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        handleVolume("Up");
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        handleVolume("Down");
       }
     };
     document.addEventListener("keydown", handleKeyPress);
@@ -470,8 +539,9 @@ useEffect(() => {
     });
   };
 
-  const handleClick = () => {
-    if (clickTimeout.current) return;
+  const handleClick = (e) => {
+    if (e.button === 2) return;
+    if (clickTimeout.current || isLongPress) return;
     videoPauseStatus.current = false;
     clickTimeout.current = setTimeout(() => {
       setShowIcon(true);
@@ -498,7 +568,7 @@ useEffect(() => {
 
       video.playbackRate = 2.0;
       pressTimer.current = null;
-    }, 100);
+    }, 200);
   };
 
   const exitDoubleSpeed = (e) => {
@@ -520,11 +590,10 @@ useEffect(() => {
         togglePlayPause(e);
       }
       pressTimer.current === null;
-    }, 3);
+    }, 200);
 
     video.playbackRate = 1.0;
   };
-
 
   return (
     <>
@@ -537,7 +606,6 @@ useEffect(() => {
           position: "relative",
         }}
       >
-     
         <video
           ref={videoRef}
           id="video-player"
@@ -561,6 +629,7 @@ useEffect(() => {
           playlistId={playlistId}
           bufferedVal={bufferedVal}
           filteredVideos={filteredVideos}
+          isLoading={isLoading}
           progress={progress}
           setProgress={setProgress}
           togglePlayPause={togglePlayPause}
@@ -571,6 +640,11 @@ useEffect(() => {
           playlistVideos={playlistVideos}
           isLongPress={isLongPress}
           index={index}
+          volume={volume}
+          setVolume={setVolume}
+          isMuted={isMuted}
+          isIncreased={isIncreased}
+          isDecreased={isDecreased}
         />
 
         <Box
@@ -589,7 +663,7 @@ useEffect(() => {
             pointerEvents: "all",
           }}
         >
-          {isLongPress && (
+          {isFastPlayback && (
             <Box
               sx={{
                 position: "absolute",
@@ -605,10 +679,107 @@ useEffect(() => {
                 background: "rgba(0, 0, 0, 0.5)",
               }}
             >
-              <Typography variant="subtitle2" sx={{ paddingRight: 1 }}>
-                2x{" "}
+              <Typography variant="subtitle2" sx={{ pr: 1 }}>
+                2x
               </Typography>
+
               <FastForwardIcon sx={{ width: "1.1rem", height: "1.1rem" }} />
+            </Box>
+          )}
+          {isVolumeChanged && (
+            <Box
+              sx={{
+                position: "absolute",
+                top: "60px",
+                width: "80px",
+                height: "50px",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                fontSize: "1rem",
+                borderRadius: "4px",
+                color: "#f1f1f1",
+                background: "rgba(0, 0, 0, 0.5)",
+              }}
+            >
+              <Typography fontWeight="500" variant="h6">
+                {Math.round((volume / 40) * 100)}%
+              </Typography>
+            </Box>
+          )}
+          {isForwardSeek && (
+            <Box
+              sx={{
+                position: "absolute",
+                top: "50%",
+                marginTop: "-55px",
+                right: "10%",
+                width: "110px",
+                height: "110px",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center",
+                fontSize: "1rem",
+                color: "#f1f1f1",
+                borderRadius: "50%",
+                background: "rgba(0, 0, 0, 0.5)",
+              }}
+            >
+              <Box
+                sx={{
+                  display: "flex",
+                  position: "relative",
+                  left: "6px",
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <Box className="forwardSeek-arrow" component={"span"}></Box>
+                <Box className="forwardSeek-arrow" component={"span"}></Box>
+                <Box className="forwardSeek-arrow" component={"span"}></Box>
+              </Box>
+              <Typography variant="caption" sx={{ margin: "0 auto", pt: 1 }}>
+                5 seconds{" "}
+              </Typography>
+            </Box>
+          )}
+
+          {isBackwardSeek && (
+            <Box
+              sx={{
+                position: "absolute",
+                top: "50%",
+                marginTop: "-55px",
+                left: "10%",
+                width: "110px",
+                height: "110px",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center",
+                fontSize: "1rem",
+                color: "#f1f1f1",
+                borderRadius: "50%",
+                background: "rgba(0, 0, 0, 0.5)",
+              }}
+            >
+              <Box
+                sx={{
+                  display: "flex",
+                  position: "relative",
+                  right: "6px",
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <Box className="rewind-arrow" component={"span"}></Box>
+                <Box className="rewind-arrow" component={"span"}></Box>
+                <Box className="rewind-arrow" component={"span"}></Box>
+              </Box>
+              <Typography variant="caption" sx={{ margin: "0 auto", pt: 1 }}>
+                5 seconds{" "}
+              </Typography>
             </Box>
           )}
 
@@ -626,32 +797,34 @@ useEffect(() => {
               pointerEvents: "none",
             }}
           >
-            {(showBufferingIndicator || loadingVideo) && (
-              <IconButton
-                disableRipple
-                className="buffering-progress"
-                sx={{
-                  position: "absolute",
-                  left: "50%",
-                  top: "50%",
-                  width: "68px",
-                  height: "48px",
-                  marginLeft: "-34px",
-                  marginTop: "-24px",
-                  padding: "0",
-                  opacity: 1,
-                }}
-              >
-                <CircularProgress
+            {(showBufferingIndicator || loadingVideo) &&
+              !isBackwardSeek &&
+              !isForwardSeek && (
+                <IconButton
+                  disableRipple
+                  className="buffering-progress"
                   sx={{
-                    mx: "auto",
-                    textAlign: "center",
-                    color: "rgb(255, 255, 255)",
+                    position: "absolute",
+                    left: "50%",
+                    top: "50%",
+                    width: "68px",
+                    height: "48px",
+                    marginLeft: "-34px",
+                    marginTop: "-24px",
+                    padding: "0",
+                    opacity: 1,
                   }}
-                  size={50}
-                />
-              </IconButton>
-            )}
+                >
+                  <CircularProgress
+                    sx={{
+                      mx: "auto",
+                      textAlign: "center",
+                      color: "rgb(255, 255, 255)",
+                    }}
+                    size={50}
+                  />
+                </IconButton>
+              )}
 
             <Box
               className="thumbnail-overlay"
@@ -685,33 +858,7 @@ useEffect(() => {
                   backgroundPosition: "center",
                   backgroundSize: "cover",
                 }}
-              >
-                {loadingVideo &&    <IconButton
-                disableRipple
-                className="buffering-progress"
-                sx={{
-                  position: "absolute",
-                  left: "50%",
-                  top: "50%",
-                  width: "68px",
-                  height: "48px",
-                  marginLeft: "-34px",
-                  marginTop: "-24px",
-                  padding: "0",
-                  opacity: 1,
-                }}
-              >
-                <CircularProgress
-                  sx={{
-                    mx: "auto",
-                    textAlign: "center",
-                    color: "rgb(255, 255, 255)",
-                  }}
-                  size={50}
-                />
-              </IconButton>}
-            
-              </Box>
+              ></Box>
               <IconButton
                 disableRipple
                 className="large-play-btn-container"
@@ -743,34 +890,44 @@ useEffect(() => {
                 </svg>
               </IconButton>
             </Box>
-            {showIcon && (
-              <IconButton
-                sx={{ width: "52px", height: "52px", padding: 0 }}
-                ref={playIconRef}
-              >
-                {!isPlaying ? (
-                  <PlayArrowIcon
-                    className="playback-icon"
-                    sx={{
-                      color: "#f1f1f1",
-                      height: "52px",
-                      maxWidth: "52px",
-                      padding: "12px",
-                    }}
-                  />
-                ) : (
-                  <PauseIcon
-                    className="playback-icon"
-                    sx={{
-                      color: "#f1f1f1",
-                      maxWidth: "52px",
-                      height: "52px",
-                      padding: "12px",
-                    }}
-                  />
-                )}
-              </IconButton>
-            )}
+          <>
+  <IconButton
+    sx={{
+      width: "52px",
+      height: "52px",
+      padding: 0,
+      display: showIcon ? "inline-flex" : "none",
+    }}
+    ref={playIconRef}
+  >
+    {isPlaying ? (
+      <PauseIcon className="playback-icon" sx={iconStyle} />
+    ) : (
+      <PlayArrowIcon className="playback-icon" sx={iconStyle} />
+    )}
+  </IconButton>
+
+  <IconButton
+    sx={{
+      width: "52px",
+      height: "52px",
+      padding: 0,
+      display: !showIcon ? "inline-flex" : "none",
+    }}
+    ref={volumeIconRef}
+  >
+    {volumeDown ? (
+      <VolumeDownIcon className="vol-icon" sx={iconStyle} />
+    ) : volumeUp ? (
+      <VolumeUpIcon className="vol-icon" sx={iconStyle} />
+    ) : volumeMuted ? (
+      <VolumeOffIcon className="vol-icon" sx={iconStyle} />
+    ) : null}
+  </IconButton>
+</>
+
+             
+     
           </Box>
         </Box>
       </Box>

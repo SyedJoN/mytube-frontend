@@ -19,11 +19,126 @@ body {
     
 }
 
-
 .video-wrapper {
   position: relative;
   width: 100%;
   max-width: 700px;
+}
+
+.rewind-arrow {
+     width: 0; 
+    height: 0; 
+     border: 10px solid transparent; 
+    border-top: 7px solid transparent;
+    border-bottom: 7px solid transparent;
+    border-right: 11px solid #ddd;
+    display: inline-block;
+    box-sizing: border-box;
+    animation-duration: 1.2s;
+    animation-iteration-count: infinite;
+    
+}
+.rewind-arrow:nth-child(1) {
+animation-name: arrow-fade-out-3;
+}
+.rewind-arrow:nth-child(2) {
+animation-name: arrow-fade-out-2;
+}
+.rewind-arrow:nth-child(3) {
+animation-name: arrow-fade-out-1;
+}
+.forwardSeek-arrow {
+     width: 0; 
+    height: 0; 
+     border: 10px solid transparent; 
+    border-top: 7px solid transparent;
+    border-bottom: 7px solid transparent;
+    border-left: 11px solid #ddd;
+    display: inline-block;
+    box-sizing: border-box;
+    animation-duration: 1.2s;
+    animation-iteration-count: infinite;
+    animation-name: arrow-fade-out;
+}
+.forwardSeek-arrow:nth-child(1) {
+  animation-name: arrow-fade-out-3;
+}
+.forwardSeek-arrow:nth-child(2) {
+  animation-name: arrow-fade-out-2;
+}
+.forwardSeek-arrow:nth-child(3) {
+  animation-name: arrow-fade-out-1;
+}
+@keyframes arrow-fade-out-1 {
+  0% {
+    opacity: 0;
+}
+
+17% {
+    opacity: .9;
+}
+33% {
+    opacity: .6;
+}
+50% {
+    opacity: .3;
+}
+67% {
+    opacity: .3;
+}
+83% {
+    opacity: .3;
+}
+100% {
+    opacity: 0;
+}
+}
+@keyframes arrow-fade-out-2 {
+  0% {
+    opacity: 0;
+}
+17% {
+    opacity: .3;
+}
+33% {
+    opacity: .9;
+}
+50% {
+    opacity: .6;
+}
+67% {
+    opacity: .3;
+}
+83% {
+    opacity: .3;
+}
+100% {
+    opacity: 0;
+}
+  
+}
+@keyframes arrow-fade-out-3 {
+  0% {
+    opacity: 0;
+}
+17% {
+    opacity: .3;
+}
+33% {
+    opacity: .3;
+}
+50% {
+    opacity: .9;
+}
+67% {
+    opacity: .6;
+}
+83% {
+    opacity: .3;
+}
+100% {
+    opacity: 0;
+}
 }
 
 video {
@@ -147,10 +262,25 @@ vt-interaction.animate:not(.down) .stroke {
     animation: rippleEffect .5s linear 1 normal forwards;
 }
 
+.vol-icon {
+  flex-basis: 0.00001px;
+  min-width: 0;
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background-color: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  opacity: 0;
+  
+}
+.pressed > .vol-icon {
+    animation: rippleEffect .5s linear 1 normal forwards;
+}
+
 @keyframes rippleEffect {
   0% {
     opacity: 1;
-    transform: scale(0.6);
+    transform: scale(1);
   }
   100% {
     opacity: 0;

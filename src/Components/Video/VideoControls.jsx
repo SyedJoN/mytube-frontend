@@ -6,8 +6,9 @@ import SkipPreviousIcon from "@mui/icons-material/SkipPrevious";
 import SkipNextIcon from "@mui/icons-material/SkipNext";
 import VolumeUpIcon from "@mui/icons-material/VolumeUp";
 import VolumeOffIcon from "@mui/icons-material/VolumeOff";
-import FullscreenIcon from '@mui/icons-material/Fullscreen';
+import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import formatDuration from "../../utils/formatDuration";
+import VolumeDownIcon from "@mui/icons-material/VolumeDown";
 
 const VideoControls = forwardRef(
   (
@@ -24,7 +25,12 @@ const VideoControls = forwardRef(
       index,
       isUserInteracted,
       isLongPress,
-      toggleFullScreen
+      toggleFullScreen,
+      volume,
+      setVolume,
+      isMuted,
+      isIncreased,
+      isDecreased,
     },
     videoRef
   ) => {
@@ -34,12 +40,10 @@ const VideoControls = forwardRef(
     const volumeSliderRef = useRef(null);
     const prevVolumeRef = useRef(null);
 
-    const [volume, setVolume] = useState(40);
     const [BarWidth, setBarWidth] = useState(0);
     const [videoWidth, setVideoWidth] = useState(0);
     const [volumeMuted, setVolumeMuted] = useState(false);
 
-   
     const handleSeekMove = (e) => {
       if (!sliderRef.current || !videoRef.current) return;
 
@@ -201,10 +205,8 @@ const VideoControls = forwardRef(
     };
 
     const [showVolumePanel, setShowVolumePanel] = useState(false);
-    const shouldShowOverlay = 
-  (!isLongPress && (
-    !isUserInteracted || showVolumePanel || !isPlaying
-  ));
+    const shouldShowOverlay =
+      !isLongPress && (!isUserInteracted || showVolumePanel || !isPlaying);
 
     return (
       <>
@@ -214,6 +216,7 @@ const VideoControls = forwardRef(
           }}
           className="controls-background-overlay"
         ></Box>
+
         <Box
           className="video-controls"
           sx={{
@@ -230,204 +233,227 @@ const VideoControls = forwardRef(
             zIndex: 59,
           }}
         >
-          <Box sx={{display: "flex", justifyContent: "space-between"}}>
-  <Box className="left-controls" sx={{ display: "flex", height: "100%" }}>
-            {playlistId && index > 0 && (
-              <IconButton
-                disableRipple
-                onClick={handlePrevPlaylist}
-                sx={{ color: "#f1f1f1" }}
-              >
-                <SkipPreviousIcon />
-              </IconButton>
-            )}
-            <IconButton
-              disableRipple
-              onClick={()=> {togglePlayPause(); setShowIcon(false);}}
-              sx={{ color: "#f1f1f1", padding: "0 2px" , width: "46px", height: "48px" }}
-            >
-              <MorphingIcon isPlaying={isPlaying} />
-            </IconButton>
-            <Tooltip
-              slotProps={{
-                popper: {
-                  modifiers: [
-                    {
-                      name: "offset",
-                      options: {
-                        offset: [60, 0],
-                      },
-                    },
-                  ],
-                },
-                tooltip: {
-                  sx: {
-                    whiteSpace: "nowrap",
-                    backgroundColor: "rgba(26,25,25,255)",
-                    fontSize: "0.75rem",
-                    borderRadius: "16px",
-                    padding: "0",
-                  },
-                },
-              }}
-              sx={{ padding: "0!important", margin: "0!important" }}
-              title={
-                <Box
-                  sx={{
-                    position: "relative",
-                    width: 240,
-                    padding: "0 2px 2px 2px",
-                  }}
-                >
-                  <Box sx={{ padding: "3px" }}>
-                    <Typography
-                      sx={{
-                        display: "-webkit-box",
-                        WebkitLineClamp: 1,
-                        WebkitBoxOrient: "vertical",
-                        textAlign: "center",
-                        margin: 0,
-                      }}
-                      color="#aaa"
-                      variant="caption"
-                    >
-                      NEXT(SHIFT+N)
-                    </Typography>
-                    <Typography
-                      sx={{
-                        display: "-webkit-box",
-                        WebkitLineClamp: 1,
-                        WebkitBoxOrient: "vertical",
-                        overflow: "hidden",
-                        whiteSpace: "break-spaces",
-                        textOverflow: "ellipsis",
-                        textAlign: "center",
-                        margin: 0,
-                      }}
-                      variant="caption"
-                    >
-                      {playlistVideos[index + 1]?.title ||
-                        filteredVideos[0]?.title}
-                    </Typography>
-                  </Box>
-                  <CardMedia
-                    sx={{
-                      borderRadius: "16px 16px",
-                      flexGrow: "1!important",
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                      aspectRatio: "16/9",
-                    }}
-                    component="img"
-                    image={
-                      playlistVideos[index + 1]?.thumbnail ||
-                      filteredVideos[0]?.thumbnail
-                    }
-                  />
-                </Box>
-              }
-              placement="top"
-            >
-              <IconButton
-                disableRipple
-                onClick={
-                  playlistId && index < playlistVideos.length - 1
-                    ? handleNextPlaylist
-                    : handleNext
-                }
-                sx={{ color: "#f1f1f1", padding: "0", width: "48px"}}
-              >
-                <SkipNextIcon sx={{}}/>
-              </IconButton>
-            </Tooltip>
+          <Box sx={{ display: "flex", justifyContent: "space-between" }}>
             <Box
-              onMouseEnter={handleVolumeHover}
-              onMouseLeave={() => setShowVolumePanel(false)}
-              component={"div"}
-              className="volume-container"
-              sx={{ display: "flex" }}
+              className="left-controls"
+              sx={{ display: "flex", height: "100%" }}
             >
+              {playlistId && index > 0 && (
+                <IconButton
+                  disableRipple
+                  onClick={handlePrevPlaylist}
+                  sx={{ color: "#f1f1f1" }}
+                >
+                  <SkipPreviousIcon />
+                </IconButton>
+              )}
               <IconButton
-                onClick={handleVolumeToggle}
                 disableRipple
+                onClick={() => {
+                  togglePlayPause();
+                  setShowIcon(false);
+                }}
                 sx={{
                   color: "#f1f1f1",
                   padding: "0 2px",
-                  width: "48px", height: "100%"
+                  width: "46px",
+                  height: "48px",
                 }}
               >
-                {videoRef.current?.volume === 0 ? (
-                  <VolumeOffIcon />
-                ) : (
-                  <VolumeUpIcon />
-                )}
+                <MorphingIcon isPlaying={isPlaying} />
               </IconButton>
-
-              <Box
-                ref={volumeSliderRef}
-                onMouseDown={handleVolumeClick}
-                className="volume-panel"
-                sx={{
-                  width: showVolumePanel ? "52px" : 0,
-                  marginRight: showVolumePanel ? "3px" : 0,
-                  transition: "width 0.3s ease-in-out, margin 0.3s ease-in-out",
-                  height: "100%",
-                  outline: 0,
+              <Tooltip
+                slotProps={{
+                  popper: {
+                    modifiers: [
+                      {
+                        name: "offset",
+                        options: {
+                          offset: [60, 0],
+                        },
+                      },
+                    ],
+                  },
+                  tooltip: {
+                    sx: {
+                      whiteSpace: "nowrap",
+                      backgroundColor: "rgba(26,25,25,255)",
+                      fontSize: "0.75rem",
+                      borderRadius: "16px",
+                      padding: "0",
+                    },
+                  },
                 }}
-                component={"div"}
-                role="slider"
-                aria-valuemin="0"
-                aria-valuemax="1"
-                aria-valuenow={Math.round(videoRef.current?.volume)}
+                sx={{ padding: "0!important", margin: "0!important" }}
+                title={
+                  <Box
+                    sx={{
+                      position: "relative",
+                      width: 240,
+                      padding: "0 2px 2px 2px",
+                    }}
+                  >
+                    <Box sx={{ padding: "3px" }}>
+                      <Typography
+                        sx={{
+                          display: "-webkit-box",
+                          WebkitLineClamp: 1,
+                          WebkitBoxOrient: "vertical",
+                          textAlign: "center",
+                          margin: 0,
+                        }}
+                        color="#aaa"
+                        variant="caption"
+                      >
+                        NEXT(SHIFT+N)
+                      </Typography>
+                      <Typography
+                        sx={{
+                          display: "-webkit-box",
+                          WebkitLineClamp: 1,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                          whiteSpace: "break-spaces",
+                          textOverflow: "ellipsis",
+                          textAlign: "center",
+                          margin: 0,
+                        }}
+                        variant="caption"
+                      >
+                        {playlistVideos[index + 1]?.title ||
+                          filteredVideos[0]?.title}
+                      </Typography>
+                    </Box>
+                    <CardMedia
+                      sx={{
+                        borderRadius: "16px 16px",
+                        flexGrow: "1!important",
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        aspectRatio: "16/9",
+                      }}
+                      component="img"
+                      image={
+                        playlistVideos[index + 1]?.thumbnail ||
+                        filteredVideos[0]?.thumbnail
+                      }
+                    />
+                  </Box>
+                }
+                placement="top"
               >
-                <Box
-                  className="volume-slider"
+                <IconButton
+                  disableRipple
+                  onClick={
+                    playlistId && index < playlistVideos.length - 1
+                      ? handleNextPlaylist
+                      : handleNext
+                  }
+                  sx={{ color: "#f1f1f1", padding: "0", width: "48px" }}
+                >
+                  <SkipNextIcon sx={{}} />
+                </IconButton>
+              </Tooltip>
+              <Box
+                onMouseEnter={handleVolumeHover}
+                onMouseLeave={() => setShowVolumePanel(false)}
+                component={"div"}
+                className="volume-container"
+                sx={{ display: "flex" }}
+              >
+                <IconButton
+                  onClick={handleVolumeToggle}
+                  disableRipple
                   sx={{
-                    position: "relative",
-                    width: "100%",
+                    color: "#f1f1f1",
+                    padding: "0 2px",
+                    width: "48px",
                     height: "100%",
-                    minHeight: "29px",
-                    overflow: "hidden",
                   }}
                 >
+                  {isMuted ? (
+                    <VolumeOffIcon />
+                  ) : isDecreased ? (
+                    <VolumeDownIcon />
+                  ) : isIncreased ? (
+                    <VolumeUpIcon />
+                  ) : (
+                    <VolumeUpIcon /> 
+                  )}
+                </IconButton>
+
+                <Box
+                  ref={volumeSliderRef}
+                  onMouseDown={handleVolumeClick}
+                  className="volume-panel"
+                  sx={{
+                    width: showVolumePanel ? "52px" : 0,
+                    marginRight: showVolumePanel ? "3px" : 0,
+                    transition:
+                      "width 0.3s ease-in-out, margin 0.3s ease-in-out",
+                    height: "100%",
+                    outline: 0,
+                  }}
+                  component={"div"}
+                  role="slider"
+                  aria-valuemin="0"
+                  aria-valuemax="1"
+                  aria-valuenow={Math.round(videoRef.current?.volume)}
+                >
                   <Box
-                    onMouseDown={handleVolumeStart}
-                    className="volume-slider-thumb"
+                    className="volume-slider"
                     sx={{
-                      position: "absolute",
-                      top: "50%",
-                      left: `${volume}px`,
-                      marginTop: "-6px",
-                      width: "12px",
-                      height: "12px",
-                      background: "#f1f1f1",
-                      borderRadius: "50px",
-                      cursor: "pointer",
+                      position: "relative",
+                      width: "100%",
+                      height: "100%",
+                      minHeight: "29px",
+                      overflow: "hidden",
                     }}
-                  ></Box>
+                  >
+                    <Box
+                      onMouseDown={handleVolumeStart}
+                      className="volume-slider-thumb"
+                      sx={{
+                        position: "absolute",
+                        top: "50%",
+                        left: `${volume}px`,
+                        marginTop: "-6px",
+                        width: "12px",
+                        height: "12px",
+                        background: "#f1f1f1",
+                        borderRadius: "50px",
+                        cursor: "pointer",
+                      }}
+                    ></Box>
+                  </Box>
                 </Box>
               </Box>
-            </Box>
 
-            <IconButton disableRipple sx={{ cursor: "default" }}>
-              <Typography sx={{ color: "#f1f1f1" }} fontSize={"0.85rem"}>
-                {formatDuration(progress || 0)} /{" "}
-                {formatDuration(videoRef?.current?.duration || 0)}
-              </Typography>
-            </IconButton>
-          </Box>
-           <Box className="right-controls" sx={{ display: "flex", height: "100%" }}>
-  <IconButton
+              <IconButton disableRipple sx={{ cursor: "default" }}>
+                <Typography sx={{ color: "#f1f1f1" }} fontSize={"0.85rem"}>
+                  {formatDuration(progress || 0)} /{" "}
+                  {formatDuration(videoRef?.current?.duration || 0)}
+                </Typography>
+              </IconButton>
+            </Box>
+            <Box
+              className="right-controls"
+              sx={{ display: "flex", height: "100%" }}
+            >
+              <IconButton
                 disableRipple
                 onClick={handlePrevPlaylist}
                 sx={{ color: "#f1f1f1" }}
               >
-                <FullscreenIcon onClick={toggleFullScreen} sx={{ width: "1.25em", height: "1.25em" }} />
+                <FullscreenIcon
+                  onClick={toggleFullScreen}
+                  sx={{ width: "1.25em", height: "1.25em" }}
+                />
               </IconButton>
-           </Box>
+            </Box>
           </Box>
-        
+
           <Box
             className="progress-bar-container"
             sx={{

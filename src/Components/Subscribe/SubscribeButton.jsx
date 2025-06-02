@@ -28,6 +28,8 @@ const rotateAnimation = keyframes`
   100% { transform: rotate(0deg); }
 `;
 
+
+
 export const SubscribeButton = React.memo(
   ({
     channelProfile,
@@ -87,6 +89,53 @@ export const SubscribeButton = React.memo(
         opacity: showGradient ? 1 : 0,
       },
     };
+
+     const launchFireworks = () => {
+        if (!buttonRef.current) return;
+    
+        const { left, top, width, height } =
+          buttonRef.current.getBoundingClientRect();
+    
+        const steps = 10; // Number of steps from left to right
+        let currentStep = 0;
+    
+        const animateFireworks = () => {
+          if (currentStep > steps || !buttonRef.current) return;
+    
+          const originX =
+            (left + (width / steps) * currentStep) / window.innerWidth;
+          const originY = (top + height + 5) / window.innerHeight; // Just below the button
+    
+          confetti({
+            particleCount: 1,
+            startVelocity: 2,
+            spread: 260,
+            ticks: 10,
+            gravity: 0,
+            scalar: 0.8,
+            shapes: ["star"],
+            colors: ["#C71585"], // Yellow Star
+            origin: { x: originX, y: originY },
+          });
+    
+          confetti({
+            particleCount: 1,
+            startVelocity: 4,
+            spread: 260,
+            ticks: 10,
+            gravity: 0,
+            scalar: 1,
+            shapes: ["square"],
+            colors: ["#FFD700"],
+            origin: { x: originX, y: originY },
+          });
+    
+          currentStep++;
+          setTimeout(animateFireworks, 10);
+        };
+    
+        animateFireworks();
+      };
 
     const handleTransitionEnd = () => {
       if (isSubscribed) {
