@@ -1,0 +1,49 @@
+/* Volume Icon Container */
+.volume-svg {
+  width: 100px;
+  height: 100px;
+  display: block;
+}
+
+/* Transition for the moving parts */
+.ytp-svg-volume-animation-mover {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Muted state - move slash into position */
+.ytp-svg-volume-animation-mover.mute {
+  transform: translate(-12px, -12px);
+}
+
+/* Decreased volume state */
+.ytp-svg-volume-animation-mover.decrease {
+  transform: translate(-4px, -4px);
+}
+
+/* Increased volume state */
+.ytp-svg-volume-animation-mover.increase {
+  transform: translate(4px, 4px);
+}
+
+/* Clip path transitions */
+.ytp-svg-volume-animation-speaker {
+  transition: clip-path 0.3s ease;
+}
+
+/* Muted icon style */
+#ytp-id-80 {
+  fill: #fff;
+  transition: opacity 0.2s ease;
+}
+
+/* Animation for volume changes */
+@keyframes volume-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+/* Apply pulse animation when volume increases */
+.volume-increase-animation {
+  animation: volume-pulse 0.5s ease;
+}

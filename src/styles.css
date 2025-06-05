@@ -19,6 +19,7 @@ body {
     
 }
 
+
 .video-wrapper {
   position: relative;
   width: 100%;
@@ -201,7 +202,7 @@ video {
   background: #fff;
 }
 .volume-slider-thumb::after {
-  left: 16px;
+  left: 12px;
   background: rgba(255,255,255,.2);
 }
 

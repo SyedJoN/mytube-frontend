@@ -9,6 +9,8 @@ import VolumeOffIcon from "@mui/icons-material/VolumeOff";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import formatDuration from "../../utils/formatDuration";
 import VolumeDownIcon from "@mui/icons-material/VolumeDown";
+import "../Utils/iconMorph.css";
+import { MorphingVolIcon } from "../Utils/VolumeIcon";
 
 const VideoControls = forwardRef(
   (
@@ -29,8 +31,10 @@ const VideoControls = forwardRef(
       volume,
       setVolume,
       isMuted,
+      jumpedToMax,
+      risingToMid,
       isIncreased,
-      isDecreased,
+      isDecreased
     },
     videoRef
   ) => {
@@ -43,6 +47,7 @@ const VideoControls = forwardRef(
     const [BarWidth, setBarWidth] = useState(0);
     const [videoWidth, setVideoWidth] = useState(0);
     const [volumeMuted, setVolumeMuted] = useState(false);
+    const [isClicked, setIsClicked] = useState(false);
 
     const handleSeekMove = (e) => {
       if (!sliderRef.current || !videoRef.current) return;
@@ -186,23 +191,27 @@ const VideoControls = forwardRef(
       console.log(e.clientX);
     };
 
-    const handleVolumeToggle = () => {
-      const video = videoRef.current;
-      if (!video) return;
+const handleVolumeToggle = () => {
+  const video = videoRef.current;
+  if (!video) return;
 
-      if (!volumeMuted) {
-        prevVolumeRef.current = video.volume;
-        video.volume = 0;
-        setVolume(0);
-        setVolumeMuted(true);
-      } else {
-        const restoreVolume =
-          prevVolumeRef.current > 0 ? prevVolumeRef.current : 1;
-        video.volume = restoreVolume;
-        setVolume(Math.round(restoreVolume * 40));
-        setVolumeMuted(false);
-      }
-    };
+  if (!volumeMuted) {
+    // Save current volume only if it’s actually not 0
+    if (video.volume > 0) {
+      prevVolumeRef.current = video.volume;
+    }
+    video.volume = 0;
+    setVolume(0);
+    setVolumeMuted(true);
+  } else {
+    // Restore from ref, or fallback to 1
+    const restoreVolume = prevVolumeRef.current ?? 1;
+    video.volume = restoreVolume;
+    setVolume(Math.round(restoreVolume * 40));
+    setVolumeMuted(false);
+  }
+};
+
 
     const [showVolumePanel, setShowVolumePanel] = useState(false);
     const shouldShowOverlay =
@@ -372,15 +381,14 @@ const VideoControls = forwardRef(
                     height: "100%",
                   }}
                 >
-                  {isMuted ? (
-                    <VolumeOffIcon />
-                  ) : isDecreased ? (
-                    <VolumeDownIcon />
-                  ) : isIncreased ? (
-                    <VolumeUpIcon />
-                  ) : (
-                    <VolumeUpIcon /> 
-                  )}
+                  <MorphingVolIcon
+                    volume={volume / 40}
+                    muted={isMuted}
+                    jumpedToMax={jumpedToMax}
+                    risingToMid={risingToMid}
+                    isIncreased={isIncreased}
+                    isDecreased={isDecreased}
+                  />
                 </IconButton>
 
                 <Box
@@ -419,9 +427,10 @@ const VideoControls = forwardRef(
                         top: "50%",
                         left: `${volume}px`,
                         marginTop: "-6px",
+                        color: "#fff",
                         width: "12px",
                         height: "12px",
-                        background: "#f1f1f1",
+                        background: "#fff",
                         borderRadius: "50px",
                         cursor: "pointer",
                       }}

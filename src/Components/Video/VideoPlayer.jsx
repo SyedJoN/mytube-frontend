@@ -101,6 +101,8 @@ function VideoPlayer({
   const [isMuted, setIsMuted] = useState(false);
   const [isIncreased, setIsIncreased] = useState(false);
   const [isDecreased, setIsDecreased] = useState(false);
+  const [jumpedToMax, setJumpedToMax] = useState(false);
+  const [risingToMid, setRisingToMid] = useState(false);
   const isFastPlayback = videoRef?.current?.playbackRate === 2.0;
 
   useEffect(() => {
@@ -168,48 +170,48 @@ function VideoPlayer({
     return () => clearTimeout(timeout);
   }, [isBuffering, isForwardSeek, isBackwardSeek, videoId]);
 
-const handleVolume = (key) => {
-  const video = videoRef.current;
-  if (!video) return;
-      setShowIcon(false);
+  const handleVolume = (key) => {
+    const video = videoRef.current;
+    if (!video) return;
+    setShowIcon(false);
 
-  const icon = volumeIconRef.current;
-  setShowVolumeIcon(true);
-  setIsVolumeChanged(true);
+    const icon = volumeIconRef.current;
+    setShowVolumeIcon(true);
+    setIsVolumeChanged(true);
 
-  if (icon) {
-    icon.classList.remove("pressed");
-    void icon.offsetWidth;
-    icon.classList.add("pressed");
-  } else {
-    console.warn("volumeIconRef is null");
-  }
-
-  video.playbackRate = 1.0;
-  const step = 0.05;
-  if (key === "Up") {
-    setVolumeDown(false);
-    setIsMuted(false);
-    setVolumeUp(true);
-    const newVol = (video.volume = Math.min(1, video.volume + step));
-    setVolume(newVol * 40);
-  } else if (key === "Down") {
-    setVolumeUp(false);
-    const newVol = (video.volume = Math.max(0, video.volume - step));
-    if (newVol > 0) {
-      setVolumeDown(true);
-      setVolumeMuted(false);
+    if (icon) {
+      icon.classList.remove("pressed");
+      void icon.offsetWidth;
+      icon.classList.add("pressed");
     } else {
-      setVolumeMuted(true);
-      setVolumeDown(false);
+      console.warn("volumeIconRef is null");
     }
-    setVolume(newVol * 40);
-  }
 
-  setTimeout(() => {
-    setIsVolumeChanged(false);
-  }, 700);
-};
+    video.playbackRate = 1.0;
+    const step = 0.05;
+    if (key === "Up") {
+      setVolumeDown(false);
+      setIsMuted(false);
+      setVolumeUp(true);
+      const newVol = (video.volume = Math.min(1, video.volume + step));
+      setVolume(newVol * 40);
+    } else if (key === "Down") {
+      setVolumeUp(false);
+      const newVol = (video.volume = Math.max(0, video.volume - step));
+      if (newVol > 0) {
+        setVolumeDown(true);
+        setVolumeMuted(false);
+      } else {
+        setVolumeMuted(true);
+        setVolumeDown(false);
+      }
+      setVolume(newVol * 40);
+    }
+
+    setTimeout(() => {
+      setIsVolumeChanged(false);
+    }, 700);
+  };
 
   const updateVolumeStates = (volume) => {
     if (volume === 0) {
@@ -220,7 +222,7 @@ const handleVolume = (key) => {
       setIsMuted(false);
       setIsIncreased(true);
       setIsDecreased(false);
-    } else if (volume < 0.55) {
+    } else if (volume < 0.5) {
       setIsMuted(false);
       setIsIncreased(false);
       setIsDecreased(true);
@@ -229,12 +231,31 @@ const handleVolume = (key) => {
       setIsIncreased(false);
       setIsDecreased(false);
     }
+    if (prevVideoRef.current === 0 && volume >= 0.5 || prevVideoRef.current >= 0.5 && volume === 0 ) {
+      setJumpedToMax(true);
+    } else {
+      setJumpedToMax(false);
+    }
+     if (volume > prevVideoRef.current && volume > 0 && volume > 0.5) {
+    setRisingToMid(true);
+  } else if (volume < prevVideoRef.current && volume >= 0 && volume < 0.5) {
+    setRisingToMid(false);
+  } else {
+    setRisingToMid(null); // stable ya zero volume
+  }
   };
 
+  useEffect(()=> {
+    console.log("isIncreased",isIncreased);
+
+  }, [isIncreased])
   useEffect(() => {
     const normalizedVolume = volume / 40;
     updateVolumeStates(normalizedVolume);
+    prevVideoRef.current = normalizedVolume;
   }, [volume]);
+
+
 
   const toggleFullScreen = useCallback(() => {
     const el = containerRef.current;
@@ -547,7 +568,7 @@ const handleVolume = (key) => {
       setShowIcon(true);
       console.log("Single Click");
       clickTimeout.current = null;
-    }, 0);
+    }, 150);
   };
 
   const DoubleSpeed = (e) => {
@@ -645,6 +666,8 @@ const handleVolume = (key) => {
           isMuted={isMuted}
           isIncreased={isIncreased}
           isDecreased={isDecreased}
+          jumpedToMax={jumpedToMax}
+          risingToMid={risingToMid}
         />
 
         <Box
@@ -890,44 +913,41 @@ const handleVolume = (key) => {
                 </svg>
               </IconButton>
             </Box>
-          <>
-  <IconButton
-    sx={{
-      width: "52px",
-      height: "52px",
-      padding: 0,
-      display: showIcon ? "inline-flex" : "none",
-    }}
-    ref={playIconRef}
-  >
-    {isPlaying ? (
-      <PauseIcon className="playback-icon" sx={iconStyle} />
-    ) : (
-      <PlayArrowIcon className="playback-icon" sx={iconStyle} />
-    )}
-  </IconButton>
+            <>
+              <IconButton
+                sx={{
+                  width: "52px",
+                  height: "52px",
+                  padding: 0,
+                  display: showIcon ? "inline-flex" : "none",
+                }}
+                ref={playIconRef}
+              >
+                {isPlaying ? (
+                  <PauseIcon className="playback-icon" sx={iconStyle} />
+                ) : (
+                  <PlayArrowIcon className="playback-icon" sx={iconStyle} />
+                )}
+              </IconButton>
 
-  <IconButton
-    sx={{
-      width: "52px",
-      height: "52px",
-      padding: 0,
-      display: !showIcon ? "inline-flex" : "none",
-    }}
-    ref={volumeIconRef}
-  >
-    {volumeDown ? (
-      <VolumeDownIcon className="vol-icon" sx={iconStyle} />
-    ) : volumeUp ? (
-      <VolumeUpIcon className="vol-icon" sx={iconStyle} />
-    ) : volumeMuted ? (
-      <VolumeOffIcon className="vol-icon" sx={iconStyle} />
-    ) : null}
-  </IconButton>
-</>
-
-             
-     
+              <IconButton
+                sx={{
+                  width: "52px",
+                  height: "52px",
+                  padding: 0,
+                  display: !showIcon ? "inline-flex" : "none",
+                }}
+                ref={volumeIconRef}
+              >
+                {volumeDown ? (
+                  <VolumeDownIcon className="vol-icon" sx={iconStyle} />
+                ) : volumeUp ? (
+                  <VolumeUpIcon className="vol-icon" sx={iconStyle} />
+                ) : volumeMuted ? (
+                  <VolumeOffIcon className="vol-icon" sx={iconStyle} />
+                ) : null}
+              </IconButton>
+            </>
           </Box>
         </Box>
       </Box>
