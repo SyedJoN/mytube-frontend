@@ -289,7 +289,15 @@ vt-interaction.animate:not(.down) .stroke {
   }
 }
 
-
+.vol-shadow  {
+    stroke: #000;
+    stroke-opacity: .15;
+    stroke-width: 2px;
+    fill: none;
+}
+.volSvg:hover {
+  color: "red"
+}
 
 .MuiAppBar-root,
 .MuiDrawer-root,

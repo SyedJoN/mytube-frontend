@@ -32,9 +32,7 @@ const VideoControls = forwardRef(
       setVolume,
       isMuted,
       jumpedToMax,
-      risingToMid,
       isIncreased,
-      isDecreased
     },
     videoRef
   ) => {
@@ -385,9 +383,7 @@ const handleVolumeToggle = () => {
                     volume={volume / 40}
                     muted={isMuted}
                     jumpedToMax={jumpedToMax}
-                    risingToMid={risingToMid}
                     isIncreased={isIncreased}
-                    isDecreased={isDecreased}
                   />
                 </IconButton>
 

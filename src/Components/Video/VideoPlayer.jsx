@@ -100,9 +100,7 @@ function VideoPlayer({
   const [isVolumeChanged, setIsVolumeChanged] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isIncreased, setIsIncreased] = useState(false);
-  const [isDecreased, setIsDecreased] = useState(false);
   const [jumpedToMax, setJumpedToMax] = useState(false);
-  const [risingToMid, setRisingToMid] = useState(false);
   const isFastPlayback = videoRef?.current?.playbackRate === 2.0;
 
   useEffect(() => {
@@ -214,48 +212,38 @@ function VideoPlayer({
   };
 
   const updateVolumeStates = (volume) => {
+    const prev = Math.round(prevVideoRef.current * 100) / 100;
+    const curr = Math.round(volume * 100) / 100;
+    const isUnmutedWithJump = prev === 0 && curr >= 0.5;
+    const isMutedFromHigh = prev >= 0.5 && curr === 0;
+
     if (volume === 0) {
       setIsMuted(true);
       setIsIncreased(false);
-      setIsDecreased(false);
     } else if (volume > 0.5) {
       setIsMuted(false);
       setIsIncreased(true);
-      setIsDecreased(false);
+      setJumpedToMax(false);
     } else if (volume < 0.5) {
       setIsMuted(false);
       setIsIncreased(false);
-      setIsDecreased(true);
     } else {
       setIsMuted(false);
       setIsIncreased(false);
-      setIsDecreased(false);
     }
-    if (prevVideoRef.current === 0 && volume >= 0.5 || prevVideoRef.current >= 0.5 && volume === 0 ) {
+    if (isUnmutedWithJump || isMutedFromHigh) {
       setJumpedToMax(true);
+      setIsIncreased(false);
     } else {
       setJumpedToMax(false);
     }
-     if (volume > prevVideoRef.current && volume > 0 && volume > 0.5) {
-    setRisingToMid(true);
-  } else if (volume < prevVideoRef.current && volume >= 0 && volume < 0.5) {
-    setRisingToMid(false);
-  } else {
-    setRisingToMid(null); // stable ya zero volume
-  }
   };
 
-  useEffect(()=> {
-    console.log("isIncreased",isIncreased);
-
-  }, [isIncreased])
   useEffect(() => {
     const normalizedVolume = volume / 40;
     updateVolumeStates(normalizedVolume);
     prevVideoRef.current = normalizedVolume;
   }, [volume]);
-
-
 
   const toggleFullScreen = useCallback(() => {
     const el = containerRef.current;
@@ -665,9 +653,7 @@ function VideoPlayer({
           setVolume={setVolume}
           isMuted={isMuted}
           isIncreased={isIncreased}
-          isDecreased={isDecreased}
           jumpedToMax={jumpedToMax}
-          risingToMid={risingToMid}
         />
 
         <Box
