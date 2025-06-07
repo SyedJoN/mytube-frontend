@@ -73,6 +73,7 @@ function VideoPlayer({
   const navigate = useNavigate();
   const location = useLocation();
   const prevVideoRef = useRef(null);
+  const prevVolRef = useRef(null);
   const playIconRef = useRef(null);
   const volumeIconRef = useRef(null);
   const buttonRef = useRef(null);
@@ -212,7 +213,7 @@ function VideoPlayer({
   };
 
   const updateVolumeStates = (volume) => {
-    const prev = Math.round(prevVideoRef.current * 100) / 100;
+    const prev = Math.round(prevVolRef.current * 100) / 100;
     const curr = Math.round(volume * 100) / 100;
     const isUnmutedWithJump = prev === 0 && curr >= 0.5;
     const isMutedFromHigh = prev >= 0.5 && curr === 0;
@@ -223,7 +224,7 @@ function VideoPlayer({
     } else if (volume > 0.5) {
       setIsMuted(false);
       setIsIncreased(true);
-      setJumpedToMax(false);
+      setJumpedToMax(true);
     } else if (volume < 0.5) {
       setIsMuted(false);
       setIsIncreased(false);
@@ -233,7 +234,7 @@ function VideoPlayer({
     }
     if (isUnmutedWithJump || isMutedFromHigh) {
       setJumpedToMax(true);
-      setIsIncreased(false);
+      setIsIncreased(true);
     } else {
       setJumpedToMax(false);
     }
@@ -242,7 +243,7 @@ function VideoPlayer({
   useEffect(() => {
     const normalizedVolume = volume / 40;
     updateVolumeStates(normalizedVolume);
-    prevVideoRef.current = normalizedVolume;
+    prevVolRef.current = normalizedVolume;
   }, [volume]);
 
   const toggleFullScreen = useCallback(() => {

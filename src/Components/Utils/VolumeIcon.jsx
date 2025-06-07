@@ -65,16 +65,16 @@ export const MorphingVolIcon = ({
           />
       </AnimatePresence>
         <AnimatePresence>
-  {isIncreased && (
+  {isIncreased &&(
      
     <motion.path
             mask={"url(#diagonal-cutout)"}
       d={highWave}
       initial={
-        hasMounted ? { clipPath: "ellipse(38% 38% at 50% 50%)" } : false
+        hasMounted ? { clipPath: "ellipse(37% 37% at 50% 50%)" } : false
       }
       animate={{ clipPath: "ellipse(50% 50% at 50% 50%)" }}
-      exit={{ clipPath: "ellipse(38% 38% at 50% 50%)" }}
+      exit={{ clipPath: "ellipse(37% 37% at 50% 50%)" }}
        transition={{
       animate: { duration: 1.2, ease: [0.4, 0, 0.2, 1] },  // Slow grow
       exit: { duration: 0.3, ease: [0.4, 0, 0.2, 1] }       // Fast exit
@@ -84,6 +84,7 @@ export const MorphingVolIcon = ({
  
   )}
 </AnimatePresence>
+
 
         {volume > 0 && (
           <>
@@ -99,7 +100,7 @@ export const MorphingVolIcon = ({
             <motion.path
               d={highWave}
               initial={{ clipPath: "ellipse(50% 50% at 50% 50%)" }}
-              animate={{ clipPath: "ellipse(38% 38% at 50% 50%)" }}
+              animate={{ clipPath: "ellipse(37% 37% at 50% 50%)" }}
               transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1]}}
               mask={"url(#diagonal-cutout)"}
             />
@@ -119,7 +120,7 @@ export const MorphingVolIcon = ({
             />
             <motion.path
               d={highWave}
-              initial={{ clipPath: "ellipse(38% 38% at 50% 50%)" }}
+              initial={{ clipPath: "ellipse(37% 37% at 50% 50%)" }}
               animate={{ clipPath: "ellipse(50% 50% at 50% 50%)" }}
               transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1]  }}
               mask="url(#diagonal-cutout)"
@@ -163,7 +164,9 @@ export const MorphingVolIcon = ({
 
             <motion.path
               d={highWave}
-              initial={false}
+               initial={isIncreased && volume !== 1 ? {clipPath: "ellipse(37% 37% at 50% 50%)" } : false 
+      }
+      animate={{ clipPath: "ellipse(50% 50% at 50% 50%)" }}
               mask="url(#diagonal-cutout)"
             />
           </>
