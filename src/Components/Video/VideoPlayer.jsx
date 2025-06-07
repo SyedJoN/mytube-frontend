@@ -213,25 +213,23 @@ function VideoPlayer({
   };
 
   const updateVolumeStates = (volume) => {
-    const prev = Math.round(prevVolRef.current * 100) / 100;
-    const curr = Math.round(volume * 100) / 100;
+    const prev = (prevVolRef.current * 100) / 100;
+    const curr = (volume * 100) / 100;
     const isUnmutedWithJump = prev === 0 && curr >= 0.5;
     const isMutedFromHigh = prev >= 0.5 && curr === 0;
 
     if (volume === 0) {
       setIsMuted(true);
       setIsIncreased(false);
-    } else if (volume > 0.5) {
+    } else if (volume >= 0.5) {
       setIsMuted(false);
       setIsIncreased(true);
-      setJumpedToMax(true);
-    } else if (volume < 0.5) {
-      setIsMuted(false);
-      setIsIncreased(false);
+      setJumpedToMax(false);
     } else {
       setIsMuted(false);
       setIsIncreased(false);
     }
+    
     if (isUnmutedWithJump || isMutedFromHigh) {
       setJumpedToMax(true);
       setIsIncreased(true);

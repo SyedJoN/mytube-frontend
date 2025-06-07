@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
+import { has } from "lodash";
 import React from "react";
 
 export const MorphingVolIcon = ({
@@ -20,11 +21,11 @@ export const MorphingVolIcon = ({
     setHasMounted(true);
   }, []);
 
-  React.useEffect(()=> {
-    console.log("isINcreased",isIncreased)
-    console.log("jumpedToMax",jumpedToMax)
-    console.log("volume",volume)
-  }, [isIncreased, jumpedToMax, volume])
+  React.useEffect(() => {
+    console.log("isINcreased", isIncreased);
+    console.log("jumpedToMax", jumpedToMax);
+    console.log("volume", volume);
+  }, [isIncreased, jumpedToMax, volume]);
   return (
     <div style={{ width: 36, height: 36 }}>
       <motion.svg
@@ -35,9 +36,11 @@ export const MorphingVolIcon = ({
         xmlns="http://www.w3.org/2000/svg"
         className="volSvg"
       >
+ 
         <defs>
+  
           <mask id="diagonal-cutout" maskUnits="userSpaceOnUse">
-            {/* Full white background to start with full visibility */}
+      
             <rect width="36" height="36" fill="white" />
             <AnimatePresence>
               {isMuted && (
@@ -50,127 +53,90 @@ export const MorphingVolIcon = ({
                   transform={"translate(2, 0)"}
                   initial={{ pathLength: 0 }}
                   animate={{ pathLength: 1 }}
-                  exit={{ pathLength: 0, }}
-                  transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+                  exit={{ pathLength: 0 }}
+                  transition={{
+                    duration: !jumpedToMax ? 0.7 : 0.4,
+                    ease: [0.4, 0, 0.2, 1],
+                  }}
                 />
               )}
             </AnimatePresence>
           </mask>
         </defs>
-      <AnimatePresence>
+ 
+
+        <AnimatePresence>
           <motion.path
+          id="vol-shadow"
             d={speakerPath}
             initial={false}
             mask={"url(#diagonal-cutout)"}
           />
-      </AnimatePresence>
+        </AnimatePresence>
         <AnimatePresence>
-  {isIncreased &&(
-     
-    <motion.path
-            mask={"url(#diagonal-cutout)"}
-      d={highWave}
-      initial={
-        hasMounted ? { clipPath: "ellipse(37% 37% at 50% 50%)" } : false
-      }
-      animate={{ clipPath: "ellipse(50% 50% at 50% 50%)" }}
-      exit={{ clipPath: "ellipse(37% 37% at 50% 50%)" }}
-       transition={{
-      animate: { duration: 1.2, ease: [0.4, 0, 0.2, 1] },  // Slow grow
-      exit: { duration: 0.3, ease: [0.4, 0, 0.2, 1] }       // Fast exit
-      
-    }}
-    />
- 
-  )}
-</AnimatePresence>
-
-
-        {volume > 0 && (
-          <>
+          {isIncreased && (
             <motion.path
-              d="M 8.6 10 L 25.3 26.6"
-              initial={{ pathLength: 1 }}
-              animate={{ pathLength: 0 }}
-              transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1]}}
-              stroke="white"
-              strokeWidth="2"
-              strokeLinecap="butt"
-            />
-            <motion.path
-              d={highWave}
-              initial={{ clipPath: "ellipse(50% 50% at 50% 50%)" }}
-              animate={{ clipPath: "ellipse(37% 37% at 50% 50%)" }}
-              transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1]}}
               mask={"url(#diagonal-cutout)"}
+              d={highWave}
+              initial={
+                hasMounted ? { clipPath: "circle(40% at 50% 50%)" } : false
+              }
+              animate={{ clipPath: "circle(50% at 50% 50%)" }}
+              exit={{ clipPath: "circle(37% at 50% 50%)"}}
+                    transition={{ duration: 0.5, }}
             />
-          </>
-        )}
+          )}
+        </AnimatePresence>
 
-        {isMuted && !jumpedToMax && (
+        <AnimatePresence>
+          {isMuted && !jumpedToMax && (
+            <>
+              <motion.path
+                d="M 8.6 10 L 25.3 26.6"
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
+                stroke="white"
+                exit={{ pathLength: 0 }}
+                strokeWidth="2"
+                strokeLinecap="butt"
+              />
+              <motion.path
+                d={highWave}
+                initial={{ clipPath: "circle(40% at 50% 50%)" }}
+                animate={{ clipPath: "circle(50% at 50% 50%)" }}
+                exit={{ clipPath: "circle(37% at 50% 50%)" }}
+                transition={{ duration: 0.5}}
+                mask="url(#diagonal-cutout)"
+              />
+            </>
+          )}
+        </AnimatePresence>
+         <AnimatePresence>
+        {isMuted && jumpedToMax && (
           <>
+  
             <motion.path
               d="M 8.6 10 L 25.3 26.6"
               initial={{ pathLength: 0 }}
               animate={{ pathLength: 1 }}
-              transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-              stroke="white"
-              strokeWidth="2"
-              strokeLinecap="butt"
-            />
-            <motion.path
-              d={highWave}
-              initial={{ clipPath: "ellipse(37% 37% at 50% 50%)" }}
-              animate={{ clipPath: "ellipse(50% 50% at 50% 50%)" }}
-              transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1]  }}
-              mask="url(#diagonal-cutout)"
-            />
-          </>
-        )}
-
-        {isMuted && jumpedToMax && (
-          <>
-            {/* Diagonal line */}
-            <motion.path
-              d="M 8.6 10 L 25.3 26.6"
-              initial={{ pathLength: 0, opacity: 0,}}
-              animate={{ pathLength: 1, opacity: 1}}
-              transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+              transition={{ duration: 0.4,}}
               stroke="white"
               strokeWidth={2}
               strokeLinecap="butt"
+              exit={{pathLength: 0}}
             />
 
-            {/* High wave with mask */}
+
             <motion.path
               d={highWave}
-              initial={false}
+              initial={{ clipPath: "circle(40% at 50% 50%)" }}
               mask="url(#diagonal-cutout)"
             />
           </>
         )}
-
-        {!isMuted && jumpedToMax && (
-          <>
-            <motion.path
-              d="M 8.6 10 L 25.3 26.6"
-              initial={{ pathLength: 1, opacity: 1, }}
-              animate={{ pathLength: 0, opacity: 0 }}
-              transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-              stroke="white"
-              strokeWidth="2"
-              strokeLinecap="butt"
-            />
-
-            <motion.path
-              d={highWave}
-               initial={isIncreased && volume !== 1 ? {clipPath: "ellipse(37% 37% at 50% 50%)" } : false 
-      }
-      animate={{ clipPath: "ellipse(50% 50% at 50% 50%)" }}
-              mask="url(#diagonal-cutout)"
-            />
-          </>
-        )}
+ </AnimatePresence>
+       
       </motion.svg>
     </div>
   );

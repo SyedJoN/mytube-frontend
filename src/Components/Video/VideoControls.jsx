@@ -33,6 +33,7 @@ const VideoControls = forwardRef(
       isMuted,
       jumpedToMax,
       isIncreased,
+
     },
     videoRef
   ) => {
@@ -44,8 +45,6 @@ const VideoControls = forwardRef(
 
     const [BarWidth, setBarWidth] = useState(0);
     const [videoWidth, setVideoWidth] = useState(0);
-    const [volumeMuted, setVolumeMuted] = useState(false);
-    const [isClicked, setIsClicked] = useState(false);
 
     const handleSeekMove = (e) => {
       if (!sliderRef.current || !videoRef.current) return;
@@ -189,27 +188,23 @@ const VideoControls = forwardRef(
       console.log(e.clientX);
     };
 
-const handleVolumeToggle = () => {
-  const video = videoRef.current;
-  if (!video) return;
+    const handleVolumeToggle = () => {
+      const video = videoRef.current;
+      if (!video) return;
 
-  if (!volumeMuted) {
-    // Save current volume only if it’s actually not 0
-    if (video.volume > 0) {
-      prevVolumeRef.current = video.volume;
-    }
-    video.volume = 0;
-    setVolume(0);
-    setVolumeMuted(true);
-  } else {
-    // Restore from ref, or fallback to 1
-    const restoreVolume = prevVolumeRef.current ?? 1;
-    video.volume = restoreVolume;
-    setVolume(Math.round(restoreVolume * 40));
-    setVolumeMuted(false);
-  }
-};
+      if (!isMuted) {
+        prevVolumeRef.current = video.volume;
+        video.volume = 0;
+        setVolume(0);
 
+      } else {
+
+        const restoreVolume = prevVolumeRef.current ?? 1;
+        video.volume = restoreVolume;
+        setVolume(Math.round(restoreVolume * 40));
+
+      }
+    };
 
     const [showVolumePanel, setShowVolumePanel] = useState(false);
     const shouldShowOverlay =
@@ -384,6 +379,7 @@ const handleVolumeToggle = () => {
                     muted={isMuted}
                     jumpedToMax={jumpedToMax}
                     isIncreased={isIncreased}
+  
                   />
                 </IconButton>
 
