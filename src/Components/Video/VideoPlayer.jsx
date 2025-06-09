@@ -104,6 +104,7 @@ function VideoPlayer({
   const [jumpedToMax, setJumpedToMax] = useState(false);
   const isFastPlayback = videoRef?.current?.playbackRate === 2.0;
 
+
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -220,7 +221,7 @@ function VideoPlayer({
 
     if (volume === 0) {
       setIsMuted(true);
-      setIsIncreased(false);
+      setIsIncreased(true);
     } else if (volume >= 0.5) {
       setIsMuted(false);
       setIsIncreased(true);
@@ -653,6 +654,7 @@ function VideoPlayer({
           isMuted={isMuted}
           isIncreased={isIncreased}
           jumpedToMax={jumpedToMax}
+
         />
 
         <Box

@@ -289,7 +289,7 @@ vt-interaction.animate:not(.down) .stroke {
   }
 }
 
-.vol-shadow  {
+.ytp-svg-shadow  {
     stroke: #000;
     stroke-opacity: .15;
     stroke-width: 2px;

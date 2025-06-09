@@ -379,6 +379,7 @@ const VideoControls = forwardRef(
                     muted={isMuted}
                     jumpedToMax={jumpedToMax}
                     isIncreased={isIncreased}
+               
   
                   />
                 </IconButton>
