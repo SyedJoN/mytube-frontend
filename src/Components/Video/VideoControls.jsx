@@ -33,7 +33,7 @@ const VideoControls = forwardRef(
       isMuted,
       jumpedToMax,
       isIncreased,
-
+      isAnimating,
     },
     videoRef
   ) => {
@@ -147,7 +147,7 @@ const VideoControls = forwardRef(
     }, []);
 
     // Volume
-
+  
     const handleVolumeMove = (e) => {
       e.preventDefault();
       if (!volumeSliderRef.current || !videoRef.current) return;
@@ -194,15 +194,14 @@ const VideoControls = forwardRef(
 
       if (!isMuted) {
         prevVolumeRef.current = video.volume;
+
         video.volume = 0;
         setVolume(0);
-
       } else {
-
         const restoreVolume = prevVolumeRef.current ?? 1;
         video.volume = restoreVolume;
-        setVolume(Math.round(restoreVolume * 40));
 
+        setVolume(Math.round(restoreVolume * 40));
       }
     };
 
@@ -379,8 +378,8 @@ const VideoControls = forwardRef(
                     muted={isMuted}
                     jumpedToMax={jumpedToMax}
                     isIncreased={isIncreased}
-               
-  
+                    isAnimating={isAnimating}
+              
                   />
                 </IconButton>
 

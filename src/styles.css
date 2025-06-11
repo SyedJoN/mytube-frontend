@@ -296,7 +296,37 @@ vt-interaction.animate:not(.down) .stroke {
     fill: none;
 }
 
+.ytp-svg-volume-animation-mover {
+  transition: transform 0.3s cubic-bezier(0.5, 0.2, 0.8, 0.6);
+}
+.ytp-svg-volume-animation-mover.muted {
+  animation: slash 0.3s cubic-bezier(0.5, 0.2, 0.8, 0.6);
+}
 
+.ytp-svg-volume-animation-mover.unmuted {
+  animation: removeSlash 0.3s cubic-bezier(0.5, 0.2, 0.8, 0.6);
+}
+
+
+@keyframes removeSlash {
+    0% {
+ transform: translate(20px, 20px);
+    }
+    100% {
+    transform: translate(0, 0);
+
+    }
+}
+
+@keyframes slash {
+    0% {
+ transform: translate(0, 0);
+    }
+    100% {
+    transform: translate(20px, 20px);
+
+    }
+}
 .MuiAppBar-root,
 .MuiDrawer-root,
 .MuiModal-root {

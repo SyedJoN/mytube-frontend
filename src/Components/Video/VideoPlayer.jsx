@@ -102,7 +102,11 @@ function VideoPlayer({
   const [isMuted, setIsMuted] = useState(false);
   const [isIncreased, setIsIncreased] = useState(false);
   const [jumpedToMax, setJumpedToMax] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
   const isFastPlayback = videoRef?.current?.playbackRate === 2.0;
+
+
+
 
 
   useEffect(() => {
@@ -202,6 +206,7 @@ function VideoPlayer({
         setVolumeDown(true);
         setVolumeMuted(false);
       } else {
+
         setVolumeMuted(true);
         setVolumeDown(false);
       }
@@ -221,16 +226,23 @@ function VideoPlayer({
 
     if (volume === 0) {
       setIsMuted(true);
-      setIsIncreased(true);
+      setIsIncreased(false);
+      var animateTimeout = setTimeout(()=> setIsAnimating(true), 300)
+
     } else if (volume >= 0.5) {
       setIsMuted(false);
       setIsIncreased(true);
       setJumpedToMax(false);
+      clearTimeout(animateTimeout);
+        setIsAnimating(false)
+
     } else {
+              clearTimeout(animateTimeout)
+        setIsAnimating(false)
       setIsMuted(false);
       setIsIncreased(false);
     }
-    
+
     if (isUnmutedWithJump || isMutedFromHigh) {
       setJumpedToMax(true);
       setIsIncreased(true);
@@ -654,7 +666,7 @@ function VideoPlayer({
           isMuted={isMuted}
           isIncreased={isIncreased}
           jumpedToMax={jumpedToMax}
-
+          isAnimating={isAnimating}
         />
 
         <Box
