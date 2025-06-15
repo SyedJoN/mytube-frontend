@@ -289,21 +289,28 @@ vt-interaction.animate:not(.down) .stroke {
   }
 }
 
-.ytp-svg-shadow  {
+.svg-shadow  {
     stroke: #000;
     stroke-opacity: .15;
     stroke-width: 2px;
     fill: none;
 }
+.control-svg {
+  color: #fff;
+  opacity: .9;
+}
 
-.ytp-svg-volume-animation-mover {
+.control-svg:hover {
+  opacity: 1;
+}
+.svg-volume-animation-mover {
   transition: transform 0.3s cubic-bezier(0.5, 0.2, 0.8, 0.6);
 }
-.ytp-svg-volume-animation-mover.muted {
+.svg-volume-animation-mover.muted {
   animation: slash 0.3s cubic-bezier(0.5, 0.2, 0.8, 0.6);
 }
 
-.ytp-svg-volume-animation-mover.unmuted {
+.svg-volume-animation-mover.unmuted {
   animation: removeSlash 0.3s cubic-bezier(0.5, 0.2, 0.8, 0.6);
 }
 

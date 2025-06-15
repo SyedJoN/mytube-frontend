@@ -12,15 +12,19 @@ export const MorphingIcon = ({ isPlaying }) => {
       width="100%"
       height="100%"
       viewBox="0 0 36 36"
-      fill="white"
+      fill="currentColor"
       xmlns="http://www.w3.org/2000/svg"
+      className="control-svg"
     >
+        <use className="svg-shadow" href="#id-1"></use>
+
      <motion.path
+     id="id-1"
   d={paths[isPlaying ? "play" : "pause"] ?? ""}
   initial={{ d: paths[isPlaying ? "play" : "pause"] ?? "" }}
   animate={{ d: paths[isPlaying ? "play" : "pause"] ?? "" }}
   transition={{ duration: 0.3 }}
-  fill="white"
+
 />
     </motion.svg>
   );

@@ -52,6 +52,7 @@ import VideoControls from "./VideoControls";
 import VolumeUpIcon from "@mui/icons-material/VolumeUp";
 import VolumeOffIcon from "@mui/icons-material/VolumeOff";
 import VolumeDownIcon from "@mui/icons-material/VolumeDown";
+import { useDebouncedCallback } from "../../helper/debouncedFn";
 
 function VideoPlayer({
   dataContext,
@@ -68,12 +69,12 @@ function VideoPlayer({
   const containerRef = useRef(null);
   const videoRef = useRef(null);
   const videoPauseStatus = useRef(null);
+  const prevVolumeRef = useRef(null);
 
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
   const prevVideoRef = useRef(null);
-  const prevVolRef = useRef(null);
   const playIconRef = useRef(null);
   const volumeIconRef = useRef(null);
   const buttonRef = useRef(null);
@@ -104,10 +105,7 @@ function VideoPlayer({
   const [jumpedToMax, setJumpedToMax] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const isFastPlayback = videoRef?.current?.playbackRate === 2.0;
-
-
-
-
+  const animateTimeoutRef = useRef(null);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -206,7 +204,6 @@ function VideoPlayer({
         setVolumeDown(true);
         setVolumeMuted(false);
       } else {
-
         setVolumeMuted(true);
         setVolumeDown(false);
       }
@@ -215,47 +212,67 @@ function VideoPlayer({
 
     setTimeout(() => {
       setIsVolumeChanged(false);
-    }, 700);
+    }, 500);
   };
 
+  const prevVolRef = useRef(0);
+
   const updateVolumeStates = (volume) => {
-    const prev = (prevVolRef.current * 100) / 100;
-    const curr = (volume * 100) / 100;
+    const prev = prevVolRef.current;
+    const curr = volume;
+
     const isUnmutedWithJump = prev === 0 && curr >= 0.5;
     const isMutedFromHigh = prev >= 0.5 && curr === 0;
 
-    if (volume === 0) {
-      setIsMuted(true);
-      setIsIncreased(false);
-      var animateTimeout = setTimeout(()=> setIsAnimating(true), 300)
-
-    } else if (volume >= 0.5) {
-      setIsMuted(false);
-      setIsIncreased(true);
-      setJumpedToMax(false);
-      clearTimeout(animateTimeout);
-        setIsAnimating(false)
-
-    } else {
-              clearTimeout(animateTimeout)
-        setIsAnimating(false)
-      setIsMuted(false);
-      setIsIncreased(false);
-    }
-
     if (isUnmutedWithJump || isMutedFromHigh) {
       setJumpedToMax(true);
-      setIsIncreased(true);
-    } else {
-      setJumpedToMax(false);
+      setIsIncreased(false);
     }
+
+    if (curr === 0) {
+      setIsMuted(true);
+      setIsIncreased(false);
+      animateTimeoutRef.current = setTimeout(() => setIsAnimating(true), 300);
+      return;
+    }
+
+    if (curr >= 0.5 && prev < 0.5) {
+      clearTimeout(animateTimeoutRef.current);
+      setIsAnimating(false);
+      setIsMuted(false);
+      setIsIncreased(true);
+      return;
+    }
+
+    if (curr >= 0.5) {
+      clearTimeout(animateTimeoutRef.current);
+      setIsMuted(false);
+      setIsAnimating(false);
+      return;
+    }
+
+    clearTimeout(animateTimeoutRef.current);
+    setIsMuted(false);
+    setIsAnimating(false);
+    setIsIncreased(false);
+    setJumpedToMax(false);
   };
+  const debouncedUpdateVolumeStates = useDebouncedCallback(
+    (normalizedVolume) => {
+      updateVolumeStates(normalizedVolume);
+      prevVolRef.current = normalizedVolume;
+    },
+    3,
+    0.02
+  );
 
   useEffect(() => {
     const normalizedVolume = volume / 40;
-    updateVolumeStates(normalizedVolume);
-    prevVolRef.current = normalizedVolume;
-  }, [volume]);
+    debouncedUpdateVolumeStates(normalizedVolume);
+    return () => {
+      clearTimeout(animateTimeoutRef.current);
+    };
+  }, [volume, debouncedUpdateVolumeStates]);
 
   const toggleFullScreen = useCallback(() => {
     const el = containerRef.current;
@@ -472,6 +489,37 @@ function VideoPlayer({
     setTimeout(() => setIsBackwardSeek(false), 300);
   }, []);
 
+  const handleVolumeToggle = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const currentVolume = video.volume;
+
+    if (currentVolume > 0) {
+      prevVolumeRef.current = currentVolume;
+      video.volume = 0;
+      setVolume(0);
+    } else {
+      const restoreVol = prevVolumeRef.current || 1;
+      video.volume = restoreVol;
+      setVolume(restoreVol * 40);
+    }
+  }, []);
+const updateVolumeIconState = () => {
+  const currentVolume = videoRef.current?.volume ?? 0;
+
+  setVolumeMuted(false);
+  setVolumeUp(false);
+  setVolumeDown(false);
+
+  if (currentVolume === 0) {
+    setVolumeMuted(true);
+  } else if (currentVolume > 0.5) {
+    setVolumeUp(true);
+  } else {
+    setVolumeDown(true);
+  }
+};
   useEffect(() => {
     const handleKeyPress = (e) => {
       const activeElement = document.activeElement;
@@ -500,6 +548,26 @@ function VideoPlayer({
       } else if (e.key === "ArrowDown") {
         e.preventDefault();
         handleVolume("Down");
+      } else if (e.key.toLowerCase() === "m") {
+        e.preventDefault();
+        const icon = volumeIconRef.current;
+        setShowVolumeIcon(true);
+        setShowIcon(false)
+        setIsVolumeChanged(true);
+
+        if (icon) {
+          icon.classList.remove("pressed");
+          void icon.offsetWidth;
+          icon.classList.add("pressed");
+        } else {
+          console.warn("volumeIconRef is null");
+        }
+        handleVolumeToggle();
+      updateVolumeIconState();
+
+        setTimeout(() => {
+          setIsVolumeChanged(false);
+        }, 500);
       }
     };
     document.addEventListener("keydown", handleKeyPress);
@@ -663,6 +731,7 @@ function VideoPlayer({
           index={index}
           volume={volume}
           setVolume={setVolume}
+          handleVolumeToggle={handleVolumeToggle}
           isMuted={isMuted}
           isIncreased={isIncreased}
           jumpedToMax={jumpedToMax}
@@ -923,9 +992,9 @@ function VideoPlayer({
                 ref={playIconRef}
               >
                 {isPlaying ? (
-                  <PauseIcon className="playback-icon" sx={iconStyle} />
-                ) : (
                   <PlayArrowIcon className="playback-icon" sx={iconStyle} />
+                ) : (
+                  <PauseIcon className="playback-icon" sx={iconStyle} />
                 )}
               </IconButton>
 

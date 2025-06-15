@@ -31,8 +31,17 @@ export const MorphingVolIcon = ({
     console.log("isIncreased", isIncreased);
     console.log("jumpedToMax", jumpedToMax);
     console.log("muted", isMuted);
-    console.log("isAnimating", isAnimating);
-  }, [isIncreased, jumpedToMax, isMuted, isAnimating]);
+
+  }, [isIncreased, jumpedToMax, isMuted]);
+
+  const pathArray = React.useMemo(() => {
+    if (isMuted && jumpedToMax) return [highWave, highWave, mutedPath];
+    if (!isMuted && jumpedToMax) return [highWave, highWave, highWave];
+    if (isIncreased && !jumpedToMax) return [speakerPath, highWave, highWave];
+    if (isMuted && !jumpedToMax)
+      return [speakerPath, highWave, mutedPath];
+    return [highWave, speakerPath, initialPath];
+  }, [isMuted, isIncreased, jumpedToMax]);
 
   return (
     <div style={{ width: 36, height: 36 }}>
@@ -40,76 +49,60 @@ export const MorphingVolIcon = ({
         width="36"
         height="36"
         viewBox="0 0 36 36"
-        fill="white"
+        fill="currentColor"
         xmlns="http://www.w3.org/2000/svg"
-        className="volSvg"
+        className="control-svg"
       >
-    
-          {!isAnimating &&<defs key={isMuted ? "muted" : "unmuted"}>
-            <clipPath id="ytp-svg-volume-animation-mask">
+        {!isAnimating && (
+          <defs key={isMuted ? "muted" : "unmuted"}>
+            <clipPath id="svg-volume-animation-mask">
               <path d="m 14.35,-0.14 -5.86,5.86 20.73,20.78 5.86,-5.91 z"></path>
               <path d="M 7.07,6.87 -1.11,15.33 19.61,36.11 27.80,27.60 z"></path>
               <path
-                className={`ytp-svg-volume-animation-mover ${isMuted ? "muted" : "unmuted"}`}
+                className={`svg-volume-animation-mover ${isMuted ? "muted" : "unmuted"}`}
                 d="M 9.09,5.20 6.47,7.88 26.82,28.77 29.66,25.99 z"
               ></path>
             </clipPath>
-            <clipPath id="ytp-svg-volume-animation-slash-mask">
+            <clipPath id="svg-volume-animation-slash-mask">
               <path
-                className={`ytp-svg-volume-animation-mover ${isMuted ? "muted" : "unmuted"}`}
+                className={`svg-volume-animation-mover ${isMuted ? "muted" : "unmuted"}`}
                 d="m -11.45,-15.55 -4.44,4.51 20.45,20.94 4.55,-4.66 z"
               ></path>
             </clipPath>
           </defs>
-}
+        )}
 
-        <use className="ytp-svg-shadow" href="#ytp-id-85"></use>
-        <use className="ytp-svg-shadow" href="#ytp-id-16"></use>
+        <use className="svg-shadow" href="#id-2"></use>
+        <use className="svg-shadow" href="#id-3"></use>
 
         <>
           <motion.path
-            key={`vol-${isMuted}-${isIncreased}`}
-            id="ytp-id-85"
+            id="id-2"
             initial={{
-              d: isMuted && jumpedToMax
-                ? [highWave, highWave, mutedPath]
-                : isMuted && !jumpedToMax
-                  ? [speakerPath, highWave, mutedPath]
-                  : isIncreased && !jumpedToMax
-                    ? [speakerPath, highWave, highWave]
-                    : isIncreased && jumpedToMax
-                      ? [highWave, highWave, highWave]
-                      : [highWave, speakerPath, initialPath],
+              d: pathArray[0],
             }}
             animate={{
-              d: isMuted && jumpedToMax
-                ? [highWave, highWave, mutedPath]
-                : isMuted && !jumpedToMax
-                  ? [speakerPath, highWave, mutedPath]
-                  : isIncreased && !jumpedToMax
-                    ? [speakerPath, highWave, highWave]
-                    : isIncreased && jumpedToMax
-                      ? [highWave, highWave, highWave]
-                      : [highWave, speakerPath, initialPath],
+              d: pathArray,
             }}
             transition={{
               duration: 0.5,
               times: [0, 0.5, 1],
               ease: [0.5, 0.1, 0.8, 0.6],
             }}
-           clipPath={!isMuted ? "url(#ytp-svg-volume-animation-mask)" : undefined}
+            clipPath={!isMuted ? "url(#svg-volume-animation-mask)" : undefined}
           />
 
-         {!isAnimating && <path
-            className="ytp-svg-fill ytp-svg-volume-animation-hider"
-            clipPath="url(#ytp-svg-volume-animation-slash-mask)"
-            d="M 9.25,9 7.98,10.27 24.71,27 l 1.27,-1.27 Z"
-            fill="#fff"
-            id="ytp-id-16"
-            style={{ display: "block" }}
-          ></path> 
-           }
-           </> 
+          {!isAnimating && (
+            <path
+              className="ytp-svg-fill ytp-svg-volume-animation-hider"
+              clipPath="url(#svg-volume-animation-slash-mask)"
+              d="M 9.25,9 7.98,10.27 24.71,27 l 1.27,-1.27 Z"
+              fill="#fff"
+              id="id-3"
+              style={{ display: hasMounted ? "block" : "none" }}
+            ></path>
+          )}
+        </>
       </motion.svg>
     </div>
   );

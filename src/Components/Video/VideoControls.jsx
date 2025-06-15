@@ -1,4 +1,10 @@
-import React, { useState, forwardRef, useRef, useEffect } from "react";
+import React, {
+  useState,
+  forwardRef,
+  useImperativeHandle,
+  useRef,
+  useEffect,
+} from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { MorphingIcon } from "../Utils/IconMorph";
 import { Box, IconButton, Tooltip, Typography, CardMedia } from "@mui/material";
@@ -30,6 +36,7 @@ const VideoControls = forwardRef(
       toggleFullScreen,
       volume,
       setVolume,
+      handleVolumeToggle,
       isMuted,
       jumpedToMax,
       isIncreased,
@@ -41,10 +48,14 @@ const VideoControls = forwardRef(
     var thumbWidth = 13;
     const sliderRef = useRef(null);
     const volumeSliderRef = useRef(null);
-    const prevVolumeRef = useRef(null);
 
     const [BarWidth, setBarWidth] = useState(0);
     const [videoWidth, setVideoWidth] = useState(0);
+    const isFullscreen = !!document.fullscreenElement;
+
+    const [showVolumePanel, setShowVolumePanel] = useState(false);
+    const shouldShowOverlay =
+      !isLongPress && (!isUserInteracted || showVolumePanel || !isPlaying);
 
     const handleSeekMove = (e) => {
       if (!sliderRef.current || !videoRef.current) return;
@@ -147,10 +158,11 @@ const VideoControls = forwardRef(
     }, []);
 
     // Volume
-  
+
     const handleVolumeMove = (e) => {
       e.preventDefault();
       if (!volumeSliderRef.current || !videoRef.current) return;
+
       setShowVolumePanel(true);
 
       const rect = volumeSliderRef.current.getBoundingClientRect();
@@ -158,7 +170,8 @@ const VideoControls = forwardRef(
       const newVolume = Math.min(Math.max(offsetX / rect.width, 0), 1); // volume range: 0 to 1
 
       videoRef.current.volume = newVolume;
-      setVolume(Math.round(newVolume * 40));
+
+      setVolume(newVolume <= 0 ? 0 : Number(newVolume * 40).toFixed(1));
     };
 
     const handleVolumeEnd = () => {
@@ -167,6 +180,7 @@ const VideoControls = forwardRef(
     };
 
     const handleVolumeStart = (e) => {
+      handleVolumeMove(e);
       e.preventDefault();
       window.addEventListener("mousemove", handleVolumeMove);
       window.addEventListener("mouseup", handleVolumeEnd);
@@ -180,34 +194,12 @@ const VideoControls = forwardRef(
       const newVolume = Math.min(Math.max(offsetX / rect.width, 0), 1);
 
       videoRef.current.volume = newVolume;
-      setVolume(Math.round(newVolume * 40));
+      setVolume(newVolume <= 0 ? 0 : Number(newVolume * 40).toFixed(1));
     };
 
     const handleVolumeHover = (e) => {
       setShowVolumePanel(true);
-      console.log(e.clientX);
     };
-
-    const handleVolumeToggle = () => {
-      const video = videoRef.current;
-      if (!video) return;
-
-      if (!isMuted) {
-        prevVolumeRef.current = video.volume;
-
-        video.volume = 0;
-        setVolume(0);
-      } else {
-        const restoreVolume = prevVolumeRef.current ?? 1;
-        video.volume = restoreVolume;
-
-        setVolume(Math.round(restoreVolume * 40));
-      }
-    };
-
-    const [showVolumePanel, setShowVolumePanel] = useState(false);
-    const shouldShowOverlay =
-      !isLongPress && (!isUserInteracted || showVolumePanel || !isPlaying);
 
     return (
       <>
@@ -248,24 +240,56 @@ const VideoControls = forwardRef(
                   <SkipPreviousIcon />
                 </IconButton>
               )}
-              <IconButton
-                disableRipple
-                onClick={() => {
-                  togglePlayPause();
-                  setShowIcon(false);
-                }}
-                sx={{
-                  color: "#f1f1f1",
-                  padding: "0 2px",
-                  width: "46px",
-                  height: "48px",
+              <Tooltip
+                disableInteractive
+                title={isPlaying ? "Pause (k)" : "Play (k)"}
+                placement="top"
+                slotProps={{
+                  popper: {
+                    disablePortal: isFullscreen,
+                    modifiers: [
+                      {
+                        name: "offset",
+                        options: {
+                          offset: [0, 5],
+                        },
+                      },
+                    ],
+                  },
+                  tooltip: {
+                    sx: {
+                      whiteSpace: "nowrap",
+                      backgroundColor: "rgb(27,26,27)",
+                      color: "#f1f1f1",
+                      fontSize: "0.75rem",
+                      fontWeight: "600",
+                      borderRadius: "4px",
+                      py: "4px",
+                      px: "6px",
+                    },
+                  },
                 }}
               >
-                <MorphingIcon isPlaying={isPlaying} />
-              </IconButton>
+                <IconButton
+                  disableRipple
+                  onClick={() => {
+                    togglePlayPause();
+                    setShowIcon(false);
+                  }}
+                  sx={{
+                    color: "#f1f1f1",
+                    padding: "0 2px",
+                    width: "46px",
+                    height: "48px",
+                  }}
+                >
+                  <MorphingIcon isPlaying={isPlaying} />
+                </IconButton>
+              </Tooltip>
               <Tooltip
                 slotProps={{
                   popper: {
+                    disablePortal: isFullscreen,
                     modifiers: [
                       {
                         name: "offset",
@@ -363,26 +387,55 @@ const VideoControls = forwardRef(
                 className="volume-container"
                 sx={{ display: "flex" }}
               >
-                <IconButton
-                  onClick={handleVolumeToggle}
-                  disableRipple
-                  sx={{
-                    color: "#f1f1f1",
-                    padding: "0 2px",
-                    width: "48px",
-                    height: "100%",
+                <Tooltip
+                  disableInteractive
+                  title={isMuted ? "Unmute (m)" : "Mute (m)"}
+                  placement="top"
+                  slotProps={{
+                    popper: {
+                      disablePortal: isFullscreen,
+                      modifiers: [
+                        {
+                          name: "offset",
+                          options: {
+                            offset: [0, 5],
+                          },
+                        },
+                      ],
+                    },
+                    tooltip: {
+                      sx: {
+                        whiteSpace: "nowrap",
+                        backgroundColor: "rgb(27,26,27)",
+                        color: "#f1f1f1",
+                        fontSize: "0.75rem",
+                        fontWeight: "600",
+                        borderRadius: "4px",
+                        py: "4px",
+                        px: "6px",
+                      },
+                    },
                   }}
                 >
-                  <MorphingVolIcon
-                    volume={volume / 40}
-                    muted={isMuted}
-                    jumpedToMax={jumpedToMax}
-                    isIncreased={isIncreased}
-                    isAnimating={isAnimating}
-              
-                  />
-                </IconButton>
-
+                  <IconButton
+                    onClick={handleVolumeToggle}
+                    disableRipple
+                    sx={{
+                      color: "#f1f1f1",
+                      padding: "0 2px",
+                      width: "48px",
+                      height: "100%",
+                    }}
+                  >
+                    <MorphingVolIcon
+                      volume={volume / 40}
+                      muted={isMuted}
+                      jumpedToMax={jumpedToMax}
+                      isIncreased={isIncreased}
+                      isAnimating={isAnimating}
+                    />
+                  </IconButton>
+                </Tooltip>
                 <Box
                   ref={volumeSliderRef}
                   onMouseDown={handleVolumeClick}
@@ -447,10 +500,45 @@ const VideoControls = forwardRef(
                 onClick={handlePrevPlaylist}
                 sx={{ color: "#f1f1f1" }}
               >
-                <FullscreenIcon
-                  onClick={toggleFullScreen}
-                  sx={{ width: "1.25em", height: "1.25em" }}
-                />
+                {" "}
+                <Tooltip
+                  disableInteractive
+            
+                  title={
+                    isFullscreen ? "Exit full screen (f)" : "Full screen (f)"
+                  }
+                  placement="top"
+                  slotProps={{
+                    popper: {
+                      disablePortal: isFullscreen,
+                      modifiers: [
+                        {
+                          name: "offset",
+                          options: {
+                            offset: [0, 5],
+                          },
+                        },
+                      ],
+                    },
+                    tooltip: {
+                      sx: {
+                        whiteSpace: "nowrap",
+                        backgroundColor: "rgb(27,26,27)",
+                        color: "#f1f1f1",
+                        fontSize: "0.75rem",
+                        fontWeight: "600",
+                        borderRadius: "4px",
+                        py: "4px",
+                        px: "6px",
+                      },
+                    },
+                  }}
+                >
+                  <FullscreenIcon
+                    onClick={toggleFullScreen}
+                    sx={{ width: "1.25em", height: "1.25em" }}
+                  />
+                </Tooltip>
               </IconButton>
             </Box>
           </Box>
