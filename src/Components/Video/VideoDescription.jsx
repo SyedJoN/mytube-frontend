@@ -9,8 +9,9 @@ import formatDate from "../../utils/formatDate";
 import { Typography } from "@mui/material";
 import Interaction from "../Utils/Interaction";
 import handleMouseDown from "../../helper/intertactionHelper";
+import { Link } from "@tanstack/react-router";
 
-function Description({ data, subscriberCount }) {
+function Description({ data, subscriberCount, owner }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -82,6 +83,12 @@ function Description({ data, subscriberCount }) {
           "& .MuiCardHeader-content": { overflow: "hidden", minWidth: 0 },
         }}
         avatar={
+             <Link
+                            style={{
+                              textDecoration: "none",
+                            }}
+                            to={`/@${owner}`}
+                          >
               <Avatar
                             src={
                               data?.data?.owner?.avatar
@@ -97,11 +104,19 @@ function Description({ data, subscriberCount }) {
                               ? data?.data?.owner?.fullName.charAt(0).toUpperCase()
                               : "?"}
                           </Avatar>
+                          </Link>
         }
         title={
+            <Link
+                                    style={{
+                                      textDecoration: "none",
+                                    }}
+                                    to={`/@${owner}`}
+                                  >
           <Typography variant="body1" color="rgb(255,255,255)">
             {data?.data?.owner?.fullName}
           </Typography>
+          </Link>
         }
         subheader={
           <Typography variant="body2" color="#aaa" fontSize="0.8rem">

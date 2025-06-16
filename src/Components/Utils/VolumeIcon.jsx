@@ -44,14 +44,14 @@ export const MorphingVolIcon = ({
   }, [isMuted, isIncreased, jumpedToMax]);
 
   return (
-    <div style={{ width: 36, height: 36 }}>
+    <div style={{ width: "100%", height: "100%" }}>
       <motion.svg
-        width="36"
-        height="36"
+        width="100%"
+        height="100%"
         viewBox="0 0 36 36"
         fill="currentColor"
         xmlns="http://www.w3.org/2000/svg"
-        className="control-svg"
+        className="control-svg-fill"
       >
         {!isAnimating && (
           <defs key={isMuted ? "muted" : "unmuted"}>

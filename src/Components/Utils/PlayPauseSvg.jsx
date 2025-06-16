@@ -5,7 +5,7 @@ const paths = {
   play: "M 12,26 16,26 16,10 12,10 z M 21,26 25,26 25,10 21,10 z",
   pause: "M 12,26 18.5,22 18.5,14 12,10 z M 18.5,22 25,18 25,18 18.5,14 z" 
 };
-export const MorphingIcon = ({ isPlaying }) => {
+export const PlayPauseSvg = ({ isPlaying }) => {
 
   return (
     <motion.svg
@@ -14,7 +14,7 @@ export const MorphingIcon = ({ isPlaying }) => {
       viewBox="0 0 36 36"
       fill="currentColor"
       xmlns="http://www.w3.org/2000/svg"
-      className="control-svg"
+      className="control-svg-fill"
     >
         <use className="svg-shadow" href="#id-1"></use>
 

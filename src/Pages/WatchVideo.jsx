@@ -86,8 +86,10 @@ const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
     const playIndex = playlistVideos?.findIndex(
       (video) => video._id === videoId
     );
+    if (playIndex !== -1) {
     setIndex(playIndex);
-  }, [playlistVideos]);
+    }
+  }, [playlistVideos, videoId]);
 
   const handleNextVideo = useCallback(() => {
     if (!playlistId) {
@@ -145,7 +147,7 @@ const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
             channelId={channelId}
             channelName={channelName}
             subscriberCount={subscriberCount}
-            ower={owner}
+            owner={owner}
             activeAlertId={activeAlertId}
             setActiveAlertId={setActiveAlertId}
           />

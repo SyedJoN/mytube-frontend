@@ -5,18 +5,17 @@ import React, {
   useRef,
   useEffect,
 } from "react";
-import { useNavigate } from "@tanstack/react-router";
-import { MorphingIcon } from "../Utils/IconMorph";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { PlayPauseSvg } from "../Utils/PlayPauseSvg";
 import { Box, IconButton, Tooltip, Typography, CardMedia } from "@mui/material";
-import SkipPreviousIcon from "@mui/icons-material/SkipPrevious";
-import SkipNextIcon from "@mui/icons-material/SkipNext";
-import VolumeUpIcon from "@mui/icons-material/VolumeUp";
-import VolumeOffIcon from "@mui/icons-material/VolumeOff";
-import FullscreenIcon from "@mui/icons-material/Fullscreen";
+import { SkipPreviousSvg } from "../Utils/SkipPreviousSvg";
+import { SkipNextSvg } from "../Utils/SkipNextSvg";
+
 import formatDuration from "../../utils/formatDuration";
-import VolumeDownIcon from "@mui/icons-material/VolumeDown";
+
 import "../Utils/iconMorph.css";
 import { MorphingVolIcon } from "../Utils/VolumeIcon";
+import { FullScreenSvg } from "../Utils/FullScreenSvg";
 
 const VideoControls = forwardRef(
   (
@@ -226,19 +225,60 @@ const VideoControls = forwardRef(
             zIndex: 59,
           }}
         >
-          <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              height: "100%",
+            }}
+          >
             <Box
               className="left-controls"
               sx={{ display: "flex", height: "100%" }}
             >
               {playlistId && index > 0 && (
-                <IconButton
-                  disableRipple
-                  onClick={handlePrevPlaylist}
-                  sx={{ color: "#f1f1f1" }}
+                <Tooltip
+                  disableInteractive
+                  title={"Replay"}
+                  placement="top"
+                  slotProps={{
+                    popper: {
+                      disablePortal: isFullscreen,
+                      modifiers: [
+                        {
+                          name: "offset",
+                          options: {
+                            offset: [0, 5],
+                          },
+                        },
+                      ],
+                    },
+                    tooltip: {
+                      sx: {
+                        whiteSpace: "nowrap",
+                        backgroundColor: "rgb(27,26,27)",
+                        color: "#fff",
+                        fontSize: "0.75rem",
+                        fontWeight: "600",
+                        borderRadius: "4px",
+                        py: "4px",
+                        px: "6px",
+                      },
+                    },
+                  }}
                 >
-                  <SkipPreviousIcon />
-                </IconButton>
+                  <a
+                    style={{
+                      width: "48px",
+                      height: "100%",
+                      cursor: "pointer",
+                      padding: "0 2px",
+                    }}
+                    onClick={handlePrevPlaylist}
+                  >
+                    <SkipPreviousSvg />
+                  </a>
+                </Tooltip>
               )}
               <Tooltip
                 disableInteractive
@@ -270,23 +310,23 @@ const VideoControls = forwardRef(
                   },
                 }}
               >
-                <IconButton
-                  disableRipple
+                <a
+                  style={{
+                    height: "100%",
+                    width: "48px",
+                    cursor: "pointer",
+                    padding: "0 4px",
+                  }}
                   onClick={() => {
                     togglePlayPause();
                     setShowIcon(false);
                   }}
-                  sx={{
-                    color: "#f1f1f1",
-                    padding: "0 2px",
-                    width: "46px",
-                    height: "48px",
-                  }}
                 >
-                  <MorphingIcon isPlaying={isPlaying} />
-                </IconButton>
+                  <PlayPauseSvg isPlaying={isPlaying} />
+                </a>
               </Tooltip>
               <Tooltip
+                disableInteractive
                 slotProps={{
                   popper: {
                     disablePortal: isFullscreen,
@@ -368,17 +408,32 @@ const VideoControls = forwardRef(
                 }
                 placement="top"
               >
-                <IconButton
-                  disableRipple
-                  onClick={
-                    playlistId && index < playlistVideos.length - 1
-                      ? handleNextPlaylist
-                      : handleNext
-                  }
-                  sx={{ color: "#f1f1f1", padding: "0", width: "48px" }}
+                <Link
+                  style={{ width: "48px", height: "100%", padding: "0 2px" }}
+                  to="/watch"
+                  search={{
+                    v:
+                      playlistId && index < playlistVideos.length - 1
+                        ? playlistVideos[index + 1]?._id
+                        : filteredVideos[0]?._id,
+                    list:
+                      playlistId && index < playlistVideos.length - 1
+                        ? playlistId
+                        : undefined,
+                    index:
+                      playlistId && index < playlistVideos.length - 1
+                        ? index + 2
+                        : undefined,
+                  }}
                 >
-                  <SkipNextIcon sx={{}} />
-                </IconButton>
+                  <SkipNextSvg
+                    onClick={
+                      playlistId && index < playlistVideos.length - 1
+                        ? handleNextPlaylist
+                        : handleNext
+                    }
+                  />
+                </Link>
               </Tooltip>
               <Box
                 onMouseEnter={handleVolumeHover}
@@ -417,15 +472,14 @@ const VideoControls = forwardRef(
                     },
                   }}
                 >
-                  <IconButton
-                    onClick={handleVolumeToggle}
-                    disableRipple
-                    sx={{
-                      color: "#f1f1f1",
-                      padding: "0 2px",
-                      width: "48px",
+                  <a
+                    style={{
                       height: "100%",
+                      width: "48px",
+                      cursor: "pointer",
+                      padding: "0 4px",
                     }}
+                    onClick={handleVolumeToggle}
                   >
                     <MorphingVolIcon
                       volume={volume / 40}
@@ -434,7 +488,7 @@ const VideoControls = forwardRef(
                       isIncreased={isIncreased}
                       isAnimating={isAnimating}
                     />
-                  </IconButton>
+                  </a>
                 </Tooltip>
                 <Box
                   ref={volumeSliderRef}
@@ -495,15 +549,10 @@ const VideoControls = forwardRef(
               className="right-controls"
               sx={{ display: "flex", height: "100%" }}
             >
-              <IconButton
-                disableRipple
-                onClick={handlePrevPlaylist}
-                sx={{ color: "#f1f1f1" }}
-              >
-                {" "}
+            
+         
                 <Tooltip
                   disableInteractive
-            
                   title={
                     isFullscreen ? "Exit full screen (f)" : "Full screen (f)"
                   }
@@ -534,12 +583,15 @@ const VideoControls = forwardRef(
                     },
                   }}
                 >
-                  <FullscreenIcon
+                  <a
+                  className="full-screen-btn"
+                    style={{ width: "48px", height: "100%", cursor: "pointer", }}
                     onClick={toggleFullScreen}
-                    sx={{ width: "1.25em", height: "1.25em" }}
-                  />
+                  >
+                    <FullScreenSvg isFullscreen={isFullscreen} />
+                  </a>
                 </Tooltip>
-              </IconButton>
+             
             </Box>
           </Box>
 
