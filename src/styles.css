@@ -143,9 +143,7 @@ animation-name: arrow-fade-out-1;
 }
 
 video {
-  width: 100%;
   display: block;
-  margin-bottom: 10px;
 }
 
 #video-container:not(.long-pressing):hover .video-controls {
@@ -154,7 +152,16 @@ video {
 #video-container:not(.long-pressing):hover .controls-background-overlay {
   opacity: 1;
 }
+#video-container[data-theatre] {
+    display: flex;
+    width: 100%;
+    height: 56.25vw;
+    max-height: calc(100vh - 169px);
+    min-height: 480px;
+    overflow-x: clip;
+    flex-direction: row;
 
+}
 .video-controls {
   transition: opacity 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }

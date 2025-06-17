@@ -72,6 +72,7 @@ function VideoPlayer({
   const videoRef = useRef(null);
   const videoPauseStatus = useRef(null);
   const prevVolumeRef = useRef(null);
+  const [prevTheatre, setPrevTheatre] = useState(false)
 
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -81,7 +82,7 @@ function VideoPlayer({
   const volumeIconRef = useRef(null);
   const buttonRef = useRef(null);
   const [progress, setProgress] = useState(0);
-   const [videoHeight, setVideoHeight] = useState(0);
+
   const [isPlaying, setIsPlaying] = useState(false);
 
   const [viewCounted, setViewCounted] = useState(false);
@@ -90,6 +91,7 @@ function VideoPlayer({
   const [showIcon, setShowIcon] = useState(false);
   const [showVolumeIcon, setShowVolumeIcon] = useState(false);
   const [volumeUp, setVolumeUp] = useState(false);
+  const [leftOffset, setLeftOffset] = useState("0px");
   const [volumeDown, setVolumeDown] = useState(false);
   const [volumeMuted, setVolumeMuted] = useState(false);
   const pressTimer = useRef(null);
@@ -106,29 +108,31 @@ function VideoPlayer({
   const [isIncreased, setIsIncreased] = useState(false);
   const [jumpedToMax, setJumpedToMax] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [videoContainerWidth, setVideoContainerWidth] = useState("0px");
+
   const isFastPlayback = videoRef?.current?.playbackRate === 2.0;
   const animateTimeoutRef = useRef(null);
 
+  useEffect(() => {
+    const updateLeftOffset = () => {
+      if (isTheatre && containerRef.current && videoRef.current) {
+        const containerWidth = containerRef.current.offsetWidth;
+        setVideoContainerWidth(containerWidth);
+        const videoWidth = videoRef.current.offsetWidth;
+        const offset = (containerWidth - videoWidth) / 2;
+        setLeftOffset(`${offset}px`);
+      } else {
+        setLeftOffset("0px");
+      }
+    };
+    updateLeftOffset();
+    window.addEventListener("resize", updateLeftOffset);
 
-     useEffect(() => {
-        if (!videoRef.current) return;
-  
-        const updateHeight = () => {
-          setVideoHeight(videoRef.current.offsetHeight);
-        };
-  
-        updateHeight();
-  
-        const observer = new ResizeObserver(updateHeight);
-        observer.observe(videoRef.current);
-  
-        window.addEventListener("resize", updateHeight);
-  
-        return () => {
-          observer.disconnect();
-          window.removeEventListener("resize", updateHeight);
-        };
-      }, []);
+    return () => {
+      window.removeEventListener("resize", updateLeftOffset);
+    };
+  }, [isTheatre]);
+
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -288,6 +292,11 @@ function VideoPlayer({
     0.02
   );
 
+  useEffect(()=> {
+console.log("isTheater", isTheatre)
+console.log("prevTheatre", prevTheatre)
+}, [isTheatre, prevTheatre])
+
   useEffect(() => {
     const normalizedVolume = volume / 40;
     debouncedUpdateVolumeStates(normalizedVolume);
@@ -296,20 +305,37 @@ function VideoPlayer({
     };
   }, [volume, debouncedUpdateVolumeStates]);
 
-  const toggleFullScreen = useCallback(() => {
-    const el = containerRef.current;
-    if (!document.fullscreenElement) {
-      if (el.requestFullscreen) {
-        el.requestFullscreen();
-      } else if (el.webkitRequestFullscreen) {
-        el.webkitRequestFullscreen();
+useEffect(() => {
+  const handleFullscreenChange = () => {
+    const isFullscreen = !!document.fullscreenElement;
+
+    if (isFullscreen) {
+
+      if (prevTheatre) {
+        setIsTheatre(false);
       }
     } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
+    
+      if (prevTheatre) {
+        setIsTheatre(true);
       }
     }
-  }, []);
+  };
+
+  document.addEventListener('fullscreenchange', handleFullscreenChange);
+  return () => {
+    document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  };
+}, [prevTheatre]);
+
+ const toggleFullScreen = useCallback(() => {
+  const el = containerRef.current;
+  if (!document.fullscreenElement) {
+    el?.requestFullscreen?.();
+  } else {
+    document.exitFullscreen?.();
+  }
+}, []);
 
   const togglePlayPause = useCallback(() => {
     const video = videoRef.current;
@@ -590,6 +616,17 @@ function VideoPlayer({
         setTimeout(() => {
           setIsVolumeChanged(false);
         }, 500);
+      } else if (e.key.toLowerCase() === "t") {
+        e.preventDefault();
+        const isFullscreen = !!document.fullscreenElement;
+        if(!isFullscreen && videoRef.current) {
+              setIsTheatre((prev) => {
+        const newState = !prev;
+        setPrevTheatre(newState);
+        return newState;
+      });
+        }
+     
       }
     };
     document.addEventListener("keydown", handleKeyPress);
@@ -709,6 +746,7 @@ function VideoPlayer({
   return (
     <>
       <Box
+        {...(isTheatre ? { "data-theatre": true } : {})}
         ref={containerRef}
         id="video-container"
         className={isLongPress ? "long-pressing" : ""}
@@ -717,29 +755,39 @@ function VideoPlayer({
           position: "relative",
         }}
       >
-        <Box sx={{ paddingTop: `${videoHeight}px` }} className="video-inner"></Box>
-        <Box
-          className="html5-video-container"
-          sx={{ position: "relative"}}
-        >
-          <video
-            ref={videoRef}
-            id="video-player"
-            width="100%"
-            height="auto"
-            key={data?.data?._id}
-            onTimeUpdate={handleTimeUpdate}
-            onEnded={handleVideoEnd}
-            onLoadedMetadata={handleLoadedMetadata}
-            style={{ aspectRatio: "16/9", borderRadius: "8px" }}
-          >
-            {data?.data?.videoFile && (
-              <source src={data?.data?.videoFile} type="video/mp4" />
-            )}
-            Your browser does not support the video tag.
-          </video>
+        {!isTheatre && (
+          <Box
+            sx={{ paddingTop: "calc(9 / 16 * 100%)" }}
+            className="video-inner"
+          />
+        )}
+        <Box sx={{ flex: 1 }}>
+          <Box className="html5-video-container" sx={{ position: "relative" }}>
+            <video
+              ref={videoRef}
+              id="video-player"
+              key={data?.data?._id}
+              onTimeUpdate={handleTimeUpdate}
+              onEnded={handleVideoEnd}
+              onLoadedMetadata={handleLoadedMetadata}
+              style={{
+                position: "absolute",
+                top: isTheatre ? 0 : "",
+                bottom: isTheatre ? "" : "0",
+                aspectRatio: "16/9",
+                borderRadius: isTheatre ? "0" : "8px",
+                width: "100%",
+                height: containerRef.current?.offsetHeight,
+                left: isTheatre ? leftOffset : "0",
+              }}
+            >
+              {data?.data?.videoFile && (
+                <source src={data?.data?.videoFile} type="video/mp4" />
+              )}
+              Your browser does not support the video tag.
+            </video>
+          </Box>
         </Box>
-
         <VideoControls
           ref={videoRef}
           isUserInteracted={isUserInteracted}
@@ -766,6 +814,8 @@ function VideoPlayer({
           isAnimating={isAnimating}
           isTheatre={isTheatre}
           setIsTheatre={setIsTheatre}
+          setPrevTheatre={setPrevTheatre}
+          videoContainerWidth={videoContainerWidth}
         />
 
         <Box

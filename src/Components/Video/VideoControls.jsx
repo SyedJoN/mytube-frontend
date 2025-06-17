@@ -43,6 +43,8 @@ const VideoControls = forwardRef(
       isAnimating,
       isTheatre,
       setIsTheatre,
+      setPrevTheatre,
+      videoContainerWidth,
     },
     videoRef
   ) => {
@@ -203,6 +205,15 @@ const VideoControls = forwardRef(
       setShowVolumePanel(true);
     };
 
+    const handleTheatreToggle = () => {
+      setIsTheatre((prev) => {
+        const newState = !prev;
+        setPrevTheatre(newState);
+        return newState;
+      });
+    };
+    
+
     return (
       <>
         <Box
@@ -217,7 +228,7 @@ const VideoControls = forwardRef(
           sx={{
             position: "absolute",
             opacity: shouldShowOverlay ? 1 : 0,
-            width: `${videoWidth}px`,
+            width: videoContainerWidth - 24,
             transition: "opacity .25s cubic-bezier(0,0,.2,1)",
             bottom: 0,
             height: "48px",
@@ -552,7 +563,6 @@ const VideoControls = forwardRef(
               className="right-controls"
               sx={{ display: "flex", height: "100%" }}
             >
-              
               {!isFullscreen && (
                 <Tooltip
                   disableInteractive
@@ -587,7 +597,7 @@ const VideoControls = forwardRef(
                   <a
                     className="full-screen-btn"
                     style={{ width: "48px", height: "100%", cursor: "pointer" }}
-                    onClick={()=> setIsTheatre(prev => !prev)}
+                    onClick={handleTheatreToggle}
                   >
                     <TheatreSvg isTheatre={isTheatre} />
                   </a>
