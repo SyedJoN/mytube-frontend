@@ -83,39 +83,35 @@ function Description({ data, subscriberCount, owner }) {
           "& .MuiCardHeader-content": { overflow: "hidden", minWidth: 0 },
         }}
         avatar={
-             <Link
-                            style={{
-                              textDecoration: "none",
-                            }}
-                            to={`/@${owner}`}
-                          >
-              <Avatar
-                            src={
-                              data?.data?.owner?.avatar
-                                ? data?.data?.owner?.avatar
-                                : null
-                            }
-                            sx={{
-                              bgcolor: getColor(data?.data?.owner?.fullName),
-                              cursor: "pointer",
-                            }}
-                          >
-                            {data?.data?.owner?.fullName
-                              ? data?.data?.owner?.fullName.charAt(0).toUpperCase()
-                              : "?"}
-                          </Avatar>
-                          </Link>
+          <Link
+            style={{
+              textDecoration: "none",
+            }}
+            to={`/@${owner}`}
+          >
+            <Avatar
+              src={data?.data?.owner?.avatar ? data?.data?.owner?.avatar : null}
+              sx={{
+                bgcolor: getColor(data?.data?.owner?.fullName),
+                cursor: "pointer",
+              }}
+            >
+              {data?.data?.owner?.fullName
+                ? data?.data?.owner?.fullName.charAt(0).toUpperCase()
+                : "?"}
+            </Avatar>
+          </Link>
         }
         title={
-            <Link
-                                    style={{
-                                      textDecoration: "none",
-                                    }}
-                                    to={`/@${owner}`}
-                                  >
-          <Typography variant="body1" color="rgb(255,255,255)">
-            {data?.data?.owner?.fullName}
-          </Typography>
+          <Link
+            style={{
+              textDecoration: "none",
+            }}
+            to={`/@${owner}`}
+          >
+            <Typography variant="body1" color="rgb(255,255,255)">
+              {data?.data?.owner?.fullName}
+            </Typography>
           </Link>
         }
         subheader={

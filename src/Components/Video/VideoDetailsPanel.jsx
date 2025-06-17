@@ -22,7 +22,24 @@ const VideoDetailsPanel = ({
 }) => {
   return (
     <>
+      <Box marginTop="8px">
+        <Typography
+          sx={{
+            display: "-webkit-box",
+            textOverflow: "ellipsis",
+            maxHeight: "5.6rem",
+            WebkitLineClamp: "2",
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+          }}
+          variant="h3"
+          color="#fff"
+        >
+          {data?.data?.title}
+        </Typography>
+      </Box>
       {data?.data?.owner?.avatar && (
+        
         <Box
           sx={{
             display: "flex",

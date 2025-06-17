@@ -65,6 +65,8 @@ function VideoPlayer({
   handleNextVideo,
   isUserInteracted,
   setIsUserInteracted,
+  isTheatre,
+  setIsTheatre,
 }) {
   const containerRef = useRef(null);
   const videoRef = useRef(null);
@@ -79,7 +81,7 @@ function VideoPlayer({
   const volumeIconRef = useRef(null);
   const buttonRef = useRef(null);
   const [progress, setProgress] = useState(0);
-
+   const [videoHeight, setVideoHeight] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
 
   const [viewCounted, setViewCounted] = useState(false);
@@ -107,6 +109,26 @@ function VideoPlayer({
   const isFastPlayback = videoRef?.current?.playbackRate === 2.0;
   const animateTimeoutRef = useRef(null);
 
+
+     useEffect(() => {
+        if (!videoRef.current) return;
+  
+        const updateHeight = () => {
+          setVideoHeight(videoRef.current.offsetHeight);
+        };
+  
+        updateHeight();
+  
+        const observer = new ResizeObserver(updateHeight);
+        observer.observe(videoRef.current);
+  
+        window.addEventListener("resize", updateHeight);
+  
+        return () => {
+          observer.disconnect();
+          window.removeEventListener("resize", updateHeight);
+        };
+      }, []);
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -505,21 +527,21 @@ function VideoPlayer({
       setVolume(restoreVol * 40);
     }
   }, []);
-const updateVolumeIconState = () => {
-  const currentVolume = videoRef.current?.volume ?? 0;
+  const updateVolumeIconState = () => {
+    const currentVolume = videoRef.current?.volume ?? 0;
 
-  setVolumeMuted(false);
-  setVolumeUp(false);
-  setVolumeDown(false);
+    setVolumeMuted(false);
+    setVolumeUp(false);
+    setVolumeDown(false);
 
-  if (currentVolume === 0) {
-    setVolumeMuted(true);
-  } else if (currentVolume > 0.5) {
-    setVolumeUp(true);
-  } else {
-    setVolumeDown(true);
-  }
-};
+    if (currentVolume === 0) {
+      setVolumeMuted(true);
+    } else if (currentVolume > 0.5) {
+      setVolumeUp(true);
+    } else {
+      setVolumeDown(true);
+    }
+  };
   useEffect(() => {
     const handleKeyPress = (e) => {
       const activeElement = document.activeElement;
@@ -552,7 +574,7 @@ const updateVolumeIconState = () => {
         e.preventDefault();
         const icon = volumeIconRef.current;
         setShowVolumeIcon(true);
-        setShowIcon(false)
+        setShowIcon(false);
         setIsVolumeChanged(true);
 
         if (icon) {
@@ -563,7 +585,7 @@ const updateVolumeIconState = () => {
           console.warn("volumeIconRef is null");
         }
         handleVolumeToggle();
-      updateVolumeIconState();
+        updateVolumeIconState();
 
         setTimeout(() => {
           setIsVolumeChanged(false);
@@ -695,22 +717,28 @@ const updateVolumeIconState = () => {
           position: "relative",
         }}
       >
-        <video
-          ref={videoRef}
-          id="video-player"
-          width="100%"
-          height="auto"
-          key={data?.data?._id}
-          onTimeUpdate={handleTimeUpdate}
-          onEnded={handleVideoEnd}
-          onLoadedMetadata={handleLoadedMetadata}
-          style={{ aspectRatio: "16/9", borderRadius: "8px" }}
+        <Box sx={{ paddingTop: `${videoHeight}px` }} className="video-inner"></Box>
+        <Box
+          className="html5-video-container"
+          sx={{ position: "relative"}}
         >
-          {data?.data?.videoFile && (
-            <source src={data?.data?.videoFile} type="video/mp4" />
-          )}
-          Your browser does not support the video tag.
-        </video>
+          <video
+            ref={videoRef}
+            id="video-player"
+            width="100%"
+            height="auto"
+            key={data?.data?._id}
+            onTimeUpdate={handleTimeUpdate}
+            onEnded={handleVideoEnd}
+            onLoadedMetadata={handleLoadedMetadata}
+            style={{ aspectRatio: "16/9", borderRadius: "8px" }}
+          >
+            {data?.data?.videoFile && (
+              <source src={data?.data?.videoFile} type="video/mp4" />
+            )}
+            Your browser does not support the video tag.
+          </video>
+        </Box>
 
         <VideoControls
           ref={videoRef}
@@ -736,6 +764,8 @@ const updateVolumeIconState = () => {
           isIncreased={isIncreased}
           jumpedToMax={jumpedToMax}
           isAnimating={isAnimating}
+          isTheatre={isTheatre}
+          setIsTheatre={setIsTheatre}
         />
 
         <Box
@@ -1018,23 +1048,6 @@ const updateVolumeIconState = () => {
             </>
           </Box>
         </Box>
-      </Box>
-
-      <Box marginTop="8px">
-        <Typography
-          sx={{
-            display: "-webkit-box",
-            textOverflow: "ellipsis",
-            maxHeight: "5.6rem",
-            WebkitLineClamp: "2",
-            WebkitBoxOrient: "vertical",
-            overflow: "hidden",
-          }}
-          variant="h3"
-          color="#fff"
-        >
-          {data?.data?.title}
-        </Typography>
       </Box>
     </>
   );

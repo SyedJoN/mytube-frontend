@@ -16,6 +16,7 @@ import formatDuration from "../../utils/formatDuration";
 import "../Utils/iconMorph.css";
 import { MorphingVolIcon } from "../Utils/VolumeIcon";
 import { FullScreenSvg } from "../Utils/FullScreenSvg";
+import { TheatreSvg } from "../Utils/TheatreSvg";
 
 const VideoControls = forwardRef(
   (
@@ -40,6 +41,8 @@ const VideoControls = forwardRef(
       jumpedToMax,
       isIncreased,
       isAnimating,
+      isTheatre,
+      setIsTheatre,
     },
     videoRef
   ) => {
@@ -342,7 +345,7 @@ const VideoControls = forwardRef(
                   tooltip: {
                     sx: {
                       whiteSpace: "nowrap",
-                      backgroundColor: "rgba(26,25,25,255)",
+                      backgroundColor: "rgb(27,26,27)",
                       fontSize: "0.75rem",
                       borderRadius: "16px",
                       padding: "0",
@@ -549,13 +552,11 @@ const VideoControls = forwardRef(
               className="right-controls"
               sx={{ display: "flex", height: "100%" }}
             >
-            
-         
+              
+              {!isFullscreen && (
                 <Tooltip
                   disableInteractive
-                  title={
-                    isFullscreen ? "Exit full screen (f)" : "Full screen (f)"
-                  }
+                  title={isTheatre ? "Default view (t)" : "Theatre mode (t)"}
                   placement="top"
                   slotProps={{
                     popper: {
@@ -584,14 +585,54 @@ const VideoControls = forwardRef(
                   }}
                 >
                   <a
-                  className="full-screen-btn"
-                    style={{ width: "48px", height: "100%", cursor: "pointer", }}
-                    onClick={toggleFullScreen}
+                    className="full-screen-btn"
+                    style={{ width: "48px", height: "100%", cursor: "pointer" }}
+                    onClick={()=> setIsTheatre(prev => !prev)}
                   >
-                    <FullScreenSvg isFullscreen={isFullscreen} />
+                    <TheatreSvg isTheatre={isTheatre} />
                   </a>
                 </Tooltip>
-             
+              )}
+              <Tooltip
+                disableInteractive
+                title={
+                  isFullscreen ? "Exit full screen (f)" : "Full screen (f)"
+                }
+                placement="top"
+                slotProps={{
+                  popper: {
+                    disablePortal: isFullscreen,
+                    modifiers: [
+                      {
+                        name: "offset",
+                        options: {
+                          offset: [0, 5],
+                        },
+                      },
+                    ],
+                  },
+                  tooltip: {
+                    sx: {
+                      whiteSpace: "nowrap",
+                      backgroundColor: "rgb(27,26,27)",
+                      color: "#f1f1f1",
+                      fontSize: "0.75rem",
+                      fontWeight: "600",
+                      borderRadius: "4px",
+                      py: "4px",
+                      px: "6px",
+                    },
+                  },
+                }}
+              >
+                <a
+                  className="full-screen-btn"
+                  style={{ width: "48px", height: "100%", cursor: "pointer" }}
+                  onClick={toggleFullScreen}
+                >
+                  <FullScreenSvg isFullscreen={isFullscreen} />
+                </a>
+              </Tooltip>
             </Box>
           </Box>
 
