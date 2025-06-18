@@ -160,6 +160,7 @@ video {
     min-height: 480px;
     overflow-x: clip;
     flex-direction: row;
+    background: #000;
 
 }
 .video-controls {

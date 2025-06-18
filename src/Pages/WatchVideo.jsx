@@ -3,8 +3,9 @@ import VideoPlayer from "../Components/Video/VideoPlayer";
 import { useNavigate } from "@tanstack/react-router";
 import { Grid, useMediaQuery } from "@mui/material";
 import VideoDetailsPanel from "../Components/Video/VideoDetailsPanel";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchVideoById, fetchVideos } from "../apis/videoFn";
+import {Box} from "@mui/material";
 import {
   OpenContext,
   UserInteractionContext,
@@ -26,7 +27,7 @@ function WatchVideo({ videoId, playlistId }) {
   const isAuthenticated = dataContext || null;
   const [activeAlertId, setActiveAlertId] = useState(null);
   const [isTheatre, setIsTheatre] = useState(false);
-
+const queryClient = useQueryClient();
   const isCustomWidth = useMediaQuery("(max-width:1014px)");
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["video", videoId],
@@ -96,6 +97,15 @@ function WatchVideo({ videoId, playlistId }) {
     }
   }, [playlistVideos, videoId]);
 
+useEffect(() => {
+  if (playlistVideos[index + 1]) {
+    queryClient.prefetchQuery({
+      queryKey: ["video", playlistVideos[index + 1]._id],
+      queryFn: () => fetchVideoById(playlistVideos[index + 1]._id),
+    });
+  } 
+}, [playlistVideos, index]);
+
   const handleNextVideo = useCallback(() => {
     if (!playlistId) {
       navigate({
@@ -147,7 +157,8 @@ function WatchVideo({ videoId, playlistId }) {
           isTheatre={isTheatre}
           setIsTheatre={setIsTheatre}
         />
-        {!isCustomWidth && !isTheatre && (
+      
+         <Box sx={{ display: (!isCustomWidth && !isTheatre) ? 'block' : 'none' }}>
           <VideoDetailsPanel
             videoId={videoId}
             data={data}
@@ -162,8 +173,8 @@ function WatchVideo({ videoId, playlistId }) {
             activeAlertId={activeAlertId}
             setActiveAlertId={setActiveAlertId}
           />
-        )}
-        {!isCustomWidth && !isTheatre && (
+          </Box>
+   <Box sx={{ display: (!isCustomWidth && !isTheatre) ? 'block' : 'none' }}>
           <CommentSection
             isAuthenticated={isAuthenticated}
             videoId={videoId}
@@ -171,10 +182,10 @@ function WatchVideo({ videoId, playlistId }) {
             activeAlertId={activeAlertId}
             setActiveAlertId={setActiveAlertId}
           />
-        )}
+        </Box>
       </Grid>
-      {!(isTheatre && !isCustomWidth) && (
-        <Grid
+    {!(isTheatre && !isCustomWidth) &&
+      <Grid
           size={{ xs: 12, sm: 12, md: 4 }}
           sx={{
             flexGrow: isCustomWidth ? "1" : "0",
@@ -226,9 +237,12 @@ function WatchVideo({ videoId, playlistId }) {
             />
           )}
         </Grid>
-      )}
+    }
+      
+   
 
-      {isTheatre && !isCustomWidth && (
+     
+        <Box sx={{width: "100%", display: isTheatre && !isCustomWidth ? "block" : "none"}}>
         <Grid
           container
           direction={"row"}
@@ -303,7 +317,7 @@ function WatchVideo({ videoId, playlistId }) {
             />
           </Grid>
         </Grid>
-      )}
+   </Box>
     </Grid>
   );
 }

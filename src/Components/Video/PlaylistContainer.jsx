@@ -533,4 +533,4 @@ const PlaylistContainer = ({ playlistId, playlistData, videoId }) => {
   );
 };
 
-export default PlaylistContainer;
+export default React.memo(PlaylistContainer);

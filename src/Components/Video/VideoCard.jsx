@@ -35,7 +35,30 @@ import { useNavigate } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
 import Interaction from "../Utils/Interaction";
 import handleMouseDown from "../../helper/intertactionHelper";
-import { UserInteractionContext, useUserInteraction } from "../../routes/__root";
+import {
+  UserInteractionContext,
+  useUserInteraction,
+} from "../../routes/__root";
+
+const tooltipStyles = {
+  whiteSpace: "nowrap",
+  backgroundColor: "rgba(26,25,25,255)",
+  maxWidth: 700,
+  color: "#f1f1f1",
+  fontSize: "0.75rem",
+  border: "1px solid #f1f1f1",
+  borderRadius: "0",
+  padding: "4px",
+};
+
+const linkStyles = { textDecoration: "none" };
+
+const viewStyles = {
+  display: "inline-block",
+  verticalAlign: "top",
+  textDecoration: "none",
+  userSelect: "none",
+};
 
 const ExpandMore = styled((props) => {
   const { expand, ...other } = props;
@@ -95,7 +118,7 @@ function VideoCard({
   const playlistVideoId = playlist?.videos?.map((video) => {
     return video._id;
   });
-const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
+  const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
 
   const getColor = (name) => {
     if (!name) return red[500];
@@ -137,7 +160,7 @@ const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
     <>
       {home ? (
         <Card
-        onClick={()=> setIsUserInteracted(true)}
+          onClick={() => setIsUserInteracted(true)}
           sx={{
             position: "relative",
             transition: "0.3s ease-in-out",
@@ -230,6 +253,8 @@ const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
                 <Link to="/watch" search={{ v: videoId }}>
                   <Tooltip
                     disableInteractive
+                    disableFocusListener
+                    disableTouchListener
                     title={title}
                     placement="bottom"
                     slotProps={{
@@ -244,16 +269,7 @@ const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
                         ],
                       },
                       tooltip: {
-                        sx: {
-                          whiteSpace: "nowrap",
-                          backgroundColor: "rgba(26,25,25,255)",
-                          maxWidth: 700,
-                          color: "#f1f1f1",
-                          fontSize: "0.75rem",
-                          border: "1px solid #f1f1f1",
-                          borderRadius: "0",
-                          padding: "4px",
-                        },
+                        sx: { tooltipStyles },
                       },
                     }}
                   >
@@ -282,6 +298,8 @@ const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
                     <Link to={`/@${owner}`}>
                       <Tooltip
                         disableInteractive
+                        disableFocusListener
+                        disableTouchListener
                         title={fullName}
                         placement="top-start"
                         slotProps={{
@@ -326,8 +344,7 @@ const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
         </Card>
       ) : video ? (
         <Card
-        onClick={()=> setIsUserInteracted(true)}
-
+          onClick={() => setIsUserInteracted(true)}
           onMouseDown={(e) => {
             handleMouseDown(e);
             e.stopPropagation();
@@ -375,7 +392,7 @@ const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
                 <Link
                   to="/watch"
                   search={{ v: videoId }}
-                  style={{ textDecoration: "none" }}
+                  style={linkStyles}
                   onDragEnd={() => {
                     if (interactionRef.current) {
                       interactionRef.current.classList.remove("down");
@@ -438,7 +455,7 @@ const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
             <Link
               to="/watch"
               search={{ v: videoId }}
-              style={{ textDecoration: "none" }}
+              style={linkStyles}
               onDragEnd={() => {
                 if (interactionRef.current) {
                   interactionRef.current.classList.remove("down");
@@ -466,6 +483,8 @@ const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
                 title={
                   <Tooltip
                     disableInteractive
+                    disableFocusListener
+                    disableTouchListener
                     title={title}
                     placement="bottom"
                     slotProps={{
@@ -480,16 +499,7 @@ const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
                         ],
                       },
                       tooltip: {
-                        sx: {
-                          whiteSpace: "nowrap",
-                          backgroundColor: "rgba(26,25,25,255)",
-                          maxWidth: 700,
-                          color: "#f1f1f1",
-                          fontSize: "0.75rem",
-                          border: "1px solid #f1f1f1",
-                          borderRadius: "0",
-                          padding: "4px",
-                        },
+                        sx: { tooltipStyles },
                       },
                     }}
                   >
@@ -516,6 +526,8 @@ const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
                   <>
                     <Tooltip
                       disableInteractive
+                      disableFocusListener
+                      disableTouchListener
                       title={fullName}
                       placement="top-start"
                     >
@@ -533,13 +545,7 @@ const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
                       </Typography>
                     </Tooltip>
                     <Typography fontSize="0.75rem" color="#aaa">
-                      <span
-                        style={{
-                          display: "inline-block",
-                          verticalAlign: "top",
-                          userSelect: "none",
-                        }}
-                      >
+                      <span style={viewStyles}>
                         {views} {views === 1 ? "view" : "views"} &bull;{" "}
                         {createdAt}
                       </span>
@@ -728,7 +734,7 @@ const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
                       display: "-webkit-box",
                       fontSize: "1.2rem",
                       WebkitBoxOrient: "vertical",
-                      WebkitLineClamp: 2, 
+                      WebkitLineClamp: 2,
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "normal",
@@ -822,7 +828,7 @@ const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
           <Link
             to="/watch"
             search={{ v: videoId }}
-            style={{ textDecoration: "none" }}
+            style={linkStyles}
             onDragEnd={() => {
               if (interactionRef.current) {
                 interactionRef.current.classList.remove("down");
@@ -894,7 +900,7 @@ const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
               <Link
                 to="/watch"
                 search={{ v: videoId }}
-                style={{ textDecoration: "none" }}
+                style={linkStyles}
                 onDragEnd={() => {
                   if (interactionRef.current) {
                     interactionRef.current.classList.remove("down");
@@ -920,7 +926,7 @@ const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
                         fontSize: "0.85rem",
                         WebkitBoxOrient: "vertical",
                         overflow: "hidden",
-                        WebkitLineClamp: 2, 
+                        WebkitLineClamp: 2,
                         textOverflow: "ellipsis",
                         fontWeight: 600,
                       }}
@@ -965,7 +971,7 @@ const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
       ) : (
         playlist && (
           <Box
-          onClick={()=> setIsUserInteracted(true)}
+            onClick={() => setIsUserInteracted(true)}
             sx={{
               position: "relative",
               display: "block",
@@ -994,7 +1000,7 @@ const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
               <Link
                 to="/watch"
                 search={{ v: playlistVideoId[0], list: playlistId }}
-                style={{ textDecoration: "none" }}
+                style={linkStyles}
                 onDragEnd={() => {
                   if (interactionRef.current) {
                     interactionRef.current.classList.remove("down");
@@ -1048,7 +1054,7 @@ const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
                       borderRadius: "12px",
                       backgroundColor: "transparent",
                       "&:hover .hover-overlay": {
-                        opacity: 1, 
+                        opacity: 1,
                       },
                     }}
                   >
@@ -1132,7 +1138,7 @@ const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
                 <Link
                   to="/watch"
                   search={{ v: videoId }}
-                  style={{ textDecoration: "none" }}
+                  style={linkStyles}
                   onDragEnd={() => {
                     if (interactionRef.current) {
                       interactionRef.current.classList.remove("down");
@@ -1145,8 +1151,8 @@ const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
                       alignItems: "flex-start",
                       padding: 0,
                       "& .MuiCardHeader-content": {
-                        overflow: "hidden", 
-                        minWidth: 0, 
+                        overflow: "hidden",
+                        minWidth: 0,
                       },
                     }}
                     title={

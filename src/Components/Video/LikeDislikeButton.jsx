@@ -154,6 +154,8 @@ export const LikeDislikeButtons = React.memo(
             <Box sx={{ position: "relative" }}>
               <Tooltip
               disableInteractive
+                  disableFocusListener
+                  disableTouchListener
               title={isLike.isLiked ? "Unlike" : "I like this"}
              
               >
@@ -195,6 +197,7 @@ export const LikeDislikeButtons = React.memo(
                 onConfirm={() => setIsSignIn(true)}
                 handleClose={handleCloseAlert}
                 leftVal={isTablet && !isMobile ? "-168px" : "0px"}
+                setActiveAlertId={setActiveAlertId}
               />
             </Box>
 
@@ -207,6 +210,8 @@ export const LikeDislikeButtons = React.memo(
             <Box sx={{ position: "relative" }}>
               <Tooltip
               disableInteractive
+                  disableFocusListener
+                  disableTouchListener
                 title={
                   isDislike.isDisliked ? "Remove dislike" : "I dislike this"
                 }
@@ -244,6 +249,7 @@ export const LikeDislikeButtons = React.memo(
                 onConfirm={() => setIsSignIn(true)}
                 handleClose={handleCloseAlert}
                 leftVal={isTablet && !isMobile ? "-168px" : "0px"}
+                setActiveAlertId={setActiveAlertId}
               />
             </Box>
           </Box>

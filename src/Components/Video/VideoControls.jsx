@@ -4,6 +4,7 @@ import React, {
   useImperativeHandle,
   useRef,
   useEffect,
+  startTransition,
 } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { PlayPauseSvg } from "../Utils/PlayPauseSvg";
@@ -16,7 +17,50 @@ import formatDuration from "../../utils/formatDuration";
 import "../Utils/iconMorph.css";
 import { MorphingVolIcon } from "../Utils/VolumeIcon";
 import { FullScreenSvg } from "../Utils/FullScreenSvg";
-import { TheatreSvg } from "../Utils/TheatreSvg";
+import TheatreSvg from "../Utils/TheatreSvg";
+
+const tooltipStyles = {
+  whiteSpace: "nowrap",
+  backgroundColor: "rgb(27,26,27)",
+  color: "#f1f1f1",
+  fontSize: "0.75rem",
+  fontWeight: "600",
+  borderRadius: "4px",
+  py: "4px",
+  px: "6px",
+};
+
+const nextVideoStyles = {
+  whiteSpace: "nowrap",
+  backgroundColor: "rgb(27,26,27)",
+  fontSize: "0.75rem",
+  borderRadius: "16px",
+  padding: "0",
+};
+
+const popperModifiers = [
+  {
+    name: "offset",
+    options: {
+      offset: [0, 5],
+    },
+  },
+];
+const nextVideoModifiers = [
+  {
+    name: "offset",
+    options: {
+      offset: [60, 0],
+    },
+  },
+];
+
+const controlStyles = {
+  width: "48px",
+  height: "100%",
+  cursor: "pointer",
+  padding: "0 4px",
+};
 
 const VideoControls = forwardRef(
   (
@@ -32,6 +76,7 @@ const VideoControls = forwardRef(
       playlistVideos,
       index,
       isUserInteracted,
+      setIsUserInteracted,
       isLongPress,
       toggleFullScreen,
       volume,
@@ -43,11 +88,15 @@ const VideoControls = forwardRef(
       isAnimating,
       isTheatre,
       setIsTheatre,
-      setPrevTheatre,
       videoContainerWidth,
     },
     videoRef
   ) => {
+    const isFullscreen = !!document.fullscreenElement;
+ const ariaValueNow = videoRef.current ? Math.round(videoRef.current.currentTime) : 0
+ const ariaValueMax = videoRef.current ? Math.round(videoRef.current.duration) : 0
+    const theatreTitle = isTheatre ? "Default view (t)" : "Theatre mode (t)";
+    const fullScreenTitle = isFullscreen ? "Exit full screen (f)" : "Full screen (f)"
     const navigate = useNavigate();
     var thumbWidth = 13;
     const sliderRef = useRef(null);
@@ -55,7 +104,6 @@ const VideoControls = forwardRef(
 
     const [BarWidth, setBarWidth] = useState(0);
     const [videoWidth, setVideoWidth] = useState(0);
-    const isFullscreen = !!document.fullscreenElement;
 
     const [showVolumePanel, setShowVolumePanel] = useState(false);
     const shouldShowOverlay =
@@ -159,7 +207,7 @@ const VideoControls = forwardRef(
         observer.disconnect();
         window.removeEventListener("resize", updateSizes);
       };
-    }, []);
+    }, [isTheatre]);
 
     // Volume
 
@@ -205,14 +253,12 @@ const VideoControls = forwardRef(
       setShowVolumePanel(true);
     };
 
-    const handleTheatreToggle = () => {
-      setIsTheatre((prev) => {
-        const newState = !prev;
-        setPrevTheatre(newState);
-        return newState;
-      });
-    };
-    
+   const handleTheatreToggle = () => {
+  setIsUserInteracted(true);
+  startTransition(() => {
+    setIsTheatre((prev) => !prev);
+  });
+};
 
     return (
       <>
@@ -228,7 +274,7 @@ const VideoControls = forwardRef(
           sx={{
             position: "absolute",
             opacity: shouldShowOverlay ? 1 : 0,
-            width: videoContainerWidth - 24,
+            width: isTheatre ? videoContainerWidth - 24 : videoWidth + "px",
             transition: "opacity .25s cubic-bezier(0,0,.2,1)",
             bottom: 0,
             height: "48px",
@@ -252,85 +298,44 @@ const VideoControls = forwardRef(
             >
               {playlistId && index > 0 && (
                 <Tooltip
-                  disableInteractive
+                   disableInteractive
+                disableFocusListener
+                disableTouchListener
                   title={"Replay"}
                   placement="top"
                   slotProps={{
                     popper: {
                       disablePortal: isFullscreen,
-                      modifiers: [
-                        {
-                          name: "offset",
-                          options: {
-                            offset: [0, 5],
-                          },
-                        },
-                      ],
+                      modifiers: popperModifiers,
                     },
                     tooltip: {
-                      sx: {
-                        whiteSpace: "nowrap",
-                        backgroundColor: "rgb(27,26,27)",
-                        color: "#fff",
-                        fontSize: "0.75rem",
-                        fontWeight: "600",
-                        borderRadius: "4px",
-                        py: "4px",
-                        px: "6px",
-                      },
+                      sx: tooltipStyles,
                     },
                   }}
                 >
-                  <a
-                    style={{
-                      width: "48px",
-                      height: "100%",
-                      cursor: "pointer",
-                      padding: "0 2px",
-                    }}
-                    onClick={handlePrevPlaylist}
-                  >
+                  <a style={controlStyles} onClick={handlePrevPlaylist}>
                     <SkipPreviousSvg />
                   </a>
                 </Tooltip>
               )}
               <Tooltip
                 disableInteractive
+                disableFocusListener
+                disableTouchListener
                 title={isPlaying ? "Pause (k)" : "Play (k)"}
                 placement="top"
                 slotProps={{
                   popper: {
                     disablePortal: isFullscreen,
-                    modifiers: [
-                      {
-                        name: "offset",
-                        options: {
-                          offset: [0, 5],
-                        },
-                      },
-                    ],
+                    modifiers: popperModifiers,
                   },
                   tooltip: {
-                    sx: {
-                      whiteSpace: "nowrap",
-                      backgroundColor: "rgb(27,26,27)",
-                      color: "#f1f1f1",
-                      fontSize: "0.75rem",
-                      fontWeight: "600",
-                      borderRadius: "4px",
-                      py: "4px",
-                      px: "6px",
-                    },
+                    sx: tooltipStyles,
                   },
                 }}
               >
                 <a
-                  style={{
-                    height: "100%",
-                    width: "48px",
-                    cursor: "pointer",
-                    padding: "0 4px",
-                  }}
+                  style={controlStyles}
                   onClick={() => {
                     togglePlayPause();
                     setShowIcon(false);
@@ -340,27 +345,16 @@ const VideoControls = forwardRef(
                 </a>
               </Tooltip>
               <Tooltip
-                disableInteractive
+                 disableInteractive
+                disableFocusListener
+                disableTouchListener
                 slotProps={{
                   popper: {
                     disablePortal: isFullscreen,
-                    modifiers: [
-                      {
-                        name: "offset",
-                        options: {
-                          offset: [60, 0],
-                        },
-                      },
-                    ],
+                    modifiers: nextVideoModifiers,
                   },
                   tooltip: {
-                    sx: {
-                      whiteSpace: "nowrap",
-                      backgroundColor: "rgb(27,26,27)",
-                      fontSize: "0.75rem",
-                      borderRadius: "16px",
-                      padding: "0",
-                    },
+                    sx: nextVideoStyles,
                   },
                 }}
                 sx={{ padding: "0!important", margin: "0!important" }}
@@ -423,7 +417,7 @@ const VideoControls = forwardRef(
                 placement="top"
               >
                 <Link
-                  style={{ width: "48px", height: "100%", padding: "0 2px" }}
+                  style={controlStyles}
                   to="/watch"
                   search={{
                     v:
@@ -457,44 +451,22 @@ const VideoControls = forwardRef(
                 sx={{ display: "flex" }}
               >
                 <Tooltip
-                  disableInteractive
+                   disableInteractive
+                disableFocusListener
+                disableTouchListener
                   title={isMuted ? "Unmute (m)" : "Mute (m)"}
                   placement="top"
                   slotProps={{
                     popper: {
                       disablePortal: isFullscreen,
-                      modifiers: [
-                        {
-                          name: "offset",
-                          options: {
-                            offset: [0, 5],
-                          },
-                        },
-                      ],
+                      modifiers: popperModifiers,
                     },
                     tooltip: {
-                      sx: {
-                        whiteSpace: "nowrap",
-                        backgroundColor: "rgb(27,26,27)",
-                        color: "#f1f1f1",
-                        fontSize: "0.75rem",
-                        fontWeight: "600",
-                        borderRadius: "4px",
-                        py: "4px",
-                        px: "6px",
-                      },
+                      sx: tooltipStyles,
                     },
                   }}
                 >
-                  <a
-                    style={{
-                      height: "100%",
-                      width: "48px",
-                      cursor: "pointer",
-                      padding: "0 4px",
-                    }}
-                    onClick={handleVolumeToggle}
-                  >
+                  <a style={controlStyles} onClick={handleVolumeToggle}>
                     <MorphingVolIcon
                       volume={volume / 40}
                       muted={isMuted}
@@ -566,37 +538,23 @@ const VideoControls = forwardRef(
               {!isFullscreen && (
                 <Tooltip
                   disableInteractive
-                  title={isTheatre ? "Default view (t)" : "Theatre mode (t)"}
+                  disableFocusListener
+                  disableTouchListener
+                  title={theatreTitle}
                   placement="top"
                   slotProps={{
                     popper: {
                       disablePortal: isFullscreen,
-                      modifiers: [
-                        {
-                          name: "offset",
-                          options: {
-                            offset: [0, 5],
-                          },
-                        },
-                      ],
+                      modifiers: popperModifiers,
                     },
                     tooltip: {
-                      sx: {
-                        whiteSpace: "nowrap",
-                        backgroundColor: "rgb(27,26,27)",
-                        color: "#f1f1f1",
-                        fontSize: "0.75rem",
-                        fontWeight: "600",
-                        borderRadius: "4px",
-                        py: "4px",
-                        px: "6px",
-                      },
+                      sx: tooltipStyles,
                     },
                   }}
                 >
                   <a
                     className="full-screen-btn"
-                    style={{ width: "48px", height: "100%", cursor: "pointer" }}
+                    style={controlStyles}
                     onClick={handleTheatreToggle}
                   >
                     <TheatreSvg isTheatre={isTheatre} />
@@ -605,39 +563,23 @@ const VideoControls = forwardRef(
               )}
               <Tooltip
                 disableInteractive
-                title={
-                  isFullscreen ? "Exit full screen (f)" : "Full screen (f)"
-                }
+                disableFocusListener
+                disableTouchListener
+                title={fullScreenTitle}
                 placement="top"
                 slotProps={{
                   popper: {
                     disablePortal: isFullscreen,
-                    modifiers: [
-                      {
-                        name: "offset",
-                        options: {
-                          offset: [0, 5],
-                        },
-                      },
-                    ],
+                    modifiers: popperModifiers,
                   },
                   tooltip: {
-                    sx: {
-                      whiteSpace: "nowrap",
-                      backgroundColor: "rgb(27,26,27)",
-                      color: "#f1f1f1",
-                      fontSize: "0.75rem",
-                      fontWeight: "600",
-                      borderRadius: "4px",
-                      py: "4px",
-                      px: "6px",
-                    },
+                    sx: tooltipStyles,
                   },
                 }}
               >
                 <a
                   className="full-screen-btn"
-                  style={{ width: "48px", height: "100%", cursor: "pointer" }}
+                  style={controlStyles}
                   onClick={toggleFullScreen}
                 >
                   <FullScreenSvg isFullscreen={isFullscreen} />
@@ -662,12 +604,8 @@ const VideoControls = forwardRef(
               component={"div"}
               role="slider"
               aria-valuemin={0}
-              aria-valuenow={
-                videoRef.current ? Math.round(videoRef.current.currentTime) : 0
-              }
-              aria-valuemax={
-                videoRef.current ? Math.round(videoRef.current.duration) : 0
-              }
+              aria-valuenow={ariaValueNow}
+              aria-valuemax={ariaValueMax}
               className="progress-bar"
               sx={{
                 position: "absolute",

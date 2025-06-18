@@ -14,17 +14,24 @@ import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
 import handleMouseDown from "../../helper/intertactionHelper";
 import Interaction from "../Utils/Interaction";
 
+
+
 function VideoSideBar({
   filteredVideos,
   isLoadingList,
   isErrorList,
   errorList,
 }) {
-  const theme = useTheme();
 
   const [activeOptionsId, setActiveOptionsId] = React.useState(null);
   const isCustomWidth = useMediaQuery("(max-width:1014px)");
-
+const gridSize = {
+                    xs: 12,
+                    sm: 6,
+                    md: 4,
+                    lg: 3.8,
+                    xl: open ? 3.88 : 2.89,
+                  }
   return (
     <>
       {isErrorList && <Typography>Error: {errorList.message}</Typography>}
@@ -41,13 +48,7 @@ function VideoSideBar({
             <React.Fragment key={video._id}>
               {isCustomWidth ? (
                 <Grid
-                  size={{
-                    xs: 12,
-                    sm: 6,
-                    md: 4,
-                    lg: 3.8,
-                    xl: open ? 3.88 : 2.89,
-                  }}
+                  size={gridSize}
                 >
                   <VideoCard
                     owner={video?.owner?.username}

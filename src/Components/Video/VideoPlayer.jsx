@@ -4,6 +4,7 @@ import React, {
   useEffect,
   useContext,
   useCallback,
+  startTransition,
 } from "react";
 import { keyframes } from "@mui/system";
 import { fetchVideoById } from "../../apis/videoFn";
@@ -53,6 +54,7 @@ import VolumeUpIcon from "@mui/icons-material/VolumeUp";
 import VolumeOffIcon from "@mui/icons-material/VolumeOff";
 import VolumeDownIcon from "@mui/icons-material/VolumeDown";
 import { useDebouncedCallback } from "../../helper/debouncedFn";
+import { flushSync } from "react-dom";
 
 function VideoPlayer({
   dataContext,
@@ -72,7 +74,8 @@ function VideoPlayer({
   const videoRef = useRef(null);
   const videoPauseStatus = useRef(null);
   const prevVolumeRef = useRef(null);
-  const [prevTheatre, setPrevTheatre] = useState(false)
+  const [prevTheatre, setPrevTheatre] = useState(false);
+  const [videoHeight, setVideoHeight] = useState(0);
 
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -114,10 +117,13 @@ function VideoPlayer({
   const animateTimeoutRef = useRef(null);
 
   useEffect(() => {
+    if (!containerRef.current || !videoRef.current) return;
+
     const updateLeftOffset = () => {
       if (isTheatre && containerRef.current && videoRef.current) {
         const containerWidth = containerRef.current.offsetWidth;
         setVideoContainerWidth(containerWidth);
+        setVideoHeight(containerRef.current?.offsetHeight);
         const videoWidth = videoRef.current.offsetWidth;
         const offset = (containerWidth - videoWidth) / 2;
         setLeftOffset(`${offset}px`);
@@ -125,11 +131,18 @@ function VideoPlayer({
         setLeftOffset("0px");
       }
     };
+
+    const containerObserver = new ResizeObserver(updateLeftOffset);
+    const videoObserver = new ResizeObserver(updateLeftOffset);
+
+    containerObserver.observe(containerRef.current);
+    videoObserver.observe(videoRef.current);
+
     updateLeftOffset();
-    window.addEventListener("resize", updateLeftOffset);
 
     return () => {
-      window.removeEventListener("resize", updateLeftOffset);
+      containerObserver.disconnect();
+      videoObserver.disconnect();
     };
   }, [isTheatre]);
 
@@ -204,8 +217,11 @@ function VideoPlayer({
     setShowIcon(false);
 
     const icon = volumeIconRef.current;
-    setShowVolumeIcon(true);
-    setIsVolumeChanged(true);
+    flushSync(() => {
+      setShowIcon(false);
+      setShowVolumeIcon(true);
+      setIsVolumeChanged(true);
+    });
 
     if (icon) {
       icon.classList.remove("pressed");
@@ -289,13 +305,13 @@ function VideoPlayer({
       prevVolRef.current = normalizedVolume;
     },
     3,
-    0.02
+    0.04
   );
 
-  useEffect(()=> {
-console.log("isTheater", isTheatre)
-console.log("prevTheatre", prevTheatre)
-}, [isTheatre, prevTheatre])
+  useEffect(() => {
+    console.log("isTheater", isTheatre);
+    console.log("prevTheatre", prevTheatre);
+  }, [isTheatre, prevTheatre]);
 
   useEffect(() => {
     const normalizedVolume = volume / 40;
@@ -305,37 +321,36 @@ console.log("prevTheatre", prevTheatre)
     };
   }, [volume, debouncedUpdateVolumeStates]);
 
-useEffect(() => {
-  const handleFullscreenChange = () => {
-    const isFullscreen = !!document.fullscreenElement;
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isFullscreen = !!document.fullscreenElement;
 
-    if (isFullscreen) {
-
-      if (prevTheatre) {
-        setIsTheatre(false);
+      if (isFullscreen) {
+        if (prevTheatre) {
+          setIsTheatre(false);
+        }
+      } else {
+        if (prevTheatre) {
+          setIsTheatre(true);
+        }
       }
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, [prevTheatre]);
+
+  const toggleFullScreen = useCallback(() => {
+    const el = containerRef.current;
+    if (!document.fullscreenElement) {
+      el?.requestFullscreen?.();
     } else {
-    
-      if (prevTheatre) {
-        setIsTheatre(true);
-      }
+      document.exitFullscreen?.();
     }
-  };
-
-  document.addEventListener('fullscreenchange', handleFullscreenChange);
-  return () => {
-    document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  };
-}, [prevTheatre]);
-
- const toggleFullScreen = useCallback(() => {
-  const el = containerRef.current;
-  if (!document.fullscreenElement) {
-    el?.requestFullscreen?.();
-  } else {
-    document.exitFullscreen?.();
-  }
-}, []);
+    setIsUserInteracted(true);
+  }, []);
 
   const togglePlayPause = useCallback(() => {
     const video = videoRef.current;
@@ -431,6 +446,7 @@ useEffect(() => {
     (video) => video.video === videoId
   );
   let startTimeDuration = userPlayingVideo?.duration;
+
   const handleLoadedMetadata = async () => {
     const video = videoRef?.current;
     if (!video) return;
@@ -446,7 +462,7 @@ useEffect(() => {
     if (!shouldPlay) return;
 
     try {
-      if (isAuthenticated && isValidStart) {
+      if (isAuthenticated && isValidStart && isUserInteracted) {
         video.currentTime = startTimeDuration;
       }
 
@@ -585,6 +601,11 @@ useEffect(() => {
         handleBackwardSeek();
       } else if (e.code === "Space" || e.key.toLowerCase() === "k") {
         e.preventDefault();
+        flushSync(() => {
+          setShowIcon(true); // force icon state update BEFORE any re-render
+          setShowVolumeIcon(false);
+        });
+
         togglePlayPause();
       } else if (e.shiftKey && e.key.toLowerCase() === "n") {
         handleNextVideo();
@@ -599,9 +620,11 @@ useEffect(() => {
       } else if (e.key.toLowerCase() === "m") {
         e.preventDefault();
         const icon = volumeIconRef.current;
-        setShowVolumeIcon(true);
-        setShowIcon(false);
-        setIsVolumeChanged(true);
+        flushSync(() => {
+          setShowIcon(false);
+          setShowVolumeIcon(true);
+          setIsVolumeChanged(true);
+        });
 
         if (icon) {
           icon.classList.remove("pressed");
@@ -615,18 +638,17 @@ useEffect(() => {
 
         setTimeout(() => {
           setIsVolumeChanged(false);
-        }, 500);
+        }, 400);
+
       } else if (e.key.toLowerCase() === "t") {
         e.preventDefault();
         const isFullscreen = !!document.fullscreenElement;
-        if(!isFullscreen && videoRef.current) {
-              setIsTheatre((prev) => {
-        const newState = !prev;
-        setPrevTheatre(newState);
-        return newState;
-      });
+        if (!isFullscreen && videoRef.current) {
+          setIsUserInteracted(true);
+           startTransition(() => {
+      setIsTheatre((prev) => !prev);
+    });
         }
-     
       }
     };
     document.addEventListener("keydown", handleKeyPress);
@@ -634,6 +656,10 @@ useEffect(() => {
       document.removeEventListener("keydown", handleKeyPress);
     };
   }, [handleForwardSeek, handleBackwardSeek, togglePlayPause, handleNextVideo]);
+
+  useEffect(() => {
+    setPrevTheatre(isTheatre);
+  }, [isTheatre]);
 
   const watchTimeRef = useRef(0);
   const { mutate } = useMutation({
@@ -755,12 +781,11 @@ useEffect(() => {
           position: "relative",
         }}
       >
-        {!isTheatre && (
-          <Box
-            sx={{ paddingTop: "calc(9 / 16 * 100%)" }}
-            className="video-inner"
-          />
-        )}
+        <Box
+          sx={{ paddingTop: isTheatre ? "" : "calc(9 / 16 * 100%)" }}
+          className="video-inner"
+        />
+
         <Box sx={{ flex: 1 }}>
           <Box className="html5-video-container" sx={{ position: "relative" }}>
             <video
@@ -777,7 +802,7 @@ useEffect(() => {
                 aspectRatio: "16/9",
                 borderRadius: isTheatre ? "0" : "8px",
                 width: "100%",
-                height: containerRef.current?.offsetHeight,
+                height: isTheatre ? videoHeight + "px" : "",
                 left: isTheatre ? leftOffset : "0",
               }}
             >
@@ -791,6 +816,7 @@ useEffect(() => {
         <VideoControls
           ref={videoRef}
           isUserInteracted={isUserInteracted}
+          setIsUserInteracted={setIsUserInteracted}
           playlistId={playlistId}
           bufferedVal={bufferedVal}
           filteredVideos={filteredVideos}
@@ -1067,7 +1093,10 @@ useEffect(() => {
                   width: "52px",
                   height: "52px",
                   padding: 0,
-                  display: showIcon ? "inline-flex" : "none",
+                  opacity: showIcon ? 1 : 0,
+                  visibility: showIcon ? "visible" : "hidden",
+                  transition: "opacity 0.2s ease",
+                  position: "absolute", // Make sure it doesn't take layout space when hidden
                 }}
                 ref={playIconRef}
               >
@@ -1083,7 +1112,10 @@ useEffect(() => {
                   width: "52px",
                   height: "52px",
                   padding: 0,
-                  display: !showIcon ? "inline-flex" : "none",
+                  opacity: showVolumeIcon ? 1 : 0,
+                  visibility: showVolumeIcon ? "visible" : "hidden",
+                  transition: "opacity 0.2s ease",
+                  position: "absolute",
                 }}
                 ref={volumeIconRef}
               >

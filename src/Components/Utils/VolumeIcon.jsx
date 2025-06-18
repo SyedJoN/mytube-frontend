@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { animate, createScope, createSpring, createDraggable } from "animejs";
 import React from "react";
 
-export const MorphingVolIcon = ({
+export const MorphingVolIcon = React.memo(({
   volume,
   muted,
   jumpedToMax,
@@ -106,4 +106,4 @@ export const MorphingVolIcon = ({
       </motion.svg>
     </div>
   );
-};
+})

@@ -99,7 +99,10 @@ const VideoDetailsPanel = ({
               }
               title={
                 <Tooltip
-                  title={data?.data?.owner?.fullName}
+                 disableInteractive
+                    disableFocusListener
+                    disableTouchListener
+                  title={data?.data?.owner?.fullName ?? ""}
                   placement="top-start"
                 >
                   <Link
@@ -164,4 +167,4 @@ const VideoDetailsPanel = ({
   );
 };
 
-export default VideoDetailsPanel;
+export default React.memo(VideoDetailsPanel);
