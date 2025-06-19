@@ -53,7 +53,7 @@ const gridSize = {
                   <VideoCard
                     owner={video?.owner?.username}
                     videoId={video._id}
-                    thumbnail={video.thumbnail}
+                    thumbnail={video.thumbnail.url}
                     title={video.title}
                     home={true}
                     fullName={video.owner.fullName}
@@ -77,7 +77,7 @@ const gridSize = {
                     verifyInteraction={true}
                     owner={video?.owner?.username}
                     videoId={video._id}
-                    thumbnail={video.thumbnail}
+                    thumbnail={video.thumbnail.url}
                     title={video.title}
                     video={true}
                     fullName={video.owner.fullName}

@@ -265,7 +265,7 @@ export default function AccountMenu() {
             onClick={handleClose}
           >
             <Avatar
-              src={userData?.data?.avatar ? userData.data.avatar : null}
+              src={userData?.data?.avatar?.url ? userData.data.avatar : null}
               sx={{
                 bgcolor: getColor(userData?.data?.fullName),
                 marginRight: 1,

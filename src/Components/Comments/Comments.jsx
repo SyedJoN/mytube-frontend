@@ -577,7 +577,7 @@ const Comments = ({
               <>
                 <Box sx={{ display: "flex", alignItems: "center" }}>
                   <Avatar
-                    src={userData?.data?.avatar ? userData?.data?.avatar : null}
+                    src={userData?.data?.avatar?.url ? userData?.data?.avatar?.url : null}
                     sx={{
                       bgcolor: userData
                         ? getColor(userData?.data?.fullName)

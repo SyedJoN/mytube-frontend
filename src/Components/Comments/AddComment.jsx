@@ -170,7 +170,7 @@ function AddComment({
             }}
             avatar={
               <Avatar
-                src={userData?.data?.avatar ? userData?.data?.avatar : null}
+                src={userData?.data?.avatar?.url ? userData?.data?.avatar?.url : null}
                 sx={{
                   bgcolor: userData
                     ? getColor(userData?.data?.fullName)

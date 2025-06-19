@@ -420,7 +420,7 @@ function VideoCard({
                       position: "absolute",
                       bottom: "0",
                       right: "0",
-                      margin: "8px",
+                      margin: "4px",
                       width: "35px",
                       height: "20px",
                       backgroundColor: "rgba(0,0,0,0.6)",

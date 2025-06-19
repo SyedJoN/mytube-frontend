@@ -321,6 +321,7 @@ function VideoPlayer({
     };
   }, [volume, debouncedUpdateVolumeStates]);
 
+
   useEffect(() => {
     const handleFullscreenChange = () => {
       const isFullscreen = !!document.fullscreenElement;
@@ -806,11 +807,27 @@ function VideoPlayer({
                 left: isTheatre ? leftOffset : "0",
               }}
             >
-              {data?.data?.videoFile && (
-                <source src={data?.data?.videoFile} type="video/mp4" />
+              {data?.data?.videoFile.url && (
+                <source src={data?.data?.videoFile.url} type="video/mp4" />
               )}
-              Your browser does not support the video tag.
+  
             </video>
+             <Box sx={{position: "absolute", left: "12px", top: "-1070px", padding: 1}} marginTop="8px">
+                    <Typography
+                      sx={{
+                        display: "-webkit-box",
+                        textOverflow: "ellipsis",
+                        maxHeight: "5.6rem",
+                        WebkitLineClamp: "2",
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                      }}
+                      variant="h3"
+                      color="#fff"
+                    >
+                      {data?.data?.title}
+                    </Typography>
+                  </Box>
           </Box>
         </Box>
         <VideoControls
@@ -1050,7 +1067,7 @@ function VideoPlayer({
                   height: "100%",
                   borderRadius: "8px",
                   background: loadingVideo ? "rgba(0,0,0)" : "transparent",
-                  backgroundImage: `url(${data?.data?.thumbnail})`,
+                  backgroundImage: `url(${data?.data?.thumbnail.url})`,
                   backgroundRepeat: "no-repeat",
                   backgroundPosition: "center",
                   backgroundSize: "cover",

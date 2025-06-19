@@ -126,9 +126,9 @@ function Home() {
                     owner={video.owner?.username}
                     videoId={video._id}
                     home={true}
-                    thumbnail={video.thumbnail}
+                    thumbnail={video.thumbnail.url}
                     title={video.title}
-                    avatar={video.owner.avatar}
+                    avatar={video.owner.avatar.url}
                     open={open}
                     fullName={video.owner.fullName}
                     views={video.views}

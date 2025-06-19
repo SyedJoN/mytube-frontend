@@ -213,7 +213,7 @@ const ChannelProfile = ({ username, userData }) => {
                     avatar={
                       <Avatar
                         src={
-                          userData?.data?.avatar ? userData?.data?.avatar : null
+                          userData?.data?.avatar?.url ? userData?.data?.avatar?.url : null
                         }
                         sx={{
                           bgcolor: getColor(userData?.data?.fullName),

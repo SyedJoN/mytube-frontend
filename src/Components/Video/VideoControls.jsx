@@ -408,8 +408,8 @@ const VideoControls = forwardRef(
                       }}
                       component="img"
                       image={
-                        playlistVideos[index + 1]?.thumbnail ||
-                        filteredVideos[0]?.thumbnail
+                        playlistVideos[index + 1]?.thumbnail?.url ||
+                        filteredVideos[0]?.thumbnail?.url
                       }
                     />
                   </Box>

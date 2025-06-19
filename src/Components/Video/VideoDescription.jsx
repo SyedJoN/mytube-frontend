@@ -90,7 +90,7 @@ function Description({ data, subscriberCount, owner }) {
             to={`/@${owner}`}
           >
             <Avatar
-              src={data?.data?.owner?.avatar ? data?.data?.owner?.avatar : null}
+              src={data?.data?.owner?.avatar?.url ? data?.data?.owner?.avatar?.url : null}
               sx={{
                 bgcolor: getColor(data?.data?.owner?.fullName),
                 cursor: "pointer",
