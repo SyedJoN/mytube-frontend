@@ -82,6 +82,7 @@ function VideoPlayer({
   const [controlOpacity, setControlOpacity] = useState(0);
   const [titleOpacity, setTitleOpacity] = useState(0);
   const [showVolumePanel, setShowVolumePanel] = useState(false);
+  const isInside = useRef(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
@@ -122,25 +123,110 @@ function VideoPlayer({
   const isFastPlayback = videoRef?.current?.playbackRate === 2.0;
   const animateTimeoutRef = useRef(null);
 
-  // useEffect(() => {
-  //   const container = containerRef.current;
-  //   if (!container) return;
+  useEffect(() => {
+  if (isUserInteracted) {
+   setControlOpacity(1)
+  }
+     if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
-  //   setControlOpacity(1)
+      timeoutRef.current = setTimeout(() => {
+        if (!controls.length) {
+          if (!showVolumePanel) {
+            setControlOpacity(0);
+            setTitleOpacity(0);
+          }
+        }
+      }, 2000);
+    
+  }, [videoId]);
 
-  //   if (timeoutRef.current) clearTimeout(timeoutRef.current);
+  const handleClick = (e) => {
+    if (e.button === 2) return;
+    if (clickTimeout.current || isLongPress) return;
+    videoPauseStatus.current = false;
+    clickTimeout.current = setTimeout(() => {
+      togglePlayPause();
 
-  //   timeoutRef.current = setTimeout(() => {
-  //   setControlOpacity(0)
+      flushSync(() => {
+        setShowIcon(true);
+        setShowVolumeIcon(false);
+      });
+      console.log("Single Click");
+      clickTimeout.current = null;
+    }, 150);
+  };
 
-  //     container.classList.add("hide-cursor");
-  //   }, 4000);
-  // }, [videoId, controlOpacity]);
+  const DoubleSpeed = (e) => {
+    if (e.button === 2) return;
+    const video = videoRef.current;
+    if (!video) return;
+    clearTimeout(clickTimeout.current);
+    clickTimeout.current = null;
+
+    pressTimer.current = setTimeout(() => {
+      console.log("down");
+      setIsLongPress(true);
+      setControlOpacity(0);
+      setTitleOpacity(0);
+      setShowIcon(false);
+      if (video.paused) {
+        video.play();
+        videoPauseStatus.current = true;
+        setIsPlaying(true);
+      }
+
+      video.playbackRate = 2.0;
+      pressTimer.current = null;
+    }, 200);
+  };
+
+  const exitDoubleSpeed = (e) => {
+    if (e.button === 2) return;
+
+    const video = videoRef.current;
+    if (!video) return;
+    flushSync(() => {
+      setShowIcon(true);
+      setShowVolumeIcon(false);
+    });
+    if (videoPauseStatus.current) {
+      video.pause();
+      setIsPlaying(false);
+      setControlOpacity(1);
+      setTitleOpacity(1);
+    }
+    flushSync(() => {
+      setControlOpacity(isInside.current ? 1 : 0);
+      setTitleOpacity(isInside.current ? 1 : 0);
+    });
+
+    clearTimeout(pressTimer.current);
+    pressTimer.current = setTimeout(() => {
+      setIsLongPress(false);
+
+      pressTimer.current = null;
+    }, 200);
+
+    video.playbackRate = 1.0;
+  };
+
+  useEffect(() => {
+    const handleMouseUp = (e) => {
+      exitDoubleSpeed(e);
+    };
+
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, []);
 
   useEffect(() => {
     const container = containerRef.current;
     const fullScreenTitle = fullScreenTitleRef.current;
     if (!container || !fullScreenTitle) return;
+
     const controls = container.getElementsByClassName("MuiPopper-root");
 
     if (!isPlaying) {
@@ -149,7 +235,6 @@ function VideoPlayer({
 
       fullScreenTitle.classList.add("show");
     } else {
-      console.log("not plying");
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
       timeoutRef.current = setTimeout(() => {
@@ -161,10 +246,24 @@ function VideoPlayer({
         }
       }, 2000);
     }
-    const handleMouseMove = () => {
-      setControlOpacity(1);
-      setTitleOpacity(1);
-      fullScreenTitle.classList.add("show");
+    const handleMouseMove = (e) => {
+      const rect = container.getBoundingClientRect();
+      const x = e.clientX;
+      const y = e.clientY;
+
+      const inside =
+        x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+      console.log(
+        `Mouse at (${x}, ${y}) — ${inside ? "✅ Inside" : "🚪 Outside"}`
+      );
+
+      if (isInside) {
+        isInside.current = inside;
+      } else {
+        isInside.current = false;
+      }
+    
+
       container
         .querySelector(".video-overlay")
         ?.classList.remove("hide-cursor");
@@ -186,30 +285,22 @@ function VideoPlayer({
       }, 2000);
     };
 
-    container.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mousemove", handleMouseMove);
 
     return () => {
-      container.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mousemove", handleMouseMove);
+
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [isPlaying, controlOpacity]);
+  }, [isPlaying, controlOpacity, isLongPress, isInside]);
 
-  const handleMouseEnter = () => {
-    const container = containerRef.current;
-    const isFullscreen = !!document.fullscreenElement;
-
-    if (!container) return;
-    if (isFullscreen) return;
-
-    container.classList.add("enter");
-  };
   const handleMouseOut = () => {
+    console.log("out");
+
     const container = containerRef.current;
     const isFullscreen = !!document.fullscreenElement;
-
-    if (!container) return;
-    if (isFullscreen) return;
-    if (!isPlaying) return;
+    const video = videoRef.current;
+    if (!container || !video || isFullscreen || !isPlaying) return;
 
     setControlOpacity(0);
     setTitleOpacity(0);
@@ -707,7 +798,7 @@ function VideoPlayer({
       } else if (e.code === "Space" || e.key.toLowerCase() === "k") {
         e.preventDefault();
         flushSync(() => {
-          setShowIcon(true); // force icon state update BEFORE any re-render
+          setShowIcon(true);
           setShowVolumeIcon(false);
         });
 
@@ -817,72 +908,31 @@ function VideoPlayer({
     });
   };
 
-  const handleClick = (e) => {
-    if (e.button === 2) return;
-    if (clickTimeout.current || isLongPress) return;
-    videoPauseStatus.current = false;
-    clickTimeout.current = setTimeout(() => {
-      setShowIcon(true);
-      console.log("Single Click");
-      clickTimeout.current = null;
-    }, 150);
-  };
-
-  const DoubleSpeed = (e) => {
-    if (e.button === 2) return;
-    const video = videoRef.current;
-    if (!video) return;
-    clearTimeout(clickTimeout.current);
-    clickTimeout.current = null;
-    pressTimer.current = setTimeout(() => {
-      setIsLongPress(true);
-      setControlOpacity(0);
-      setTitleOpacity(0);
-      setShowIcon(false);
-
-      if (video.paused) {
-        video.play();
-        videoPauseStatus.current = true;
-        setIsPlaying(true);
-      }
-
-      video.playbackRate = 2.0;
-      pressTimer.current = null;
-    }, 200);
-  };
-
-  const exitDoubleSpeed = (e) => {
-    if (e.button === 2) return;
-
-    const video = videoRef.current;
-    if (!video) return;
-    if (videoPauseStatus.current) {
-      setShowIcon(false);
-      video.pause();
-      setIsPlaying(false);
-      setControlOpacity(1);
-      setTitleOpacity(1);
-    }
-    clearTimeout(pressTimer.current);
-    pressTimer.current = setTimeout(() => {
-      console.log("exit");
-      if (isLongPress) {
-        setIsLongPress(false);
-      } else {
-        togglePlayPause(e);
-      }
-      pressTimer.current === null;
-    }, 200);
-
-    video.playbackRate = 1.0;
-  };
-
   return (
     <>
       <Box
         {...(isTheatre ? { "data-theatre": true } : {})}
         ref={containerRef}
-        onMouseOut={handleMouseOut}
+        onMouseLeave={handleMouseOut}
+        onMouseMove={()=> {
+          if(!isLongPress) {
+              isInside.current = true;
+          setControlOpacity(1)
+          setTitleOpacity(1)
+          }
+        }}
+        onMouseEnter={() => {
+          console.log("im enter");
+          if(!isLongPress) {
+  isInside.current = true;
+          setControlOpacity(1)
+          }
+        
+        }}
+        // onMouseLeave={() => {
+        //   console.log("im out");
+        //   setIsMouseOut(true);
+        // }}
         // onMouseEnter={handleMouseEnter}
         id="video-container"
         className={isLongPress ? "long-pressing" : ""}
@@ -1132,7 +1182,7 @@ function VideoPlayer({
                   width: "52px",
                   height: "52px",
                   padding: 0,
-                  opacity: showIcon && isUserInteracted ? 1 : 0,
+                  opacity: showIcon ? 1 : 0,
                   visibility:
                     showIcon && isUserInteracted ? "visible" : "hidden",
                   transition: "opacity 0.2s ease",
@@ -1207,7 +1257,6 @@ function VideoPlayer({
         <Box
           onClick={handleClick}
           onMouseDown={DoubleSpeed}
-          onMouseUp={exitDoubleSpeed}
           className="video-overlay"
         >
           <Box
