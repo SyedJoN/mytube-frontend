@@ -31,9 +31,6 @@ import {
 
 const PlaylistContainer = ({ playlistId, playlistData, videoId }) => {
   const imgRef = useRef(null);
-  const [bgColor, setBgColor] = useState("rgba(0,0,0,0.6)");
-  const [primaryColor, setPrimaryColor] = useState("#f1f1f1");
-  const [secondaryColor, setSecondaryColor] = useState("#aaa");
   const fac = new FastAverageColor();
   const [collapsePlaylist, setCollapsePlayList] = useState(false);
   const { setIsUserInteracted } = useUserInteraction();
@@ -44,33 +41,6 @@ const PlaylistContainer = ({ playlistId, playlistData, videoId }) => {
   useEffect(() => {
     console.log("test viidoes", videos);
   }, []);
-  const handleImageLoad = () => {
-    if (imgRef.current) {
-      fac
-        .getColorAsync(imgRef.current)
-        .then((color) => {
-          console.log("Full color object:", color);
-          console.log("color.rgba:", color.rgba);
-          setBgColor(color.rgba);
-          const [r, g, b] = color.value;
-          const primaryColor = `rgb(
-          ${Math.max(0, Math.min(255, r * 2))},
-          ${Math.max(0, Math.min(255, g * 2))},
-          ${Math.max(0, Math.min(255, b * 2))}
-        )`;
-          const secondaryColor = `rgb(
-          ${Math.max(0, Math.min(255, r * 0.2))},
-          ${Math.max(0, Math.min(255, g * 0.2))},
-          ${Math.max(0, Math.min(255, b * 0.2))}
-        )`;
-
-          setPrimaryColor(primaryColor);
-          setSecondaryColor(secondaryColor);
-          console.log("Text color:", textColor);
-        })
-        .catch((err) => console.log("Color extraction error:", err));
-    }
-  };
   const activeVideo = videos.find((video) => video._id === videoId);
   const activeVideoTitle = activeVideo?.title || "";
 
@@ -91,7 +61,7 @@ const PlaylistContainer = ({ playlistId, playlistData, videoId }) => {
         <Box
           id="title-container-collapsed"
           sx={{
-            background: bgColor,
+            background: activeVideo?.thumbnail?.dominantColor,
             padding: "12px",
             borderRadius: "8px",
           }}
@@ -107,7 +77,7 @@ const PlaylistContainer = ({ playlistId, playlistData, videoId }) => {
             <Box sx={{ maxWidth: "100%" }} variant="body2" color="#f1f1f1">
               <Typography
                 sx={{
-                  color: primaryColor,
+                  color: activeVideo?.thumbnail?.lightTextColor,
                   display: "-webkit-box",
                   WebkitBoxOrient: "vertical",
                   WebkitLineClamp: "1",
@@ -119,7 +89,7 @@ const PlaylistContainer = ({ playlistId, playlistData, videoId }) => {
               >
                 Next: {videos[activeIndex + 1]?.title || "End of playlist"}
               </Typography>
-              <Typography variant="caption" color={secondaryColor}>
+              <Typography variant="caption" color={activeVideo?.thumbnail?.lightTextColor}>
                 {activeVideoTitle} - {activeIndex + 1}/{videos.length}
               </Typography>
             </Box>
@@ -286,14 +256,14 @@ const PlaylistContainer = ({ playlistId, playlistData, videoId }) => {
                 display: "flex",
                 alignItems: "center",
                 padding: "4px 8px 4px 0",
-                background: videoId === video._id ? bgColor : "none",
+                background: videoId === video._id ? activeVideo.thumbnail?.dominantColor : "none",
 
                 "&:hover .hover-overlay": {
                   opacity: 1,
                 },
                 "&:hover": {
                   background:
-                    videoId === video._id ? bgColor : "rgba(255,255,255,0.1)",
+                    videoId === video._id ? activeVideo.thumbnail?.dominantColor : "rgba(255,255,255,0.1)",
                 },
                 ":first-of-type": {
                   paddingTop: "8px",
@@ -360,10 +330,10 @@ const PlaylistContainer = ({ playlistId, playlistData, videoId }) => {
                         }}
                         component="img"
                         draggable="false"
-                        image={video?.thumbnail}
+                        image={video?.thumbnail?.url}
                         crossOrigin="anonymous"
                         ref={imgRef}
-                        onLoad={handleImageLoad}
+                
                       />
                       <Box
                         sx={{
@@ -452,7 +422,7 @@ const PlaylistContainer = ({ playlistId, playlistData, videoId }) => {
                           <Typography
                             variant="h8"
                             color={
-                              videoId === video._id ? primaryColor : "#f1f1f1"
+                              videoId === video._id ? activeVideo?.thumbnail?.lightTextColor : "#f1f1f1"
                             }
                             sx={{
                               display: "-webkit-box",
@@ -488,7 +458,7 @@ const PlaylistContainer = ({ playlistId, playlistData, videoId }) => {
                               fontSize="0.75rem"
                               color={
                                 video._id === videoId
-                                  ? secondaryColor
+                                  ? activeVideo?.thumbnail?.lightTextColor
                                   : "#f1f1f1"
                               }
                             >

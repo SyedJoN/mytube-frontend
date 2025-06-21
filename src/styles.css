@@ -145,13 +145,27 @@ animation-name: arrow-fade-out-1;
 video {
   display: block;
 }
+.hide-cursor {
+  cursor: none;
+}
+.video-overlay {
+  content: "";
+  width: 100%;
+  height: 100;
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+}
 
-#video-container:not(.long-pressing):hover .video-controls {
+#video-container:not(.long-pressing).enter .video-controls,
+#video-container:not(.long-pressing).enter .controls-background-overlay {
   opacity: 1;
 }
-#video-container:not(.long-pressing):hover .controls-background-overlay {
+
+#video-container:not(.long-pressing) .show.title-fullscreen {
   opacity: 1;
 }
+
 #video-container[data-theatre] {
     display: flex;
     width: 100%;

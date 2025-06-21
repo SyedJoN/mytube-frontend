@@ -34,7 +34,7 @@ const Playlists = () => {
           <VideoCard
             playlist={playlist}
             playlistId={playlist._id}
-            thumbnail={playlist.videos[0].thumbnail}
+            thumbnail={playlist.videos[0]?.thumbnail?.url}
             title={playlist.name}
             videoCount={playlist.videos.length}
             open={open}

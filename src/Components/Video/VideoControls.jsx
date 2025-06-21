@@ -77,7 +77,6 @@ const VideoControls = forwardRef(
       index,
       isUserInteracted,
       setIsUserInteracted,
-      isLongPress,
       toggleFullScreen,
       volume,
       setVolume,
@@ -89,6 +88,11 @@ const VideoControls = forwardRef(
       isTheatre,
       setIsTheatre,
       videoContainerWidth,
+      setIsControlInteracted,
+      controlOpacity,
+      showVolumePanel,
+   setShowVolumePanel
+
     },
     videoRef
   ) => {
@@ -105,9 +109,9 @@ const VideoControls = forwardRef(
     const [BarWidth, setBarWidth] = useState(0);
     const [videoWidth, setVideoWidth] = useState(0);
 
-    const [showVolumePanel, setShowVolumePanel] = useState(false);
+    
     const shouldShowOverlay =
-      !isLongPress && (!isUserInteracted || showVolumePanel || !isPlaying);
+      !isUserInteracted
 
     const handleSeekMove = (e) => {
       if (!sliderRef.current || !videoRef.current) return;
@@ -147,6 +151,7 @@ const VideoControls = forwardRef(
       const newTime = (videoRef.current?.duration * newProgress) / 100;
       videoRef.current.currentTime = newTime;
       setProgress(newProgress);
+   
     };
 
     const handleNext = () => {
@@ -264,7 +269,9 @@ const VideoControls = forwardRef(
       <>
         <Box
           sx={{
-            opacity: isLongPress ? 0 : 1,
+            opacity: controlOpacity,
+            zIndex: 59,
+
           }}
           className="controls-background-overlay"
         ></Box>
@@ -273,7 +280,7 @@ const VideoControls = forwardRef(
           className="video-controls"
           sx={{
             position: "absolute",
-            opacity: shouldShowOverlay ? 1 : 0,
+            opacity: controlOpacity,
             width: isTheatre ? videoContainerWidth - 24 : videoWidth + "px",
             transition: "opacity .25s cubic-bezier(0,0,.2,1)",
             bottom: 0,
@@ -286,6 +293,7 @@ const VideoControls = forwardRef(
           }}
         >
           <Box
+          className="controls"
             sx={{
               display: "flex",
               justifyContent: "space-between",
@@ -305,7 +313,7 @@ const VideoControls = forwardRef(
                   placement="top"
                   slotProps={{
                     popper: {
-                      disablePortal: isFullscreen,
+                      disablePortal: true,
                       modifiers: popperModifiers,
                     },
                     tooltip: {
@@ -313,7 +321,7 @@ const VideoControls = forwardRef(
                     },
                   }}
                 >
-                  <a style={controlStyles} onClick={handlePrevPlaylist}>
+                  <a className="control" style={controlStyles} onClick={handlePrevPlaylist}>
                     <SkipPreviousSvg />
                   </a>
                 </Tooltip>
@@ -326,7 +334,7 @@ const VideoControls = forwardRef(
                 placement="top"
                 slotProps={{
                   popper: {
-                    disablePortal: isFullscreen,
+                    disablePortal: true,
                     modifiers: popperModifiers,
                   },
                   tooltip: {
@@ -335,6 +343,7 @@ const VideoControls = forwardRef(
                 }}
               >
                 <a
+                className="control"
                   style={controlStyles}
                   onClick={() => {
                     togglePlayPause();
@@ -350,7 +359,7 @@ const VideoControls = forwardRef(
                 disableTouchListener
                 slotProps={{
                   popper: {
-                    disablePortal: isFullscreen,
+                    disablePortal: true,
                     modifiers: nextVideoModifiers,
                   },
                   tooltip: {
@@ -417,6 +426,7 @@ const VideoControls = forwardRef(
                 placement="top"
               >
                 <Link
+                className="control"
                   style={controlStyles}
                   to="/watch"
                   search={{
@@ -458,7 +468,7 @@ const VideoControls = forwardRef(
                   placement="top"
                   slotProps={{
                     popper: {
-                      disablePortal: isFullscreen,
+                      disablePortal: true,
                       modifiers: popperModifiers,
                     },
                     tooltip: {
@@ -479,7 +489,7 @@ const VideoControls = forwardRef(
                 <Box
                   ref={volumeSliderRef}
                   onMouseDown={handleVolumeClick}
-                  className="volume-panel"
+                  className="volume-panel control"
                   sx={{
                     width: showVolumePanel ? "52px" : 0,
                     marginRight: showVolumePanel ? "3px" : 0,
@@ -544,7 +554,7 @@ const VideoControls = forwardRef(
                   placement="top"
                   slotProps={{
                     popper: {
-                      disablePortal: isFullscreen,
+                      disablePortal: true,
                       modifiers: popperModifiers,
                     },
                     tooltip: {
@@ -553,7 +563,7 @@ const VideoControls = forwardRef(
                   }}
                 >
                   <a
-                    className="full-screen-btn"
+                    className="control"
                     style={controlStyles}
                     onClick={handleTheatreToggle}
                   >
@@ -569,7 +579,7 @@ const VideoControls = forwardRef(
                 placement="top"
                 slotProps={{
                   popper: {
-                    disablePortal: isFullscreen,
+                    disablePortal: true,
                     modifiers: popperModifiers,
                   },
                   tooltip: {
@@ -578,7 +588,7 @@ const VideoControls = forwardRef(
                 }}
               >
                 <a
-                  className="full-screen-btn"
+                  className="full-screen-btn control"
                   style={controlStyles}
                   onClick={toggleFullScreen}
                 >
@@ -589,7 +599,7 @@ const VideoControls = forwardRef(
           </Box>
 
           <Box
-            className="progress-bar-container"
+            className="progress-bar-container control"
             sx={{
               position: "absolute",
               display: "block",

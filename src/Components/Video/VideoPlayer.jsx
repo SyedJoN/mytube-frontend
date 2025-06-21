@@ -72,23 +72,29 @@ function VideoPlayer({
 }) {
   const containerRef = useRef(null);
   const videoRef = useRef(null);
+  const timeoutRef = useRef(null);
+  const fullScreenTitleRef = useRef(null);
+
   const videoPauseStatus = useRef(null);
   const prevVolumeRef = useRef(null);
   const [prevTheatre, setPrevTheatre] = useState(false);
   const [videoHeight, setVideoHeight] = useState(0);
-
+  const [controlOpacity, setControlOpacity] = useState(0);
+  const [titleOpacity, setTitleOpacity] = useState(0);
+  const [showVolumePanel, setShowVolumePanel] = useState(false);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
   const prevVideoRef = useRef(null);
   const playIconRef = useRef(null);
   const volumeIconRef = useRef(null);
-  const buttonRef = useRef(null);
+
   const [progress, setProgress] = useState(0);
 
   const [isPlaying, setIsPlaying] = useState(false);
 
   const [viewCounted, setViewCounted] = useState(false);
+  const [isControlInteracted, setIsControlInteracted] = useState(false);
 
   const [isLongPress, setIsLongPress] = useState(false);
   const [showIcon, setShowIcon] = useState(false);
@@ -115,6 +121,99 @@ function VideoPlayer({
 
   const isFastPlayback = videoRef?.current?.playbackRate === 2.0;
   const animateTimeoutRef = useRef(null);
+
+  // useEffect(() => {
+  //   const container = containerRef.current;
+  //   if (!container) return;
+
+  //   setControlOpacity(1)
+
+  //   if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+  //   timeoutRef.current = setTimeout(() => {
+  //   setControlOpacity(0)
+
+  //     container.classList.add("hide-cursor");
+  //   }, 4000);
+  // }, [videoId, controlOpacity]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    const fullScreenTitle = fullScreenTitleRef.current;
+    if (!container || !fullScreenTitle) return;
+    const controls = container.getElementsByClassName("MuiPopper-root");
+
+    if (!isPlaying) {
+      setControlOpacity(1);
+      setTitleOpacity(1);
+
+      fullScreenTitle.classList.add("show");
+    } else {
+      console.log("not plying");
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+      timeoutRef.current = setTimeout(() => {
+        if (!controls.length) {
+          if (!showVolumePanel) {
+            setControlOpacity(0);
+            setTitleOpacity(0);
+          }
+        }
+      }, 2000);
+    }
+    const handleMouseMove = () => {
+      setControlOpacity(1);
+      setTitleOpacity(1);
+      fullScreenTitle.classList.add("show");
+      container
+        .querySelector(".video-overlay")
+        ?.classList.remove("hide-cursor");
+      container.querySelector(".controls")?.classList.remove("hide-cursor");
+
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+      timeoutRef.current = setTimeout(() => {
+        if (isPlaying && !controls.length) {
+          if (!showVolumePanel) {
+            setControlOpacity(0);
+            setTitleOpacity(0);
+            container
+              .querySelector(".video-overlay")
+              ?.classList.add("hide-cursor");
+            container.querySelector(".controls")?.classList.add("hide-cursor");
+          }
+        }
+      }, 2000);
+    };
+
+    container.addEventListener("mousemove", handleMouseMove);
+
+    return () => {
+      container.removeEventListener("mousemove", handleMouseMove);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, [isPlaying, controlOpacity]);
+
+  const handleMouseEnter = () => {
+    const container = containerRef.current;
+    const isFullscreen = !!document.fullscreenElement;
+
+    if (!container) return;
+    if (isFullscreen) return;
+
+    container.classList.add("enter");
+  };
+  const handleMouseOut = () => {
+    const container = containerRef.current;
+    const isFullscreen = !!document.fullscreenElement;
+
+    if (!container) return;
+    if (isFullscreen) return;
+    if (!isPlaying) return;
+
+    setControlOpacity(0);
+    setTitleOpacity(0);
+  };
 
   useEffect(() => {
     if (!containerRef.current || !videoRef.current) return;
@@ -321,7 +420,6 @@ function VideoPlayer({
     };
   }, [volume, debouncedUpdateVolumeStates]);
 
-
   useEffect(() => {
     const handleFullscreenChange = () => {
       const isFullscreen = !!document.fullscreenElement;
@@ -355,8 +453,11 @@ function VideoPlayer({
 
   const togglePlayPause = useCallback(() => {
     const video = videoRef.current;
-    if (!video) return;
+    const container = containerRef.current;
+    if (!video || !container) return;
 
+    container.querySelector(".video-overlay")?.classList.remove("hide-cursor");
+    container.querySelector(".controls")?.classList.remove("hide-cursor");
     if (playIconRef.current?.classList) {
       playIconRef.current.classList.add("click");
     } else {
@@ -456,7 +557,10 @@ function VideoPlayer({
       isFinite(startTimeDuration) &&
       startTimeDuration > 0 &&
       startTimeDuration < video.duration;
-
+    if (!isUserInteracted) {
+      setControlOpacity(1);
+      setTitleOpacity(1);
+    }
     const shouldPlay =
       isUserInteracted && (isAuthenticated ? isValidStart : true);
 
@@ -640,15 +744,14 @@ function VideoPlayer({
         setTimeout(() => {
           setIsVolumeChanged(false);
         }, 400);
-
       } else if (e.key.toLowerCase() === "t") {
         e.preventDefault();
         const isFullscreen = !!document.fullscreenElement;
         if (!isFullscreen && videoRef.current) {
           setIsUserInteracted(true);
-           startTransition(() => {
-      setIsTheatre((prev) => !prev);
-    });
+          startTransition(() => {
+            setIsTheatre((prev) => !prev);
+          });
         }
       }
     };
@@ -733,6 +836,8 @@ function VideoPlayer({
     clickTimeout.current = null;
     pressTimer.current = setTimeout(() => {
       setIsLongPress(true);
+      setControlOpacity(0);
+      setTitleOpacity(0);
       setShowIcon(false);
 
       if (video.paused) {
@@ -755,6 +860,8 @@ function VideoPlayer({
       setShowIcon(false);
       video.pause();
       setIsPlaying(false);
+      setControlOpacity(1);
+      setTitleOpacity(1);
     }
     clearTimeout(pressTimer.current);
     pressTimer.current = setTimeout(() => {
@@ -775,6 +882,8 @@ function VideoPlayer({
       <Box
         {...(isTheatre ? { "data-theatre": true } : {})}
         ref={containerRef}
+        onMouseOut={handleMouseOut}
+        // onMouseEnter={handleMouseEnter}
         id="video-container"
         className={isLongPress ? "long-pressing" : ""}
         component="div"
@@ -810,61 +919,38 @@ function VideoPlayer({
               {data?.data?.videoFile.url && (
                 <source src={data?.data?.videoFile.url} type="video/mp4" />
               )}
-  
             </video>
-             <Box sx={{position: "absolute", left: "12px", top: "-1070px", padding: 1}} marginTop="8px">
-                    <Typography
-                      sx={{
-                        display: "-webkit-box",
-                        textOverflow: "ellipsis",
-                        maxHeight: "5.6rem",
-                        WebkitLineClamp: "2",
-                        WebkitBoxOrient: "vertical",
-                        overflow: "hidden",
-                      }}
-                      variant="h3"
-                      color="#fff"
-                    >
-                      {data?.data?.title}
-                    </Typography>
-                  </Box>
+            <Box
+              ref={fullScreenTitleRef}
+              className="title-fullscreen"
+              sx={{
+                opacity: titleOpacity,
+                position: "absolute",
+                left: "12px",
+                top: "-1070px",
+                padding: 1,
+              }}
+              marginTop="8px"
+            >
+              <Typography
+                sx={{
+                  display: "-webkit-box",
+                  textOverflow: "ellipsis",
+                  maxHeight: "5.6rem",
+                  WebkitLineClamp: "2",
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                }}
+                variant="h3"
+                color="#fff"
+              >
+                {data?.data?.title}
+              </Typography>
+            </Box>
           </Box>
         </Box>
-        <VideoControls
-          ref={videoRef}
-          isUserInteracted={isUserInteracted}
-          setIsUserInteracted={setIsUserInteracted}
-          playlistId={playlistId}
-          bufferedVal={bufferedVal}
-          filteredVideos={filteredVideos}
-          isLoading={isLoading}
-          progress={progress}
-          setProgress={setProgress}
-          togglePlayPause={togglePlayPause}
-          toggleFullScreen={toggleFullScreen}
-          setShowIcon={setShowIcon}
-          isPlaying={isPlaying}
-          setIsPlaying={setIsPlaying}
-          playlistVideos={playlistVideos}
-          isLongPress={isLongPress}
-          index={index}
-          volume={volume}
-          setVolume={setVolume}
-          handleVolumeToggle={handleVolumeToggle}
-          isMuted={isMuted}
-          isIncreased={isIncreased}
-          jumpedToMax={jumpedToMax}
-          isAnimating={isAnimating}
-          isTheatre={isTheatre}
-          setIsTheatre={setIsTheatre}
-          setPrevTheatre={setPrevTheatre}
-          videoContainerWidth={videoContainerWidth}
-        />
 
         <Box
-          onClick={handleClick}
-          onMouseDown={DoubleSpeed}
-          onMouseUp={exitDoubleSpeed}
           component={"video-cover"}
           sx={{
             position: "absolute",
@@ -1040,80 +1126,17 @@ function VideoPlayer({
                 </IconButton>
               )}
 
-            <Box
-              className="thumbnail-overlay"
-              sx={{
-                position: "absolute",
-                inset: 0,
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                opacity: isUserInteracted ? 0 : 1,
-                transition: "opacity .25s cubic-bezier(0,0,.2,1)",
-                color: "#fff",
-                userSelect: "none",
-                pointerEvents: "all",
-                "&:hover .large-play-btn": {
-                  fill: "#f03",
-                  fillOpacity: "1",
-                },
-              }}
-            >
-              <Box
-                className="thumbnail-overlay-image"
-                sx={{
-                  position: "absolute",
-                  width: "100%",
-                  height: "100%",
-                  borderRadius: "8px",
-                  background: loadingVideo ? "rgba(0,0,0)" : "transparent",
-                  backgroundImage: `url(${data?.data?.thumbnail.url})`,
-                  backgroundRepeat: "no-repeat",
-                  backgroundPosition: "center",
-                  backgroundSize: "cover",
-                }}
-              ></Box>
-              <IconButton
-                disableRipple
-                className="large-play-btn-container"
-                sx={{
-                  position: "absolute",
-                  left: "50%",
-                  top: "50%",
-                  width: "68px",
-                  height: "48px",
-                  marginLeft: "-34px",
-                  marginTop: "-24px",
-                  padding: "0",
-                  opacity: 1,
-                }}
-              >
-                <svg
-                  height="100%"
-                  version="1.1"
-                  viewBox="0 0 68 48"
-                  width="100%"
-                >
-                  <path
-                    className="large-play-btn"
-                    d="M66.52,7.74c-0.78-2.93-2.49-5.41-5.42-6.19C55.79,.13,34,0,34,0S12.21,.13,6.9,1.55 C3.97,2.33,2.27,4.81,1.48,7.74C0.06,13.05,0,24,0,24s0.06,10.95,1.48,16.26c0.78,2.93,2.49,5.41,5.42,6.19 C12.21,47.87,34,48,34,48s21.79-0.13,27.1-1.55c2.93-0.78,4.64-3.26,5.42-6.19C67.94,34.95,68,24,68,24S67.94,13.05,66.52,7.74z"
-                    fill="#212121"
-                    fillOpacity=".8"
-                  ></path>
-                  <path d="M 45,24 27,14 27,34" fill="#f1f1f1"></path>
-                </svg>
-              </IconButton>
-            </Box>
             <>
               <IconButton
                 sx={{
                   width: "52px",
                   height: "52px",
                   padding: 0,
-                  opacity: showIcon ? 1 : 0,
-                  visibility: showIcon ? "visible" : "hidden",
+                  opacity: showIcon && isUserInteracted ? 1 : 0,
+                  visibility:
+                    showIcon && isUserInteracted ? "visible" : "hidden",
                   transition: "opacity 0.2s ease",
-                  position: "absolute", // Make sure it doesn't take layout space when hidden
+                  position: "absolute",
                 }}
                 ref={playIconRef}
               >
@@ -1145,6 +1168,107 @@ function VideoPlayer({
                 ) : null}
               </IconButton>
             </>
+          </Box>
+        </Box>
+        <VideoControls
+          ref={videoRef}
+          isUserInteracted={isUserInteracted}
+          setIsUserInteracted={setIsUserInteracted}
+          setIsControlInteracted={setIsControlInteracted}
+          playlistId={playlistId}
+          bufferedVal={bufferedVal}
+          filteredVideos={filteredVideos}
+          isLoading={isLoading}
+          progress={progress}
+          setProgress={setProgress}
+          togglePlayPause={togglePlayPause}
+          toggleFullScreen={toggleFullScreen}
+          setShowIcon={setShowIcon}
+          isPlaying={isPlaying}
+          setIsPlaying={setIsPlaying}
+          playlistVideos={playlistVideos}
+          isLongPress={isLongPress}
+          index={index}
+          volume={volume}
+          setVolume={setVolume}
+          handleVolumeToggle={handleVolumeToggle}
+          isMuted={isMuted}
+          isIncreased={isIncreased}
+          jumpedToMax={jumpedToMax}
+          isAnimating={isAnimating}
+          isTheatre={isTheatre}
+          setIsTheatre={setIsTheatre}
+          setPrevTheatre={setPrevTheatre}
+          videoContainerWidth={videoContainerWidth}
+          controlOpacity={controlOpacity}
+          showVolumePanel={showVolumePanel}
+          setShowVolumePanel={setShowVolumePanel}
+        />
+        <Box
+          onClick={handleClick}
+          onMouseDown={DoubleSpeed}
+          onMouseUp={exitDoubleSpeed}
+          className="video-overlay"
+        >
+          <Box
+            className="thumbnail-overlay"
+            sx={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              opacity: isUserInteracted ? 0 : 1,
+              transition: "opacity .25s cubic-bezier(0,0,.2,1)",
+              color: "#fff",
+              userSelect: "none",
+              pointerEvents: "all",
+              "&:hover .large-play-btn": {
+                fill: "#f03",
+                fillOpacity: "1",
+              },
+            }}
+          >
+            <Box
+              className="thumbnail-overlay-image"
+              sx={{
+                position: "absolute",
+                width: "100%",
+                height: "100%",
+                borderRadius: "8px",
+                background: loadingVideo ? "rgba(0,0,0)" : "transparent",
+                backgroundImage: `url(${data?.data?.thumbnail.url})`,
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "center",
+                backgroundSize: "cover",
+              }}
+            ></Box>
+            <IconButton
+              disableRipple
+              className="large-play-btn-container"
+              sx={{
+                position: "absolute",
+                left: "50%",
+                top: "50%",
+                width: "68px",
+                height: "48px",
+                marginLeft: "-34px",
+                marginTop: "-24px",
+                padding: "0",
+                display: isUserInteracted ? "none" : "inline-flex",
+                opacity: 1,
+              }}
+            >
+              <svg height="100%" version="1.1" viewBox="0 0 68 48" width="100%">
+                <path
+                  className="large-play-btn"
+                  d="M66.52,7.74c-0.78-2.93-2.49-5.41-5.42-6.19C55.79,.13,34,0,34,0S12.21,.13,6.9,1.55 C3.97,2.33,2.27,4.81,1.48,7.74C0.06,13.05,0,24,0,24s0.06,10.95,1.48,16.26c0.78,2.93,2.49,5.41,5.42,6.19 C12.21,47.87,34,48,34,48s21.79-0.13,27.1-1.55c2.93-0.78,4.64-3.26,5.42-6.19C67.94,34.95,68,24,68,24S67.94,13.05,66.52,7.74z"
+                  fill="#212121"
+                  fillOpacity=".8"
+                ></path>
+                <path d="M 45,24 27,14 27,34" fill="#f1f1f1"></path>
+              </svg>
+            </IconButton>
           </Box>
         </Box>
       </Box>
