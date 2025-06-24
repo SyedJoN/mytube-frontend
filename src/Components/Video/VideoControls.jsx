@@ -18,6 +18,7 @@ import "../Utils/iconMorph.css";
 import { MorphingVolIcon } from "../Utils/VolumeIcon";
 import { FullScreenSvg } from "../Utils/FullScreenSvg";
 import TheatreSvg from "../Utils/TheatreSvg";
+import { useUserInteraction } from "../../routes/__root";
 
 const tooltipStyles = {
   whiteSpace: "nowrap",
@@ -75,8 +76,6 @@ const VideoControls = forwardRef(
       setShowIcon,
       playlistVideos,
       index,
-      isUserInteracted,
-      setIsUserInteracted,
       toggleFullScreen,
       volume,
       setVolume,
@@ -88,30 +87,32 @@ const VideoControls = forwardRef(
       isTheatre,
       setIsTheatre,
       videoContainerWidth,
-      setIsControlInteracted,
       controlOpacity,
       showVolumePanel,
-   setShowVolumePanel
-
+      setShowVolumePanel,
     },
     videoRef
   ) => {
     const isFullscreen = !!document.fullscreenElement;
- const ariaValueNow = videoRef.current ? Math.round(videoRef.current.currentTime) : 0
- const ariaValueMax = videoRef.current ? Math.round(videoRef.current.duration) : 0
+    const ariaValueNow = videoRef.current
+      ? Math.round(videoRef.current.currentTime)
+      : 0;
+    const ariaValueMax = videoRef.current
+      ? Math.round(videoRef.current.duration)
+      : 0;
     const theatreTitle = isTheatre ? "Default view (t)" : "Theatre mode (t)";
-    const fullScreenTitle = isFullscreen ? "Exit full screen (f)" : "Full screen (f)"
+    const fullScreenTitle = isFullscreen
+      ? "Exit full screen (f)"
+      : "Full screen (f)";
     const navigate = useNavigate();
     var thumbWidth = 13;
     const sliderRef = useRef(null);
     const volumeSliderRef = useRef(null);
-
+    const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
     const [BarWidth, setBarWidth] = useState(0);
     const [videoWidth, setVideoWidth] = useState(0);
 
-    
-    const shouldShowOverlay =
-      !isUserInteracted
+    const shouldShowOverlay = !isUserInteracted;
 
     const handleSeekMove = (e) => {
       if (!sliderRef.current || !videoRef.current) return;
@@ -151,20 +152,20 @@ const VideoControls = forwardRef(
       const newTime = (videoRef.current?.duration * newProgress) / 100;
       videoRef.current.currentTime = newTime;
       setProgress(newProgress);
-   
     };
 
     const handleNext = () => {
-      if (!videoRef.current) return;
+      setIsUserInteracted(true);
+
       navigate({
         to: "/watch",
-        search: {
-          v: filteredVideos[0]?._id,
-        },
+        search: { v: filteredVideos[0]?._id },
       });
     };
     const handleNextPlaylist = () => {
       if (index >= playlistVideos.length - 1) return;
+      setIsUserInteracted(true);
+
       navigate({
         to: "/watch",
         search: {
@@ -258,12 +259,12 @@ const VideoControls = forwardRef(
       setShowVolumePanel(true);
     };
 
-   const handleTheatreToggle = () => {
-  setIsUserInteracted(true);
-  startTransition(() => {
-    setIsTheatre((prev) => !prev);
-  });
-};
+    const handleTheatreToggle = () => {
+      setIsUserInteracted(true);
+      startTransition(() => {
+        setIsTheatre((prev) => !prev);
+      });
+    };
 
     return (
       <>
@@ -271,7 +272,6 @@ const VideoControls = forwardRef(
           sx={{
             opacity: controlOpacity,
             zIndex: 59,
-
           }}
           className="controls-background-overlay"
         ></Box>
@@ -293,7 +293,7 @@ const VideoControls = forwardRef(
           }}
         >
           <Box
-          className="controls"
+            className="controls"
             sx={{
               display: "flex",
               justifyContent: "space-between",
@@ -306,9 +306,9 @@ const VideoControls = forwardRef(
             >
               {playlistId && index > 0 && (
                 <Tooltip
-                   disableInteractive
-                disableFocusListener
-                disableTouchListener
+                  disableInteractive
+                  disableFocusListener
+                  disableTouchListener
                   title={"Replay"}
                   placement="top"
                   slotProps={{
@@ -321,7 +321,11 @@ const VideoControls = forwardRef(
                     },
                   }}
                 >
-                  <a className="control" style={controlStyles} onClick={handlePrevPlaylist}>
+                  <a
+                    className="control"
+                    style={controlStyles}
+                    onClick={handlePrevPlaylist}
+                  >
                     <SkipPreviousSvg />
                   </a>
                 </Tooltip>
@@ -343,7 +347,7 @@ const VideoControls = forwardRef(
                 }}
               >
                 <a
-                className="control"
+                  className="control"
                   style={controlStyles}
                   onClick={() => {
                     togglePlayPause();
@@ -354,7 +358,7 @@ const VideoControls = forwardRef(
                 </a>
               </Tooltip>
               <Tooltip
-                 disableInteractive
+                disableInteractive
                 disableFocusListener
                 disableTouchListener
                 slotProps={{
@@ -426,9 +430,12 @@ const VideoControls = forwardRef(
                 placement="top"
               >
                 <Link
-                className="control"
+                  className="control"
                   style={controlStyles}
                   to="/watch"
+                  onClick={() => {
+                    setIsUserInteracted(true); 
+                  }}
                   search={{
                     v:
                       playlistId && index < playlistVideos.length - 1
@@ -444,13 +451,7 @@ const VideoControls = forwardRef(
                         : undefined,
                   }}
                 >
-                  <SkipNextSvg
-                    onClick={
-                      playlistId && index < playlistVideos.length - 1
-                        ? handleNextPlaylist
-                        : handleNext
-                    }
-                  />
+                  <SkipNextSvg />
                 </Link>
               </Tooltip>
               <Box
@@ -461,9 +462,9 @@ const VideoControls = forwardRef(
                 sx={{ display: "flex" }}
               >
                 <Tooltip
-                   disableInteractive
-                disableFocusListener
-                disableTouchListener
+                  disableInteractive
+                  disableFocusListener
+                  disableTouchListener
                   title={isMuted ? "Unmute (m)" : "Mute (m)"}
                   placement="top"
                   slotProps={{

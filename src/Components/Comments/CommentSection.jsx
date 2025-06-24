@@ -1,16 +1,19 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import AddComment from "./AddComment";
 import Comments from "./Comments";
 import { useQuery } from "@tanstack/react-query";
 import { getVideoComments } from "../../apis/commentFn";
 import Box from "@mui/material/Box";
+import { OpenContext } from "../../routes/__root";
 
 function CommentSection({
   videoId,
-  isAuthenticated,
   activeAlertId,
   setActiveAlertId,
 }) {
+  const context = useContext(OpenContext);
+    const { data: dataContext } = context ?? {};
+  const isAuthenticated = dataContext || null;
   const [activeOptionsId, setActiveOptionsId] = useState(null);
   const [activeEmojiPickerId, setActiveEmojiPickerId] = useState(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);

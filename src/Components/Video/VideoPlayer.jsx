@@ -6,7 +6,8 @@ import React, {
   useCallback,
   startTransition,
 } from "react";
-import { keyframes } from "@mui/system";
+import { FastAverageColor } from "fast-average-color";
+import { keyframes, useMediaQuery, useTheme } from "@mui/system";
 import { fetchVideoById } from "../../apis/videoFn";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PauseIcon from "@mui/icons-material/Pause";
@@ -45,8 +46,6 @@ import {
 } from "@tanstack/react-query";
 import { addToWatchHistory } from "../../apis/userFn";
 import { videoView } from "../../apis/videoFn";
-import confetti from "canvas-confetti";
-import { OpenContext } from "../../routes/__root";
 import { useLocation } from "@tanstack/react-router";
 import { useNavigate } from "@tanstack/react-router";
 import VideoControls from "./VideoControls";
@@ -55,26 +54,30 @@ import VolumeOffIcon from "@mui/icons-material/VolumeOff";
 import VolumeDownIcon from "@mui/icons-material/VolumeDown";
 import { useDebouncedCallback } from "../../helper/debouncedFn";
 import { flushSync } from "react-dom";
+import { OpenContext, useUserInteraction } from "../../routes/__root";
 
 function VideoPlayer({
-  dataContext,
-  isAuthenticated,
   videoId,
   playlistId,
   playlistVideos,
   index,
   filteredVideos,
   handleNextVideo,
-  isUserInteracted,
-  setIsUserInteracted,
   isTheatre,
   setIsTheatre,
 }) {
+  const context = useContext(OpenContext);
+    const theme = useTheme();
+  
   const containerRef = useRef(null);
   const videoRef = useRef(null);
   const timeoutRef = useRef(null);
   const fullScreenTitleRef = useRef(null);
-
+    const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  
+  const { data: dataContext } = context ?? {};
+  const isAuthenticated = dataContext || null;
+  const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
   const videoPauseStatus = useRef(null);
   const prevVolumeRef = useRef(null);
   const [prevTheatre, setPrevTheatre] = useState(false);
@@ -89,14 +92,9 @@ function VideoPlayer({
   const prevVideoRef = useRef(null);
   const playIconRef = useRef(null);
   const volumeIconRef = useRef(null);
-
   const [progress, setProgress] = useState(0);
-
   const [isPlaying, setIsPlaying] = useState(false);
-
   const [viewCounted, setViewCounted] = useState(false);
-  const [isControlInteracted, setIsControlInteracted] = useState(false);
-
   const [isLongPress, setIsLongPress] = useState(false);
   const [showIcon, setShowIcon] = useState(false);
   const [showVolumeIcon, setShowVolumeIcon] = useState(false);
@@ -106,6 +104,7 @@ function VideoPlayer({
   const [volumeMuted, setVolumeMuted] = useState(false);
   const pressTimer = useRef(null);
   const clickTimeout = useRef(null);
+  const clickCount = useRef(null);
   const [isBuffering, setIsBuffering] = useState(false);
   const [bufferedVal, setBufferedVal] = useState(0);
   const [showBufferingIndicator, setShowBufferingIndicator] = useState(false);
@@ -119,41 +118,100 @@ function VideoPlayer({
   const [jumpedToMax, setJumpedToMax] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const [videoContainerWidth, setVideoContainerWidth] = useState("0px");
-
   const isFastPlayback = videoRef?.current?.playbackRate === 2.0;
   const animateTimeoutRef = useRef(null);
+  const captureCanvasRef = useRef(null);
+  const glowCanvasRef = useRef(null);
 
   useEffect(() => {
-  if (isUserInteracted) {
-   setControlOpacity(1)
-  }
-     if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    const interval = setInterval(() => {
+      const video = videoRef.current;
+      const captureCanvas = captureCanvasRef.current;
+      const glowCanvas = glowCanvasRef.current;
 
-      timeoutRef.current = setTimeout(() => {
-        if (!controls.length) {
-          if (!showVolumePanel) {
-            setControlOpacity(0);
-            setTitleOpacity(0);
-          }
+      if (!video || !captureCanvas || !glowCanvas || video.readyState < 2) return;
+
+      const captureCtx = captureCanvas.getContext('2d');
+      const glowCtx = glowCanvas.getContext('2d');
+
+      try {
+        captureCtx.drawImage(video, 0, 0, 110, 75);
+        const frame = captureCtx.getImageData(0, 0, 110, 75).data;
+
+       
+        let r = 0, g = 0, b = 0, count = 0;
+        for (let i = 0; i < frame.length; i += 4) {
+          r += frame[i];
+          g += frame[i + 1];
+          b += frame[i + 2];
+          count++;
         }
-      }, 2000);
-    
+
+        r = Math.round(r / count);
+        g = Math.round(g / count);
+        b = Math.round(b / count);
+
+        const color = `rgb(${r}, ${g}, ${b})`;
+
+      
+        glowCtx.clearRect(0, 0, 110, 75);
+        const gradient = glowCtx.createRadialGradient(
+          55, 37.5, 5, 
+          55, 37.5, 70 
+        );
+        gradient.addColorStop(0, color);
+        gradient.addColorStop(1, 'transparent');
+        glowCtx.fillStyle = gradient;
+        glowCtx.fillRect(0, 0, 110, 75);
+      } catch (e) {
+        console.warn('Glow error:', e);
+      }
+    }, 200);
+
+    return () => clearInterval(interval);
+  }, []);
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    if (isUserInteracted) {
+      setControlOpacity(1);
+    }
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    const controls = container.getElementsByClassName("MuiPopper-root");
+
+    timeoutRef.current = setTimeout(() => {
+      if (!controls.length) {
+        if (!showVolumePanel) {
+          setControlOpacity(0);
+          setTitleOpacity(0);
+        }
+      }
+    }, 2000);
   }, [videoId]);
 
   const handleClick = (e) => {
     if (e.button === 2) return;
     if (clickTimeout.current || isLongPress) return;
     videoPauseStatus.current = false;
-    clickTimeout.current = setTimeout(() => {
-      togglePlayPause();
-
-      flushSync(() => {
-        setShowIcon(true);
-        setShowVolumeIcon(false);
-      });
-      console.log("Single Click");
+    clickCount.current += 1;
+    if (clickCount.current === 1) {
+      clickTimeout.current = setTimeout(() => {
+        togglePlayPause();
+        flushSync(() => {
+          setShowIcon(true);
+          setShowVolumeIcon(false);
+        });
+        console.log("Single Click");
+        clickCount.current = 0;
+        clearTimeout(clickTimeout.current);
+        clickTimeout.current = null;
+      }, 150);
+    } else if (clickCount.current === 2) {
+      clearTimeout(clickTimeout.current);
       clickTimeout.current = null;
-    }, 150);
+      clickCount.current = 0;
+      toggleFullScreen();
+    }
   };
 
   const DoubleSpeed = (e) => {
@@ -162,7 +220,6 @@ function VideoPlayer({
     if (!video) return;
     clearTimeout(clickTimeout.current);
     clickTimeout.current = null;
-
     pressTimer.current = setTimeout(() => {
       console.log("down");
       setIsLongPress(true);
@@ -177,7 +234,7 @@ function VideoPlayer({
 
       video.playbackRate = 2.0;
       pressTimer.current = null;
-    }, 200);
+    }, 600);
   };
 
   const exitDoubleSpeed = (e) => {
@@ -225,7 +282,9 @@ function VideoPlayer({
   useEffect(() => {
     const container = containerRef.current;
     const fullScreenTitle = fullScreenTitleRef.current;
-    if (!container || !fullScreenTitle) return;
+    const isInsideRef = isInside.current;
+
+    if (!container || !fullScreenTitle || !isInsideRef) return;
 
     const controls = container.getElementsByClassName("MuiPopper-root");
 
@@ -250,19 +309,12 @@ function VideoPlayer({
       const rect = container.getBoundingClientRect();
       const x = e.clientX;
       const y = e.clientY;
-
+      console.log("isPlaying", isPlaying);
       const inside =
         x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
-      console.log(
-        `Mouse at (${x}, ${y}) — ${inside ? "✅ Inside" : "🚪 Outside"}`
-      );
 
-      if (isInside) {
-        isInside.current = inside;
-      } else {
-        isInside.current = false;
-      }
-    
+      if (videoPauseStatus.current) return;
+      isInside.current = inside;
 
       container
         .querySelector(".video-overlay")
@@ -270,7 +322,7 @@ function VideoPlayer({
       container.querySelector(".controls")?.classList.remove("hide-cursor");
 
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
-
+      timeoutRef.current = null;
       timeoutRef.current = setTimeout(() => {
         if (isPlaying && !controls.length) {
           if (!showVolumePanel) {
@@ -295,8 +347,6 @@ function VideoPlayer({
   }, [isPlaying, controlOpacity, isLongPress, isInside]);
 
   const handleMouseOut = () => {
-    console.log("out");
-
     const container = containerRef.current;
     const isFullscreen = !!document.fullscreenElement;
     const video = videoRef.current;
@@ -499,11 +549,6 @@ function VideoPlayer({
   );
 
   useEffect(() => {
-    console.log("isTheater", isTheatre);
-    console.log("prevTheatre", prevTheatre);
-  }, [isTheatre, prevTheatre]);
-
-  useEffect(() => {
     const normalizedVolume = volume / 40;
     debouncedUpdateVolumeStates(normalizedVolume);
     return () => {
@@ -670,6 +715,11 @@ function VideoPlayer({
     }
   };
 
+  useEffect(() => {
+    if (isUserInteracted) {
+      handleLoadedMetadata();
+    }
+  }, [isUserInteracted]);
   useEffect(() => {
     if (location.pathname === "/") {
       setIsUserInteracted(true);
@@ -914,26 +964,19 @@ function VideoPlayer({
         {...(isTheatre ? { "data-theatre": true } : {})}
         ref={containerRef}
         onMouseLeave={handleMouseOut}
-        onMouseMove={()=> {
-          if(!isLongPress) {
-              isInside.current = true;
-          setControlOpacity(1)
-          setTitleOpacity(1)
+        onMouseMove={() => {
+          if (!isLongPress) {
+            isInside.current = true;
+            setControlOpacity(1);
+            setTitleOpacity(1);
           }
         }}
         onMouseEnter={() => {
-          console.log("im enter");
-          if(!isLongPress) {
-  isInside.current = true;
-          setControlOpacity(1)
+          if (!isLongPress) {
+            isInside.current = true;
+            setControlOpacity(1);
           }
-        
         }}
-        // onMouseLeave={() => {
-        //   console.log("im out");
-        //   setIsMouseOut(true);
-        // }}
-        // onMouseEnter={handleMouseEnter}
         id="video-container"
         className={isLongPress ? "long-pressing" : ""}
         component="div"
@@ -941,13 +984,22 @@ function VideoPlayer({
           position: "relative",
         }}
       >
-        <Box
-          sx={{ paddingTop: isTheatre ? "" : "calc(9 / 16 * 100%)" }}
-          className="video-inner"
-        />
+   {!isTheatre &&   <Box sx={{
+       height: videoRef.current?.offsetHeight  
+    }} className="ambient-wrapper">
+     <Box sx={{
+      transform: isMobile ? "scale(1.5, 1.5)" : "scale(1.5, 2)"
+
+     }}className="canvas-container">
+        <canvas ref={captureCanvasRef} width="110" height="75" className="hidden" />
+        <canvas ref={glowCanvasRef} width="110" height="75" className="glow-canvas" />
+      </Box>
+      </Box>}
+      
 
         <Box sx={{ flex: 1 }}>
           <Box className="html5-video-container" sx={{ position: "relative" }}>
+       
             <video
               ref={videoRef}
               id="video-player"
@@ -955,6 +1007,7 @@ function VideoPlayer({
               onTimeUpdate={handleTimeUpdate}
               onEnded={handleVideoEnd}
               onLoadedMetadata={handleLoadedMetadata}
+              crossOrigin="anonymous"
               style={{
                 position: "absolute",
                 top: isTheatre ? 0 : "",
@@ -970,26 +1023,37 @@ function VideoPlayer({
                 <source src={data?.data?.videoFile.url} type="video/mp4" />
               )}
             </video>
+            
+            <Box className="title-background-overlay"></Box>
+   
             <Box
               ref={fullScreenTitleRef}
               className="title-fullscreen"
               sx={{
                 opacity: titleOpacity,
                 position: "absolute",
-                left: "12px",
-                top: "-1070px",
-                padding: 1,
+                width: "100%",
+                top: "-1080px",
+                padding: 2,
               }}
-              marginTop="8px"
             >
               <Typography
+                className="title-text"
                 sx={{
+                  position: "absolute",
+                  zIndex: 4,
+                  left: "12px",
                   display: "-webkit-box",
                   textOverflow: "ellipsis",
                   maxHeight: "5.6rem",
                   WebkitLineClamp: "2",
                   WebkitBoxOrient: "vertical",
                   overflow: "hidden",
+                  color: "#eee",
+                  cursor: "default",
+                  "&:hover": {
+                    color: "#fff",
+                  },
                 }}
                 variant="h3"
                 color="#fff"
@@ -1222,9 +1286,6 @@ function VideoPlayer({
         </Box>
         <VideoControls
           ref={videoRef}
-          isUserInteracted={isUserInteracted}
-          setIsUserInteracted={setIsUserInteracted}
-          setIsControlInteracted={setIsControlInteracted}
           playlistId={playlistId}
           bufferedVal={bufferedVal}
           filteredVideos={filteredVideos}

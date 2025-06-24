@@ -141,10 +141,42 @@ animation-name: arrow-fade-out-1;
     opacity: 0;
 }
 }
-
+#background {
+  transition: opacity 0 ease-in;
+}
 video {
   display: block;
 }
+.ambient-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 1280px;
+  margin: auto;
+}
+
+.canvas-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  filter: blur(16px);
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.glow-canvas {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  opacity: 1;
+}
+
+.hidden {
+  display: none;
+}
+
 .hide-cursor {
   cursor: none;
 }
@@ -157,14 +189,6 @@ video {
   z-index: 3;
 }
 
-#video-container:not(.long-pressing).enter .video-controls,
-#video-container:not(.long-pressing).enter .controls-background-overlay {
-  opacity: 1;
-}
-
-#video-container:not(.long-pressing) .show.title-fullscreen {
-  opacity: 1;
-}
 
 #video-container[data-theatre] {
     display: flex;
@@ -182,7 +206,7 @@ video {
 }
 .controls-background-overlay {
     position: absolute;
-    height: 130px;
+    height: 56px;
     width: 100%;
     display: block;
     bottom: 0px;
@@ -191,6 +215,18 @@ video {
     background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.5));
     z-index: 1;
 }
+.title-background-overlay {
+    position: absolute;
+    height: 80px;
+    width: 100%;
+    display: block;
+    top: -1080px;
+    pointer-events: none;
+    transition: opacity 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), transparent);
+    z-index: 1;
+}
+
 .large-play-btn { 
   transition: fill .1s cubic-bezier(.4,0,1,1), fill-opacity .1s cubic-bezier(.4,0,1,1);
 }

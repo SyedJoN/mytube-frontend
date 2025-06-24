@@ -20,10 +20,11 @@ import { getUserChannelProfile } from "../apis/userFn";
 
 function WatchVideo({ videoId, playlistId }) {
   const navigate = useNavigate();
+    const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
+  
   const context = useContext(OpenContext);
   const [index, setIndex] = useState(0);
   const { data: dataContext } = context ?? {};
-  const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
   const isAuthenticated = dataContext || null;
   const [activeAlertId, setActiveAlertId] = useState(null);
   const [isTheatre, setIsTheatre] = useState(false);
@@ -123,6 +124,9 @@ useEffect(() => {
       });
     }
   }, [navigate, playlistId, filteredVideos, playlistVideos, index]);
+useEffect(() => {
+  console.log("isUserInteracted in /watch:", isUserInteracted);
+}, [isUserInteracted]);
 
   return (
     <Grid
@@ -144,10 +148,6 @@ useEffect(() => {
         }}
       >
         <VideoPlayer
-          isUserInteracted={isUserInteracted}
-          setIsUserInteracted={setIsUserInteracted}
-          dataContext={dataContext}
-          isAuthenticated={isAuthenticated}
           index={index}
           videoId={videoId}
           playlistId={playlistId}
@@ -158,12 +158,10 @@ useEffect(() => {
           setIsTheatre={setIsTheatre}
         />
       
-         <Box sx={{ display: (!isCustomWidth && !isTheatre) ? 'block' : 'none' }}>
+         <Box sx={{ display: (!isCustomWidth && !isTheatre) ? 'block' : 'none', mt: 2 }}>
           <VideoDetailsPanel
             videoId={videoId}
             data={data}
-            isAuthenticated={isAuthenticated}
-            dataContext={dataContext}
             userData={userData}
             user={user}
             channelId={channelId}
@@ -176,7 +174,6 @@ useEffect(() => {
           </Box>
    <Box sx={{ display: (!isCustomWidth && !isTheatre) ? 'block' : 'none' }}>
           <CommentSection
-            isAuthenticated={isAuthenticated}
             videoId={videoId}
             data={data}
             activeAlertId={activeAlertId}
@@ -204,6 +201,7 @@ useEffect(() => {
             />
           )}
           {isCustomWidth && (
+            <Box sx={{mt: 2 }}>
             <VideoDetailsPanel
               videoId={videoId}
               data={data}
@@ -212,10 +210,11 @@ useEffect(() => {
               channelId={channelId}
               channelName={channelName}
               subscriberCount={subscriberCount}
-              ower={owner}
+              owner={owner}
               activeAlertId={activeAlertId}
               setActiveAlertId={setActiveAlertId}
             />
+            </Box>
           )}
 
           <VideoSideBar
@@ -229,7 +228,6 @@ useEffect(() => {
 
           {isCustomWidth && (
             <CommentSection
-              isAuthenticated={isAuthenticated}
               videoId={videoId}
               data={data}
               activeAlertId={activeAlertId}
@@ -239,9 +237,6 @@ useEffect(() => {
         </Grid>
     }
       
-   
-
-     
         <Box sx={{width: "100%", display: isTheatre && !isCustomWidth ? "block" : "none"}}>
         <Grid
           container
@@ -269,8 +264,6 @@ useEffect(() => {
             <VideoDetailsPanel
               videoId={videoId}
               data={data}
-              isAuthenticated={isAuthenticated}
-              dataContext={dataContext}
               userData={userData}
               user={user}
               channelId={channelId}
@@ -282,7 +275,6 @@ useEffect(() => {
             />
 
             <CommentSection
-              isAuthenticated={isAuthenticated}
               videoId={videoId}
               data={data}
               activeAlertId={activeAlertId}

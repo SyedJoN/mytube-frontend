@@ -30,7 +30,7 @@ export default function Search({
         ml: "auto",
         borderRadius: 100,
         border: "1px solid hsl(0,0%,18.82%)",
-        backgroundColor: "transparent",
+        backgroundColor: "#0f0f0f",
       }}
     >
       <InputBase

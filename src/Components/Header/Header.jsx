@@ -44,15 +44,35 @@ function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const drawerWidth = "var(--drawer-width)";
-  const miniDrawerWidth = "var(--mini-drawer-width)"; // Collapsed drawer width
+  const miniDrawerWidth = "var(--mini-drawer-width)"; 
+  
   const location = useLocation();
   const [searchMenu, setSearchMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const { window } = props;
+  const [scrollY, setScrollY] = useState("");
+  const [opacity, setOpacity] = useState(0);
+  const { window: windowProp } = props;
   const navigate = useNavigate();
 
   const container =
-    window !== undefined ? () => window().document.body : undefined;
+    windowProp !== undefined ? () => window().document.body : undefined;
+
+  React.useEffect(() => {
+    const handleScroll = () => {
+      const y = Math.max(0, window.scrollY);
+      const maxScroll = 40;
+      const steps = 10;
+
+      const stepSize = maxScroll / steps;
+      const step = Math.min(steps, Math.floor(y / stepSize));
+
+      setOpacity(step * 0.25);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -61,109 +81,119 @@ function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
     }
   };
 
-  React.useEffect(()=> {
-   if (!isMobile) {
-    setSearchMenu(false)
-   }
-  }, [isMobile])
+  React.useEffect(() => {
+    if (!isMobile) {
+      setSearchMenu(false);
+    }
+  }, [isMobile]);
 
-  
   return (
     <Box>
       <CssBaseline />
-      <AppBar position="fixed" sx={{ boxShadow: "none" }}>
-        {!searchMenu ? 
-           <Toolbar
-           sx={{
-             gap: "10px",
-             paddingLeft: "16px",
-             paddingRight: "16px",
-             minHeight: "var(--toolbar-height)",
-             "@media (min-width:600px)": {
-               paddingLeft: "16px",
-               paddingRight: "16px",
-               minHeight: "var(--toolbar-height)",
-             },
-           }}
-         >
-           <IconButton
-             size="medium"
-             edge="start"
-             color="inherit"
-             aria-label="menu"
-             onClick={onClose}
-             sx={{
-               width: "40px",
-               height: "40px",
-               m: 0,
-               borderRadius: "50px",
-               "&:hover": {
-                 background: "rgba(255,255,255,0.1)",
-               },
-             }}
-           >
-             <MenuIcon />
-           </IconButton>
-           <Link style={{ color: "#fff", textDecoration: "none" }} to="/">
-             <Typography
-               sx={{ padding: "10px" }}
-               variant="h6"
-               noWrap
-               component="div"
-             >
-               VTube
-             </Typography>
-           </Link>
-           {!isMobile ? (
-             <Search
-               handleSearch={handleSearch}
-               searchQuery={searchQuery || ""} // Ensure it's always a string
-               setSearchQuery={setSearchQuery}
-             />
-           ) : (
-             <IconButton
-              onClick={()=> setSearchMenu(true)}
-               type="button"
-               sx={{
-                 borderRadius: "50px",
-                 color: "#fff",
-                 backgroundColor: "none",
-                 "&:hover": {
-                   backgroundColor: "hsla(0,0%,100%,.08)",
-                 },
-               }}
-               aria-label="search"
-             >
-               <SearchIcon />
-             </IconButton>
-           )}
- 
-           <IconButton
-             sx={{
-               padding: "10px",
-               borderRadius: "50px",
-               backgroundColor: "hsla(0,0%,100%,.08)",
-               marginLeft: "10px",
-               marginRight: "auto",
-               "&:hover": {
-                 backgroundColor: "hsl(0,0%,18.82%)",
-               },
-             }}
-           >
-             <MicOutlinedIcon sx={{ color: "#fff" }} />
-           </IconButton>
-           <AccountMenu />
-         </Toolbar>
-         :
-         <Search
-         setSearchMenu={setSearchMenu}
-         isMobile={isMobile} 
-         handleSearch={handleSearch}
-         searchQuery={searchQuery || ""} // Ensure it's always a string
-         setSearchQuery={setSearchQuery}
-         />
-        }
-     
+
+      <AppBar position="fixed" sx={{ boxShadow: "none", background: "none" }}>
+        {!searchMenu ? (
+          <Toolbar
+            sx={{
+              gap: "10px",
+              paddingLeft: "16px",
+              paddingRight: "16px",
+              minHeight: "var(--toolbar-height)",
+              "@media (min-width:600px)": {
+                paddingLeft: "16px",
+                paddingRight: "16px",
+                minHeight: "var(--toolbar-height)",
+              },
+            }}
+          >
+            <IconButton
+              size="medium"
+              edge="start"
+              color="inherit"
+              aria-label="menu"
+              onClick={onClose}
+              sx={{
+                width: "40px",
+                height: "40px",
+                m: 0,
+                borderRadius: "50px",
+                "&:hover": {
+                  background: "rgba(255,255,255,0.1)",
+                },
+              }}
+            >
+              <MenuIcon />
+            </IconButton>
+            <Link style={{ color: "#fff", textDecoration: "none" }} to="/">
+              <Typography
+                sx={{ padding: "10px" }}
+                variant="h6"
+                noWrap
+                component="div"
+              >
+                VTube
+              </Typography>
+            </Link>
+            {!isMobile ? (
+              <Search
+                handleSearch={handleSearch}
+                searchQuery={searchQuery || ""}
+                setSearchQuery={setSearchQuery}
+              />
+            ) : (
+              <IconButton
+                onClick={() => setSearchMenu(true)}
+                type="button"
+                sx={{
+                  borderRadius: "50px",
+                  color: "#fff",
+                  backgroundColor: "none",
+                  "&:hover": {
+                    backgroundColor: "hsla(0,0%,100%,.08)",
+                  },
+                }}
+                aria-label="search"
+              >
+                <SearchIcon />
+              </IconButton>
+            )}
+
+            <IconButton
+              sx={{
+                padding: "10px",
+                borderRadius: "50px",
+                backgroundColor: "hsla(0,0%,100%,.08)",
+                marginLeft: "10px",
+                marginRight: "auto",
+                "&:hover": {
+                  backgroundColor: "hsl(0,0%,18.82%)",
+                },
+              }}
+            >
+              <MicOutlinedIcon sx={{ color: "#fff" }} />
+            </IconButton>
+            <AccountMenu />
+          </Toolbar>
+        ) : (
+          <Search
+            setSearchMenu={setSearchMenu}
+            isMobile={isMobile}
+            handleSearch={handleSearch}
+            searchQuery={searchQuery || ""}
+            setSearchQuery={setSearchQuery}
+          />
+        )}
+        <Box
+          sx={{
+            background: "#0f0f0f",
+            opacity: opacity,
+            position: "absolute",
+            zIndex: -1,
+            inset: 0,
+            transition: "opacity 200ms ease-in-out",
+          }}
+          id="background"
+        ></Box>
       </AppBar>
 
       {(home || search) && !isTablet && (
@@ -185,7 +215,7 @@ function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
             sx={{
               minHeight: "var(--toolbar-height)",
               "@media (min-width:600px)": {
-                minHeight: "var(--toolbar-height)", 
+                minHeight: "var(--toolbar-height)",
               },
             }}
           >
@@ -233,7 +263,7 @@ function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
                         display: "flex",
                         flexDirection: open ? "row" : "column",
                         alignItems: "center",
-                        justifyContent: open ? "flex-start" : "center", // ✅ Fix for icons when collapsed
+                        justifyContent: open ? "flex-start" : "center", 
                         borderRadius: "10px",
                         paddingX: 2,
                         paddingY: open ? 1 : 1.5,
@@ -306,7 +336,7 @@ function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
                   sx={{
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "flex-start", // ✅ Fix for icons when collapsed
+                    justifyContent: "flex-start",
                     borderRadius: "10px",
                     paddingX: 2,
                     paddingY: 1,
@@ -386,16 +416,19 @@ function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
         </Drawer>
       )}
 
-{(userProfile && !isTablet) && (
+      {userProfile && !isTablet && (
         <Drawer
-        id="userProfile"
+          id="userProfile"
           container={container}
           variant="permanent"
           open={open}
           sx={{
             "& .MuiDrawer-paper": {
-              width: !isLaptop ? (open  ? drawerWidth : miniDrawerWidth) :
-              miniDrawerWidth,
+              width: !isLaptop
+                ? open
+                  ? drawerWidth
+                  : miniDrawerWidth
+                : miniDrawerWidth,
               overflowX: "hidden",
               border: "none",
               zIndex: 0,
@@ -407,7 +440,7 @@ function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
             sx={{
               minHeight: "var(--toolbar-height)",
               "@media (min-width:600px)": {
-                minHeight: "var(--toolbar-height)", // 👈 override default
+                minHeight: "var(--toolbar-height)",
               },
             }}
           >
@@ -445,7 +478,7 @@ function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
                     disablePadding
                     sx={{
                       display: "block",
-                      width: (open && !isLaptop) ? "calc(100% - 12px)" : "100%",
+                      width: open && !isLaptop ? "calc(100% - 12px)" : "100%",
                     }}
                   >
                     <ListItemButton
@@ -453,26 +486,27 @@ function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
                       selected={location.pathname === route}
                       sx={{
                         display: "flex",
-                        flexDirection: (open && !isLaptop)  ? "row" : "column",
+                        flexDirection: open && !isLaptop ? "row" : "column",
                         alignItems: "center",
-                        justifyContent: (open && !isLaptop)  ? "flex-start" : "center", // ✅ Fix for icons when collapsed
+                        justifyContent:
+                          open && !isLaptop ? "flex-start" : "center", 
                         borderRadius: "10px",
                         paddingX: 2,
-                        paddingY: (open && !isLaptop)  ? 1 : 1.5,
-                        marginX: (open && !isLaptop)  ? 1 : 0,
-                        gap: (open && !isLaptop)  ? "0" : "0.5px",
+                        paddingY: open && !isLaptop ? 1 : 1.5,
+                        marginX: open && !isLaptop ? 1 : 0,
+                        gap: open && !isLaptop ? "0" : "0.5px",
                         transition: "background-color 0.3s ease",
                         "&:hover": {
                           backgroundColor: "rgba(255, 255, 255, 0.1)",
                         },
                         "&.Mui-selected": {
-                          backgroundColor: (open && !isLaptop) 
-                            ? "rgba(255, 255, 255, 0.1)"
-                            : "",
+                          backgroundColor:
+                            open && !isLaptop ? "rgba(255, 255, 255, 0.1)" : "",
                           "&:hover": {
-                            backgroundColor: (open && !isLaptop) 
-                              ? "rgba(255, 255, 255, 0.2)"
-                              : "rgba(255, 255, 255, 0.1)",
+                            backgroundColor:
+                              open && !isLaptop
+                                ? "rgba(255, 255, 255, 0.2)"
+                                : "rgba(255, 255, 255, 0.1)",
                           },
                         },
                       }}
@@ -504,9 +538,9 @@ function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
                       </ListItemIcon>
                       <Typography
                         sx={{
-                          marginLeft: (open && !isLaptop)  ? 2 : 0,
-                          fontSize: (open && !isLaptop)  ? "0.9rem" : "0.6rem",
-                          mt: (open && !isLaptop)  ? 0 : "5px",
+                          marginLeft: open && !isLaptop ? 2 : 0,
+                          fontSize: open && !isLaptop ? "0.9rem" : "0.6rem",
+                          mt: open && !isLaptop ? 0 : "5px",
                         }}
                       >
                         {text}
@@ -517,18 +551,18 @@ function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
               })}
           </List>
 
-          {(open && !isLaptop)  && (
+          {open && !isLaptop && (
             <Divider sx={{ bgcolor: "rgba(255, 255, 255, 0.2)", my: 1 }} />
           )}
 
-          {(open && !isLaptop)  && (
+          {open && !isLaptop && (
             <List sx={{ color: "#fff" }}>
               <ListItem disablePadding sx={{ display: "flex" }}>
                 <ListItemButton
                   sx={{
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "flex-start", // ✅ Fix for icons when collapsed
+                    justifyContent: "flex-start", 
                     borderRadius: "10px",
                     paddingX: 2,
                     paddingY: 1,
@@ -623,14 +657,13 @@ function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
               zIndex: 0,
               bgcolor: theme.palette.primary.main,
             },
-            
           }}
         >
           <Toolbar
             sx={{
               minHeight: "var(--toolbar-height)",
               "@media (min-width:600px)": {
-                minHeight: "var(--toolbar-height)", // 👈 override default
+                minHeight: "var(--toolbar-height)", 
               },
             }}
           >
@@ -671,7 +704,7 @@ function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
                         display: "flex",
                         flexDirection: "row",
                         alignItems: "center",
-                        justifyContent: "flex-start", // ✅ Fix for icons when collapsed
+                        justifyContent: "flex-start",
                         borderRadius: "10px",
                         paddingX: 2,
                         paddingY: 1,
@@ -734,7 +767,7 @@ function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
                 sx={{
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "flex-start", // ✅ Fix for icons when collapsed
+                  justifyContent: "flex-start", 
                   borderRadius: "10px",
                   paddingX: 2,
                   paddingY: 1,
@@ -932,7 +965,7 @@ function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
                   sx={{
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "flex-start", // ✅ Fix for icons when collapsed
+                    justifyContent: "flex-start", 
                     borderRadius: "10px",
                     paddingX: 2,
                     paddingY: 1,
@@ -1016,7 +1049,7 @@ function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
 }
 
 Header.propTypes = {
-  window: PropTypes.func,
+  windowProp: PropTypes.func,
 };
 
 export default React.memo(Header);

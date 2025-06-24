@@ -27,13 +27,6 @@ export const MorphingVolIcon = React.memo(({
     setHasMounted(true);
   }, []);
 
-  React.useEffect(() => {
-    console.log("isIncreased", isIncreased);
-    console.log("jumpedToMax", jumpedToMax);
-    console.log("muted", isMuted);
-
-  }, [isIncreased, jumpedToMax, isMuted]);
-
   const pathArray = React.useMemo(() => {
     if (isMuted && jumpedToMax) return [highWave, highWave, mutedPath];
     if (!isMuted && jumpedToMax) return [highWave, highWave, highWave];

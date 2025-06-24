@@ -1,18 +1,17 @@
-import React from "react";
+import React, { useContext } from "react";
 import Description from "./VideoDescription";
 import { LikeDislikeButtons } from "./LikeDislikeButton";
 import { SubscribeButton } from "../Subscribe/SubscribeButton";
 import { Avatar, Box, CardHeader, Tooltip, Typography } from "@mui/material";
 import { Link } from "@tanstack/react-router";
 import { getColor } from "../../utils/getColor";
+import { OpenContext } from "../../routes/__root";
 
 const VideoDetailsPanel = ({
   videoId,
   data,
-  dataContext,
   userData,
   user,
-  isAuthenticated,
   channelId,
   channelName,
   subscriberCount,
@@ -20,9 +19,13 @@ const VideoDetailsPanel = ({
   activeAlertId,
   setActiveAlertId,
 }) => {
+  const context = useContext(OpenContext);
+
+  const { data: dataContext } = context ?? {};
+  const isAuthenticated = dataContext || null;
   return (
     <>
-      <Box marginTop="8px">
+      <Box sx={{ position: "relative", zIndex: "3" }}>
         <Typography
           sx={{
             display: "-webkit-box",
@@ -39,7 +42,6 @@ const VideoDetailsPanel = ({
         </Typography>
       </Box>
       {data?.data?.owner?.avatar && (
-        
         <Box
           sx={{
             display: "flex",
@@ -99,9 +101,9 @@ const VideoDetailsPanel = ({
               }
               title={
                 <Tooltip
-                 disableInteractive
-                    disableFocusListener
-                    disableTouchListener
+                  disableInteractive
+                  disableFocusListener
+                  disableTouchListener
                   title={data?.data?.owner?.fullName ?? ""}
                   placement="top-start"
                 >
