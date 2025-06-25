@@ -220,7 +220,7 @@ video {
     height: 80px;
     width: 100%;
     display: block;
-    top: -1080px;
+    top: 0;
     pointer-events: none;
     transition: opacity 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     background: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), transparent);

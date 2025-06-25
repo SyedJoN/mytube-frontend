@@ -67,14 +67,14 @@ function VideoPlayer({
   setIsTheatre,
 }) {
   const context = useContext(OpenContext);
-    const theme = useTheme();
-  
+  const theme = useTheme();
+
   const containerRef = useRef(null);
   const videoRef = useRef(null);
   const timeoutRef = useRef(null);
   const fullScreenTitleRef = useRef(null);
-    const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
   const { data: dataContext } = context ?? {};
   const isAuthenticated = dataContext || null;
   const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
@@ -82,6 +82,9 @@ function VideoPlayer({
   const prevVolumeRef = useRef(null);
   const [prevTheatre, setPrevTheatre] = useState(false);
   const [videoHeight, setVideoHeight] = useState(0);
+  const [playerHeight, setPlayerHeight] = useState("0px");
+  const [playerWidth, setPlayerWidth] = useState("0px");
+  const [containerHeight, setContainerHeight] = useState(0);
   const [controlOpacity, setControlOpacity] = useState(0);
   const [titleOpacity, setTitleOpacity] = useState(0);
   const [showVolumePanel, setShowVolumePanel] = useState(false);
@@ -100,6 +103,7 @@ function VideoPlayer({
   const [showVolumeIcon, setShowVolumeIcon] = useState(false);
   const [volumeUp, setVolumeUp] = useState(false);
   const [leftOffset, setLeftOffset] = useState("0px");
+  const [topOffset, setTopOffset] = useState("0px");
   const [volumeDown, setVolumeDown] = useState(false);
   const [volumeMuted, setVolumeMuted] = useState(false);
   const pressTimer = useRef(null);
@@ -117,6 +121,7 @@ function VideoPlayer({
   const [isIncreased, setIsIncreased] = useState(false);
   const [jumpedToMax, setJumpedToMax] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [videoContainerWidth, setVideoContainerWidth] = useState("0px");
   const isFastPlayback = videoRef?.current?.playbackRate === 2.0;
   const animateTimeoutRef = useRef(null);
@@ -124,22 +129,40 @@ function VideoPlayer({
   const glowCanvasRef = useRef(null);
 
   useEffect(() => {
+    const handleFullscreenChange = () => {
+      console.log("Fullscreen element:", document.fullscreenElement);
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, []);
+
+  useEffect(() => {
     const interval = setInterval(() => {
       const video = videoRef.current;
       const captureCanvas = captureCanvasRef.current;
       const glowCanvas = glowCanvasRef.current;
 
-      if (!video || !captureCanvas || !glowCanvas || video.readyState < 2) return;
+      if (!video || !captureCanvas || !glowCanvas || video.readyState < 2)
+        return;
 
-      const captureCtx = captureCanvas.getContext('2d');
-      const glowCtx = glowCanvas.getContext('2d');
+      const captureCtx = captureCanvas.getContext("2d", {
+        willReadFrequently: true,
+      });
+      const glowCtx = glowCanvas.getContext("2d", { willReadFrequently: true });
 
       try {
         captureCtx.drawImage(video, 0, 0, 110, 75);
         const frame = captureCtx.getImageData(0, 0, 110, 75).data;
 
-       
-        let r = 0, g = 0, b = 0, count = 0;
+        let r = 0,
+          g = 0,
+          b = 0,
+          count = 0;
         for (let i = 0; i < frame.length; i += 4) {
           r += frame[i];
           g += frame[i + 1];
@@ -153,18 +176,21 @@ function VideoPlayer({
 
         const color = `rgb(${r}, ${g}, ${b})`;
 
-      
         glowCtx.clearRect(0, 0, 110, 75);
         const gradient = glowCtx.createRadialGradient(
-          55, 37.5, 5, 
-          55, 37.5, 70 
+          55,
+          37.5,
+          5,
+          55,
+          37.5,
+          70
         );
         gradient.addColorStop(0, color);
-        gradient.addColorStop(1, 'transparent');
+        gradient.addColorStop(1, "transparent");
         glowCtx.fillStyle = gradient;
         glowCtx.fillRect(0, 0, 110, 75);
       } catch (e) {
-        console.warn('Glow error:', e);
+        console.warn("Glow error:", e);
       }
     }, 200);
 
@@ -348,43 +374,13 @@ function VideoPlayer({
 
   const handleMouseOut = () => {
     const container = containerRef.current;
-    const isFullscreen = !!document.fullscreenElement;
     const video = videoRef.current;
+    const isFullscreen = !!document.fullscreenElement;
     if (!container || !video || isFullscreen || !isPlaying) return;
 
     setControlOpacity(0);
     setTitleOpacity(0);
   };
-
-  useEffect(() => {
-    if (!containerRef.current || !videoRef.current) return;
-
-    const updateLeftOffset = () => {
-      if (isTheatre && containerRef.current && videoRef.current) {
-        const containerWidth = containerRef.current.offsetWidth;
-        setVideoContainerWidth(containerWidth);
-        setVideoHeight(containerRef.current?.offsetHeight);
-        const videoWidth = videoRef.current.offsetWidth;
-        const offset = (containerWidth - videoWidth) / 2;
-        setLeftOffset(`${offset}px`);
-      } else {
-        setLeftOffset("0px");
-      }
-    };
-
-    const containerObserver = new ResizeObserver(updateLeftOffset);
-    const videoObserver = new ResizeObserver(updateLeftOffset);
-
-    containerObserver.observe(containerRef.current);
-    videoObserver.observe(videoRef.current);
-
-    updateLeftOffset();
-
-    return () => {
-      containerObserver.disconnect();
-      videoObserver.disconnect();
-    };
-  }, [isTheatre]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -831,6 +827,53 @@ function VideoPlayer({
     }
   };
   useEffect(() => {
+    if (isMobile && typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" }); 
+    }
+  }, [isMobile, data?.data?._id]);
+
+  useEffect(() => {
+    if (!containerRef.current || !videoRef.current) return;
+
+    const updateSize = () => {
+      const containerWidth = containerRef.current.offsetWidth;
+      const containerHeight = containerRef.current.offsetHeight;
+      setVideoContainerWidth(containerWidth);
+      setContainerHeight(containerHeight);
+      const targetAspectRatio = 16 / 9;
+
+      let videoWidth = Math.floor(containerWidth);
+      let videoHeight = Math.ceil(videoWidth / targetAspectRatio);
+      setVideoHeight(videoHeight);
+
+      if (videoHeight > containerHeight) {
+        videoHeight = Math.floor(containerHeight);
+        videoWidth = Math.floor(videoHeight * targetAspectRatio);
+      }
+      const left = Math.floor(Math.max((containerWidth - videoWidth) / 2, 0));
+      const top = Math.ceil(Math.max((containerHeight - videoHeight) / 2, 0));
+      setPlayerWidth(`${videoWidth}px`);
+      setPlayerHeight(`${videoHeight}px`);
+
+      setLeftOffset(`${left}px`);
+      setTopOffset(`${top}px`);
+    };
+    const raf = requestAnimationFrame(updateSize);
+    const container = containerRef.current;
+    const observer = new ResizeObserver(() => {
+      requestAnimationFrame(updateSize);
+    });
+    if (container) observer.observe(container);
+    window.addEventListener("resize", updateSize);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      observer.disconnect();
+      window.removeEventListener("resize", updateSize);
+    };
+  }, [isTheatre, data?.data?._id]);
+
+  useEffect(() => {
     const handleKeyPress = (e) => {
       const activeElement = document.activeElement;
       const isInputFocused =
@@ -959,7 +1002,13 @@ function VideoPlayer({
   };
 
   return (
-    <>
+    <Box
+      sx={{
+        position: "relative",
+        paddingTop: isTheatre ? "" : "calc(9 / 16 * 100%)",
+      }}
+      className="video-inner"
+    >
       <Box
         {...(isTheatre ? { "data-theatre": true } : {})}
         ref={containerRef}
@@ -981,25 +1030,64 @@ function VideoPlayer({
         className={isLongPress ? "long-pressing" : ""}
         component="div"
         sx={{
-          position: "relative",
+          position: isTheatre ? "relative" : "absolute",
+          width: "100%",
+          height: "100%",
+          top: 0,
+          left: 0,
         }}
       >
-   {!isTheatre &&   <Box sx={{
-       height: videoRef.current?.offsetHeight  
-    }} className="ambient-wrapper">
-     <Box sx={{
-      transform: isMobile ? "scale(1.5, 1.5)" : "scale(1.5, 2)"
+        {!isTheatre && (
+          <Box
+            sx={{
+              height: videoHeight,
+            }}
+            className="ambient-wrapper"
+          >
+            <Box
+              sx={{
+                transform: isMobile ? "scale(1.5, 1.5)" : "scale(1.5, 2)",
+              }}
+              className="canvas-container"
+            >
+              <canvas
+                ref={captureCanvasRef}
+                width="110"
+                height="75"
+                className="hidden"
+              />
+              <canvas
+                ref={glowCanvasRef}
+                width="110"
+                height="75"
+                className="glow-canvas"
+              />
+            </Box>
+          </Box>
+        )}
 
-     }}className="canvas-container">
-        <canvas ref={captureCanvasRef} width="110" height="75" className="hidden" />
-        <canvas ref={glowCanvasRef} width="110" height="75" className="glow-canvas" />
-      </Box>
-      </Box>}
-      
-
-        <Box sx={{ flex: 1 }}>
-          <Box className="html5-video-container" sx={{ position: "relative" }}>
-       
+        <Box
+          sx={{
+            position: "absolute",
+            width: "100%",
+            height: "100%",
+            top: 0,
+            left: 0,
+          }}
+        >
+          <Box
+            className="html5-video-container"
+            sx={{
+              position: "absolute",
+              width: "100%",
+              height: "100%",
+              aspectRatio: "16/9",
+              display: "flex",
+              flexDirection: "column",
+              top: 0,
+              left: 0,
+            }}
+          >
             <video
               ref={videoRef}
               id="video-player"
@@ -1010,30 +1098,29 @@ function VideoPlayer({
               crossOrigin="anonymous"
               style={{
                 position: "absolute",
-                top: isTheatre ? 0 : "",
-                bottom: isTheatre ? "" : "0",
-                aspectRatio: "16/9",
-                borderRadius: isTheatre ? "0" : "8px",
-                width: "100%",
-                height: isTheatre ? videoHeight + "px" : "",
+                width: isTheatre ? playerWidth : "100%",
+                height: isTheatre ? playerHeight : "100%",
                 left: isTheatre ? leftOffset : "0",
+                top: isTheatre ? topOffset : "0",
+                objectFit: "cover",
+                borderRadius: isTheatre ? "0" : "8px",
               }}
             >
               {data?.data?.videoFile.url && (
                 <source src={data?.data?.videoFile.url} type="video/mp4" />
               )}
             </video>
-            
+
             <Box className="title-background-overlay"></Box>
-   
+
             <Box
               ref={fullScreenTitleRef}
               className="title-fullscreen"
               sx={{
-                opacity: titleOpacity,
+                opacity: !isFullscreen ? 0 : titleOpacity,
                 position: "absolute",
                 width: "100%",
-                top: "-1080px",
+                top: "0",
                 padding: 2,
               }}
             >
@@ -1382,7 +1469,7 @@ function VideoPlayer({
           </Box>
         </Box>
       </Box>
-    </>
+    </Box>
   );
 }
 

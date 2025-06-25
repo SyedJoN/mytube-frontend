@@ -201,7 +201,7 @@ useEffect(() => {
             />
           )}
           {isCustomWidth && (
-            <Box sx={{mt: 2 }}>
+       
             <VideoDetailsPanel
               videoId={videoId}
               data={data}
@@ -214,7 +214,7 @@ useEffect(() => {
               activeAlertId={activeAlertId}
               setActiveAlertId={setActiveAlertId}
             />
-            </Box>
+      
           )}
 
           <VideoSideBar
