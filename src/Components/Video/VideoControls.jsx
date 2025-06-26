@@ -12,6 +12,7 @@ import { Box, IconButton, Tooltip, Typography, CardMedia } from "@mui/material";
 import { SkipPreviousSvg } from "../Utils/SkipPreviousSvg";
 import { SkipNextSvg } from "../Utils/SkipNextSvg";
 
+
 import formatDuration from "../../utils/formatDuration";
 
 import "../Utils/iconMorph.css";
@@ -19,6 +20,7 @@ import { MorphingVolIcon } from "../Utils/VolumeIcon";
 import { FullScreenSvg } from "../Utils/FullScreenSvg";
 import TheatreSvg from "../Utils/TheatreSvg";
 import { useUserInteraction } from "../../routes/__root";
+import { PiPSvg } from "../Utils/PiPSvg";
 
 const tooltipStyles = {
   whiteSpace: "nowrap",
@@ -90,6 +92,7 @@ const VideoControls = forwardRef(
       controlOpacity,
       showVolumePanel,
       setShowVolumePanel,
+      handleTogglePiP
     },
     videoRef
   ) => {
@@ -225,7 +228,7 @@ const VideoControls = forwardRef(
 
       const rect = volumeSliderRef.current.getBoundingClientRect();
       const offsetX = e.clientX - rect.left;
-      const newVolume = Math.min(Math.max(offsetX / rect.width, 0), 1); // volume range: 0 to 1
+      const newVolume = Math.min(Math.max(offsetX / rect.width, 0), 1); 
 
       videoRef.current.volume = newVolume;
 
@@ -546,6 +549,32 @@ const VideoControls = forwardRef(
               className="right-controls"
               sx={{ display: "flex", height: "100%" }}
             >
+              {!isFullscreen && (
+                <Tooltip
+                  disableInteractive
+                  disableFocusListener
+                  disableTouchListener
+                  title={theatreTitle}
+                  placement="top"
+                  slotProps={{
+                    popper: {
+                      disablePortal: true,
+                      modifiers: popperModifiers,
+                    },
+                    tooltip: {
+                      sx: tooltipStyles,
+                    },
+                  }}
+                >
+                  <a
+                    className="control"
+                    style={controlStyles}
+                    onClick={handleTogglePiP}
+                  >
+                    <PiPSvg />
+                  </a>
+                </Tooltip>
+              )}
               {!isFullscreen && (
                 <Tooltip
                   disableInteractive

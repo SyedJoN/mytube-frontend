@@ -256,7 +256,7 @@ useEffect(() => {
               flexGrow: isCustomWidth ? "1" : "0",
               maxWidth: "100%",
               minWidth: isCustomWidth ? "100%" : "300px!important",
-              py: isCustomWidth ? 0 : 3,
+              py:  0,
               px: isCustomWidth ? 3 : 0,
               pr: 3,
             }}

@@ -84,6 +84,7 @@ function VideoPlayer({
   const [videoHeight, setVideoHeight] = useState(0);
   const [playerHeight, setPlayerHeight] = useState("0px");
   const [playerWidth, setPlayerWidth] = useState("0px");
+  const [MiniPlayerWidth, setMiniPlayerWidth] = useState("0px");
   const [containerHeight, setContainerHeight] = useState(0);
   const [controlOpacity, setControlOpacity] = useState(0);
   const [titleOpacity, setTitleOpacity] = useState(0);
@@ -127,6 +128,52 @@ function VideoPlayer({
   const animateTimeoutRef = useRef(null);
   const captureCanvasRef = useRef(null);
   const glowCanvasRef = useRef(null);
+  const [isMini, setIsMini] = useState(false);
+
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ["video", videoId],
+    queryFn: () => fetchVideoById(videoId),
+    enabled: !!videoId,
+  });
+useEffect(() => {
+  const container = containerRef.current;
+  const video = videoRef.current;
+  if (!container || !video) return;
+
+  let threshold = 0;
+
+  const calculateThreshold = () => {
+    const rect = (isTheatre ? container : video).getBoundingClientRect();
+    const topOffset = rect.top + window.scrollY;
+    const height = rect.height;
+    threshold = topOffset + height - 50; 
+  };
+
+  calculateThreshold();
+
+  const handleScroll = () => {
+    const scrollY = window.scrollY;
+
+    setIsMini((prev) => {
+      if (scrollY > threshold && !prev) return true;
+      if (scrollY <= threshold && prev) return false;
+      return prev;
+    });
+  };
+
+  
+  window.addEventListener("resize", calculateThreshold);
+  window.addEventListener("scroll", handleScroll, { passive: true });
+
+
+  handleScroll();
+
+  return () => {
+    window.removeEventListener("resize", calculateThreshold);
+    window.removeEventListener("scroll", handleScroll);
+  };
+}, [isTheatre, data?.data?._id]);
+
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -213,7 +260,22 @@ function VideoPlayer({
         }
       }
     }, 2000);
-  }, [videoId]);
+  }, [data?.data?._id]);
+
+  const handleTogglePiP = useCallback(async () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else {
+        await video.requestPictureInPicture();
+      }
+    } catch (err) {
+      console.error("PiP error:", err);
+    }
+  }, []);
 
   const handleClick = (e) => {
     if (e.button === 2) return;
@@ -431,7 +493,7 @@ function VideoPlayer({
       video.removeEventListener("canplay", handleBufferingEnd);
       clearInterval(progressCheckId);
     };
-  }, [videoId]);
+  }, [data?.data?._id]);
 
   useEffect(() => {
     let timeout;
@@ -674,7 +736,7 @@ function VideoPlayer({
         video.removeEventListener(event, updateBuffered);
       });
     };
-  }, [videoId]);
+  }, [data?.data?._id]);
 
   const userPlayingVideo = dataContext?.data?.watchHistory?.find(
     (video) => video.video === videoId
@@ -748,7 +810,7 @@ function VideoPlayer({
 
   useEffect(() => {
     sendWatchHistory();
-  }, [videoId]);
+  }, [data?.data?._id]);
 
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -757,12 +819,6 @@ function VideoPlayer({
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, []);
-
-  const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["video", videoId],
-    queryFn: () => fetchVideoById(videoId),
-    enabled: !!videoId,
-  });
 
   const handleForwardSeek = useCallback(() => {
     const video = videoRef.current;
@@ -811,6 +867,7 @@ function VideoPlayer({
       setVolume(restoreVol * 40);
     }
   }, []);
+
   const updateVolumeIconState = () => {
     const currentVolume = videoRef.current?.volume ?? 0;
 
@@ -827,10 +884,10 @@ function VideoPlayer({
     }
   };
   useEffect(() => {
-    if (isMobile && typeof window !== "undefined") {
-      window.scrollTo({ top: 0, behavior: "smooth" }); 
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
-  }, [isMobile, data?.data?._id]);
+  }, [data?.data?._id]);
 
   useEffect(() => {
     if (!containerRef.current || !videoRef.current) return;
@@ -872,6 +929,14 @@ function VideoPlayer({
       window.removeEventListener("resize", updateSize);
     };
   }, [isTheatre, data?.data?._id]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const normalized = volume / 40;
+    video.volume = normalized;
+  }, [volume, data?.data?._id, isMuted]);
 
   useEffect(() => {
     const handleKeyPress = (e) => {
@@ -1002,474 +1067,492 @@ function VideoPlayer({
   };
 
   return (
-    <Box
-      sx={{
-        position: "relative",
-        paddingTop: isTheatre ? "" : "calc(9 / 16 * 100%)",
-      }}
-      className="video-inner"
-    >
+    <>
       <Box
-        {...(isTheatre ? { "data-theatre": true } : {})}
-        ref={containerRef}
-        onMouseLeave={handleMouseOut}
-        onMouseMove={() => {
-          if (!isLongPress) {
-            isInside.current = true;
-            setControlOpacity(1);
-            setTitleOpacity(1);
-          }
-        }}
-        onMouseEnter={() => {
-          if (!isLongPress) {
-            isInside.current = true;
-            setControlOpacity(1);
-          }
-        }}
-        id="video-container"
-        className={isLongPress ? "long-pressing" : ""}
-        component="div"
         sx={{
-          position: isTheatre ? "relative" : "absolute",
-          width: "100%",
-          height: "100%",
-          top: 0,
-          left: 0,
+          position: "relative",
+          paddingTop: isTheatre ? "" : "calc(9 / 16 * 100%)",
         }}
+        className="video-inner"
       >
-        {!isTheatre && (
-          <Box
-            sx={{
-              height: videoHeight,
-            }}
-            className="ambient-wrapper"
-          >
-            <Box
-              sx={{
-                transform: isMobile ? "scale(1.5, 1.5)" : "scale(1.5, 2)",
-              }}
-              className="canvas-container"
-            >
-              <canvas
-                ref={captureCanvasRef}
-                width="110"
-                height="75"
-                className="hidden"
-              />
-              <canvas
-                ref={glowCanvasRef}
-                width="110"
-                height="75"
-                className="glow-canvas"
-              />
-            </Box>
-          </Box>
-        )}
-
         <Box
+          data-theatre={isTheatre}
+          ref={containerRef}
+          onMouseLeave={handleMouseOut}
+          onMouseMove={() => {
+            if (!isLongPress) {
+              isInside.current = true;
+              setControlOpacity(1);
+              setTitleOpacity(1);
+            }
+          }}
+          onMouseEnter={() => {
+            if (!isLongPress) {
+              isInside.current = true;
+              setControlOpacity(1);
+            }
+          }}
+          id="video-container"
+          className={isLongPress ? "long-pressing" : ""}
+          component="div"
           sx={{
-            position: "absolute",
+            position: isTheatre ? "relative" : "absolute",
             width: "100%",
             height: "100%",
             top: 0,
             left: 0,
           }}
         >
-          <Box
-            className="html5-video-container"
-            sx={{
-              position: "absolute",
-              width: "100%",
-              height: "100%",
-              aspectRatio: "16/9",
-              display: "flex",
-              flexDirection: "column",
-              top: 0,
-              left: 0,
-            }}
-          >
-            <video
-              ref={videoRef}
-              id="video-player"
-              key={data?.data?._id}
-              onTimeUpdate={handleTimeUpdate}
-              onEnded={handleVideoEnd}
-              onLoadedMetadata={handleLoadedMetadata}
-              crossOrigin="anonymous"
-              style={{
-                position: "absolute",
-                width: isTheatre ? playerWidth : "100%",
-                height: isTheatre ? playerHeight : "100%",
-                left: isTheatre ? leftOffset : "0",
-                top: isTheatre ? topOffset : "0",
-                objectFit: "cover",
-                borderRadius: isTheatre ? "0" : "8px",
-              }}
-            >
-              {data?.data?.videoFile.url && (
-                <source src={data?.data?.videoFile.url} type="video/mp4" />
-              )}
-            </video>
-
-            <Box className="title-background-overlay"></Box>
-
-            <Box
-              ref={fullScreenTitleRef}
-              className="title-fullscreen"
-              sx={{
-                opacity: !isFullscreen ? 0 : titleOpacity,
-                position: "absolute",
-                width: "100%",
-                top: "0",
-                padding: 2,
-              }}
-            >
-              <Typography
-                className="title-text"
-                sx={{
-                  position: "absolute",
-                  zIndex: 4,
-                  left: "12px",
-                  display: "-webkit-box",
-                  textOverflow: "ellipsis",
-                  maxHeight: "5.6rem",
-                  WebkitLineClamp: "2",
-                  WebkitBoxOrient: "vertical",
-                  overflow: "hidden",
-                  color: "#eee",
-                  cursor: "default",
-                  "&:hover": {
-                    color: "#fff",
-                  },
-                }}
-                variant="h3"
-                color="#fff"
-              >
-                {data?.data?.title}
-              </Typography>
-            </Box>
-          </Box>
-        </Box>
-
-        <Box
-          component={"video-cover"}
-          sx={{
-            position: "absolute",
-            display: "flex",
-            justifyContent: "center",
-            inset: 0,
-            width: "100%",
-            height: "100%",
-            cursor: "pointer",
-            pointerEvents: "all",
-          }}
-        >
-          {isFastPlayback && (
+          {!isTheatre && (
             <Box
               sx={{
-                position: "absolute",
-                top: "20px",
-                width: "72px",
-                height: "34px",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                fontSize: "1rem",
-                color: "#f1f1f1",
-                borderRadius: "50px",
-                background: "rgba(0, 0, 0, 0.5)",
+                display: isMini ? "none" : "block",
+                height: videoHeight,
               }}
-            >
-              <Typography variant="subtitle2" sx={{ pr: 1 }}>
-                2x
-              </Typography>
-
-              <FastForwardIcon sx={{ width: "1.1rem", height: "1.1rem" }} />
-            </Box>
-          )}
-          {isVolumeChanged && (
-            <Box
-              sx={{
-                position: "absolute",
-                top: "60px",
-                width: "80px",
-                height: "50px",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                fontSize: "1rem",
-                borderRadius: "4px",
-                color: "#f1f1f1",
-                background: "rgba(0, 0, 0, 0.5)",
-              }}
-            >
-              <Typography fontWeight="500" variant="h6">
-                {Math.round((volume / 40) * 100)}%
-              </Typography>
-            </Box>
-          )}
-          {isForwardSeek && (
-            <Box
-              sx={{
-                position: "absolute",
-                top: "50%",
-                marginTop: "-55px",
-                right: "10%",
-                width: "110px",
-                height: "110px",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
-                alignItems: "center",
-                fontSize: "1rem",
-                color: "#f1f1f1",
-                borderRadius: "50%",
-                background: "rgba(0, 0, 0, 0.5)",
-              }}
+              className="ambient-wrapper"
             >
               <Box
                 sx={{
-                  display: "flex",
-                  position: "relative",
-                  left: "6px",
-                  justifyContent: "center",
-                  alignItems: "center",
+                  transform: isMobile ? "scale(1.5, 1.5)" : "scale(1.5, 1.3)",
                 }}
+                className="canvas-container"
               >
-                <Box className="forwardSeek-arrow" component={"span"}></Box>
-                <Box className="forwardSeek-arrow" component={"span"}></Box>
-                <Box className="forwardSeek-arrow" component={"span"}></Box>
+                <canvas
+                  ref={captureCanvasRef}
+                  width="110"
+                  height="75"
+                  className="hidden"
+                />
+                <canvas
+                  ref={glowCanvasRef}
+                  width="110"
+                  height="75"
+                  className="glow-canvas"
+                />
               </Box>
-              <Typography variant="caption" sx={{ margin: "0 auto", pt: 1 }}>
-                5 seconds{" "}
-              </Typography>
             </Box>
           )}
-
-          {isBackwardSeek && (
-            <Box
-              sx={{
-                position: "absolute",
-                top: "50%",
-                marginTop: "-55px",
-                left: "10%",
-                width: "110px",
-                height: "110px",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
-                alignItems: "center",
-                fontSize: "1rem",
-                color: "#f1f1f1",
-                borderRadius: "50%",
-                background: "rgba(0, 0, 0, 0.5)",
-              }}
-            >
-              <Box
-                sx={{
-                  display: "flex",
-                  position: "relative",
-                  right: "6px",
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-              >
-                <Box className="rewind-arrow" component={"span"}></Box>
-                <Box className="rewind-arrow" component={"span"}></Box>
-                <Box className="rewind-arrow" component={"span"}></Box>
-              </Box>
-              <Typography variant="caption" sx={{ margin: "0 auto", pt: 1 }}>
-                5 seconds{" "}
-              </Typography>
-            </Box>
-          )}
-
           <Box
-            className="status-overlay"
             sx={{
-              position: "absolute",
-              inset: 0,
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              opacity: 1,
-              color: "#fff",
-              userSelect: "none",
-              pointerEvents: "none",
-            }}
-          >
-            {(showBufferingIndicator || loadingVideo) &&
-              !isBackwardSeek &&
-              !isForwardSeek && (
-                <IconButton
-                  disableRipple
-                  className="buffering-progress"
-                  sx={{
-                    position: "absolute",
-                    left: "50%",
-                    top: "50%",
-                    width: "68px",
-                    height: "48px",
-                    marginLeft: "-34px",
-                    marginTop: "-24px",
-                    padding: "0",
-                    opacity: 1,
-                  }}
-                >
-                  <CircularProgress
-                    sx={{
-                      mx: "auto",
-                      textAlign: "center",
-                      color: "rgb(255, 255, 255)",
-                    }}
-                    size={50}
-                  />
-                </IconButton>
-              )}
-
-            <>
-              <IconButton
-                sx={{
-                  width: "52px",
-                  height: "52px",
-                  padding: 0,
-                  opacity: showIcon ? 1 : 0,
-                  visibility:
-                    showIcon && isUserInteracted ? "visible" : "hidden",
-                  transition: "opacity 0.2s ease",
-                  position: "absolute",
-                }}
-                ref={playIconRef}
-              >
-                {isPlaying ? (
-                  <PlayArrowIcon className="playback-icon" sx={iconStyle} />
-                ) : (
-                  <PauseIcon className="playback-icon" sx={iconStyle} />
-                )}
-              </IconButton>
-
-              <IconButton
-                sx={{
-                  width: "52px",
-                  height: "52px",
-                  padding: 0,
-                  opacity: showVolumeIcon ? 1 : 0,
-                  visibility: showVolumeIcon ? "visible" : "hidden",
-                  transition: "opacity 0.2s ease",
-                  position: "absolute",
-                }}
-                ref={volumeIconRef}
-              >
-                {volumeDown ? (
-                  <VolumeDownIcon className="vol-icon" sx={iconStyle} />
-                ) : volumeUp ? (
-                  <VolumeUpIcon className="vol-icon" sx={iconStyle} />
-                ) : volumeMuted ? (
-                  <VolumeOffIcon className="vol-icon" sx={iconStyle} />
-                ) : null}
-              </IconButton>
-            </>
-          </Box>
-        </Box>
-        <VideoControls
-          ref={videoRef}
-          playlistId={playlistId}
-          bufferedVal={bufferedVal}
-          filteredVideos={filteredVideos}
-          isLoading={isLoading}
-          progress={progress}
-          setProgress={setProgress}
-          togglePlayPause={togglePlayPause}
-          toggleFullScreen={toggleFullScreen}
-          setShowIcon={setShowIcon}
-          isPlaying={isPlaying}
-          setIsPlaying={setIsPlaying}
-          playlistVideos={playlistVideos}
-          isLongPress={isLongPress}
-          index={index}
-          volume={volume}
-          setVolume={setVolume}
-          handleVolumeToggle={handleVolumeToggle}
-          isMuted={isMuted}
-          isIncreased={isIncreased}
-          jumpedToMax={jumpedToMax}
-          isAnimating={isAnimating}
-          isTheatre={isTheatre}
-          setIsTheatre={setIsTheatre}
-          setPrevTheatre={setPrevTheatre}
-          videoContainerWidth={videoContainerWidth}
-          controlOpacity={controlOpacity}
-          showVolumePanel={showVolumePanel}
-          setShowVolumePanel={setShowVolumePanel}
-        />
-        <Box
-          onClick={handleClick}
-          onMouseDown={DoubleSpeed}
-          className="video-overlay"
-        >
-          <Box
-            className="thumbnail-overlay"
-            sx={{
-              position: "absolute",
-              inset: 0,
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              opacity: isUserInteracted ? 0 : 1,
-              transition: "opacity .25s cubic-bezier(0,0,.2,1)",
-              color: "#fff",
-              userSelect: "none",
-              pointerEvents: "all",
-              "&:hover .large-play-btn": {
-                fill: "#f03",
-                fillOpacity: "1",
-              },
+              aspectRatio: isMini ? "1.7777777777777777 !important" : "",
+              position:
+                isTheatre && !isMini
+                  ? "relative"
+                  : isMini
+                    ? "fixed"
+                    : "absolute",
+              width: isMini ? "480px" : "100%",
+              height: isMini ? "auto" : "100%",
+              top: isMini ? "15px" : 0,
+              left: isMini ? "15px" : 0,
+              right: isMini ? "auto" : "",
+              zIndex: isMini ? 9999 : 0,
             }}
           >
             <Box
-              className="thumbnail-overlay-image"
+              className="html5-video-container"
               sx={{
                 position: "absolute",
                 width: "100%",
                 height: "100%",
-                borderRadius: "8px",
-                background: loadingVideo ? "rgba(0,0,0)" : "transparent",
-                backgroundImage: `url(${data?.data?.thumbnail.url})`,
-                backgroundRepeat: "no-repeat",
-                backgroundPosition: "center",
-                backgroundSize: "cover",
-              }}
-            ></Box>
-            <IconButton
-              disableRipple
-              className="large-play-btn-container"
-              sx={{
-                position: "absolute",
-                left: "50%",
-                top: "50%",
-                width: "68px",
-                height: "48px",
-                marginLeft: "-34px",
-                marginTop: "-24px",
-                padding: "0",
-                display: isUserInteracted ? "none" : "inline-flex",
-                opacity: 1,
+                display: "flex",
+                flexDirection: "column",
+                top: 0,
+                left: 0,
               }}
             >
-              <svg height="100%" version="1.1" viewBox="0 0 68 48" width="100%">
-                <path
-                  className="large-play-btn"
-                  d="M66.52,7.74c-0.78-2.93-2.49-5.41-5.42-6.19C55.79,.13,34,0,34,0S12.21,.13,6.9,1.55 C3.97,2.33,2.27,4.81,1.48,7.74C0.06,13.05,0,24,0,24s0.06,10.95,1.48,16.26c0.78,2.93,2.49,5.41,5.42,6.19 C12.21,47.87,34,48,34,48s21.79-0.13,27.1-1.55c2.93-0.78,4.64-3.26,5.42-6.19C67.94,34.95,68,24,68,24S67.94,13.05,66.52,7.74z"
-                  fill="#212121"
-                  fillOpacity=".8"
-                ></path>
-                <path d="M 45,24 27,14 27,34" fill="#f1f1f1"></path>
-              </svg>
-            </IconButton>
+              <video
+                ref={videoRef}
+                id="video-player"
+                key={data?.data?._id}
+                onTimeUpdate={handleTimeUpdate}
+                onEnded={handleVideoEnd}
+                onLoadedMetadata={handleLoadedMetadata}
+                crossOrigin="anonymous"
+                style={{
+                  aspectRatio: isMini ? "1.7777777777777777" : "",
+                  position: "absolute",
+                  width: isMini ? "480px" : playerWidth,
+                  height: isMini ? "auto" : playerHeight,
+                  left: isTheatre && !isMini ? leftOffset : 0,
+                  top: isTheatre && !isMini ? topOffset : 0,
+                  right: isMini ? "auto" : "",
+
+                  objectFit: "cover",
+                  borderRadius: isTheatre && !isMini ? "0" : "8px",
+                }}
+              >
+                {data?.data?.videoFile.url && (
+                  <source src={data?.data?.videoFile.url} type="video/mp4" />
+                )}
+              </video>
+
+              <Box className="title-background-overlay"></Box>
+
+              <Box
+                ref={fullScreenTitleRef}
+                className="title-fullscreen"
+                sx={{
+                  opacity: !isFullscreen ? 0 : titleOpacity,
+                  position: "absolute",
+                  width: "100%",
+                  top: "0",
+                  padding: 2,
+                }}
+              >
+                <Typography
+                  className="title-text"
+                  sx={{
+                    position: "absolute",
+                    zIndex: 4,
+                    left: "12px",
+                    display: "-webkit-box",
+                    textOverflow: "ellipsis",
+                    maxHeight: "5.6rem",
+                    WebkitLineClamp: "2",
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                    color: "#eee",
+                    cursor: "default",
+                    "&:hover": {
+                      color: "#fff",
+                    },
+                  }}
+                  variant="h3"
+                  color="#fff"
+                >
+                  {data?.data?.title}
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+
+          <Box
+            component={"video-cover"}
+            sx={{
+              position: "absolute",
+              display: "flex",
+              justifyContent: "center",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              cursor: "pointer",
+              pointerEvents: "all",
+            }}
+          >
+            {isFastPlayback && (
+              <Box
+                sx={{
+                  position: "absolute",
+                  top: "20px",
+                  width: "72px",
+                  height: "34px",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  fontSize: "1rem",
+                  color: "#f1f1f1",
+                  borderRadius: "50px",
+                  background: "rgba(0, 0, 0, 0.5)",
+                }}
+              >
+                <Typography variant="subtitle2" sx={{ pr: 1 }}>
+                  2x
+                </Typography>
+
+                <FastForwardIcon sx={{ width: "1.1rem", height: "1.1rem" }} />
+              </Box>
+            )}
+            {isVolumeChanged && (
+              <Box
+                sx={{
+                  position: "absolute",
+                  top: "60px",
+                  width: "80px",
+                  height: "50px",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  fontSize: "1rem",
+                  borderRadius: "4px",
+                  color: "#f1f1f1",
+                  background: "rgba(0, 0, 0, 0.5)",
+                }}
+              >
+                <Typography fontWeight="500" variant="h6">
+                  {Math.round((volume / 40) * 100)}%
+                </Typography>
+              </Box>
+            )}
+            {isForwardSeek && (
+              <Box
+                sx={{
+                  position: "absolute",
+                  top: "50%",
+                  marginTop: "-55px",
+                  right: "10%",
+                  width: "110px",
+                  height: "110px",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  fontSize: "1rem",
+                  color: "#f1f1f1",
+                  borderRadius: "50%",
+                  background: "rgba(0, 0, 0, 0.5)",
+                }}
+              >
+                <Box
+                  sx={{
+                    display: "flex",
+                    position: "relative",
+                    left: "6px",
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                >
+                  <Box className="forwardSeek-arrow" component={"span"}></Box>
+                  <Box className="forwardSeek-arrow" component={"span"}></Box>
+                  <Box className="forwardSeek-arrow" component={"span"}></Box>
+                </Box>
+                <Typography variant="caption" sx={{ margin: "0 auto", pt: 1 }}>
+                  5 seconds{" "}
+                </Typography>
+              </Box>
+            )}
+
+            {isBackwardSeek && (
+              <Box
+                sx={{
+                  position: "absolute",
+                  top: "50%",
+                  marginTop: "-55px",
+                  left: "10%",
+                  width: "110px",
+                  height: "110px",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  fontSize: "1rem",
+                  color: "#f1f1f1",
+                  borderRadius: "50%",
+                  background: "rgba(0, 0, 0, 0.5)",
+                }}
+              >
+                <Box
+                  sx={{
+                    display: "flex",
+                    position: "relative",
+                    right: "6px",
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                >
+                  <Box className="rewind-arrow" component={"span"}></Box>
+                  <Box className="rewind-arrow" component={"span"}></Box>
+                  <Box className="rewind-arrow" component={"span"}></Box>
+                </Box>
+                <Typography variant="caption" sx={{ margin: "0 auto", pt: 1 }}>
+                  5 seconds{" "}
+                </Typography>
+              </Box>
+            )}
+
+            <Box
+              className="status-overlay"
+              sx={{
+                position: "absolute",
+                inset: 0,
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                opacity: 1,
+                color: "#fff",
+                userSelect: "none",
+                pointerEvents: "none",
+              }}
+            >
+              {(showBufferingIndicator || loadingVideo) &&
+                !isBackwardSeek &&
+                !isForwardSeek && (
+                  <IconButton
+                    disableRipple
+                    className="buffering-progress"
+                    sx={{
+                      position: "absolute",
+                      left: "50%",
+                      top: "50%",
+                      width: "68px",
+                      height: "48px",
+                      marginLeft: "-34px",
+                      marginTop: "-24px",
+                      padding: "0",
+                      opacity: 1,
+                    }}
+                  >
+                    <CircularProgress
+                      sx={{
+                        mx: "auto",
+                        textAlign: "center",
+                        color: "rgb(255, 255, 255)",
+                      }}
+                      size={50}
+                    />
+                  </IconButton>
+                )}
+
+              <>
+                <IconButton
+                  sx={{
+                    width: "52px",
+                    height: "52px",
+                    padding: 0,
+                    opacity: showIcon ? 1 : 0,
+                    visibility:
+                      showIcon && isUserInteracted ? "visible" : "hidden",
+                    transition: "opacity 0.2s ease",
+                    position: "absolute",
+                  }}
+                  ref={playIconRef}
+                >
+                  {isPlaying ? (
+                    <PlayArrowIcon className="playback-icon" sx={iconStyle} />
+                  ) : (
+                    <PauseIcon className="playback-icon" sx={iconStyle} />
+                  )}
+                </IconButton>
+
+                <IconButton
+                  sx={{
+                    width: "52px",
+                    height: "52px",
+                    padding: 0,
+                    opacity: showVolumeIcon ? 1 : 0,
+                    visibility: showVolumeIcon ? "visible" : "hidden",
+                    transition: "opacity 0.2s ease",
+                    position: "absolute",
+                  }}
+                  ref={volumeIconRef}
+                >
+                  {volumeDown ? (
+                    <VolumeDownIcon className="vol-icon" sx={iconStyle} />
+                  ) : volumeUp ? (
+                    <VolumeUpIcon className="vol-icon" sx={iconStyle} />
+                  ) : volumeMuted ? (
+                    <VolumeOffIcon className="vol-icon" sx={iconStyle} />
+                  ) : null}
+                </IconButton>
+              </>
+            </Box>
+          </Box>
+          <VideoControls
+            ref={videoRef}
+            playlistId={playlistId}
+            bufferedVal={bufferedVal}
+            filteredVideos={filteredVideos}
+            isLoading={isLoading}
+            progress={progress}
+            setProgress={setProgress}
+            togglePlayPause={togglePlayPause}
+            toggleFullScreen={toggleFullScreen}
+            setShowIcon={setShowIcon}
+            isPlaying={isPlaying}
+            setIsPlaying={setIsPlaying}
+            playlistVideos={playlistVideos}
+            isLongPress={isLongPress}
+            index={index}
+            volume={volume}
+            setVolume={setVolume}
+            handleVolumeToggle={handleVolumeToggle}
+            handleTogglePiP={handleTogglePiP}
+            isMuted={isMuted}
+            isIncreased={isIncreased}
+            jumpedToMax={jumpedToMax}
+            isAnimating={isAnimating}
+            isTheatre={isTheatre}
+            setIsTheatre={setIsTheatre}
+            setPrevTheatre={setPrevTheatre}
+            videoContainerWidth={videoContainerWidth}
+            controlOpacity={controlOpacity}
+            showVolumePanel={showVolumePanel}
+            setShowVolumePanel={setShowVolumePanel}
+          />
+          <Box
+            onClick={handleClick}
+            onMouseDown={isUserInteracted ? DoubleSpeed : null}
+            className="video-overlay"
+          >
+            <Box
+              className="thumbnail-overlay"
+              sx={{
+                position: "absolute",
+                inset: 0,
+
+                justifyContent: "center",
+                alignItems: "center",
+                display: isUserInteracted || isMini ? "none" : "flex",
+                transition: "opacity .25s cubic-bezier(0,0,.2,1)",
+                color: "#fff",
+                userSelect: "none",
+                pointerEvents: "all",
+                "&:hover .large-play-btn": {
+                  fill: "#f03",
+                  fillOpacity: "1",
+                },
+              }}
+            >
+              <Box
+                className="thumbnail-overlay-image"
+                sx={{
+                  position: "absolute",
+                  width: "100%",
+                  height: "100%",
+                  borderRadius: "8px",
+                  background: loadingVideo ? "rgba(0,0,0)" : "transparent",
+                  backgroundImage: `url(${data?.data?.thumbnail.url})`,
+                  backgroundRepeat: "no-repeat",
+                  backgroundPosition: "center",
+                  backgroundSize: "cover",
+                }}
+              ></Box>
+              <IconButton
+                disableRipple
+                className="large-play-btn-container"
+                sx={{
+                  position: "absolute",
+                  left: "50%",
+                  top: "50%",
+                  width: "68px",
+                  height: "48px",
+                  marginLeft: "-34px",
+                  marginTop: "-24px",
+                  padding: "0",
+                  display: isUserInteracted ? "none" : "inline-flex",
+                  opacity: 1,
+                }}
+              >
+                <svg
+                  height="100%"
+                  version="1.1"
+                  viewBox="0 0 68 48"
+                  width="100%"
+                >
+                  <path
+                    className="large-play-btn"
+                    d="M66.52,7.74c-0.78-2.93-2.49-5.41-5.42-6.19C55.79,.13,34,0,34,0S12.21,.13,6.9,1.55 C3.97,2.33,2.27,4.81,1.48,7.74C0.06,13.05,0,24,0,24s0.06,10.95,1.48,16.26c0.78,2.93,2.49,5.41,5.42,6.19 C12.21,47.87,34,48,34,48s21.79-0.13,27.1-1.55c2.93-0.78,4.64-3.26,5.42-6.19C67.94,34.95,68,24,68,24S67.94,13.05,66.52,7.74z"
+                    fill="#212121"
+                    fillOpacity=".8"
+                  ></path>
+                  <path d="M 45,24 27,14 27,34" fill="#f1f1f1"></path>
+                </svg>
+              </IconButton>
+            </Box>
           </Box>
         </Box>
       </Box>
-    </Box>
+    </>
   );
 }
 
