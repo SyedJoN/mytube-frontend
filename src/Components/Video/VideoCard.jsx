@@ -634,8 +634,14 @@ function VideoCard({
             sx={{
               display: "flex",
               flex: "none",
+              minWidth: "250px",
               maxWidth: "500px",
-              width: "350px",
+              width: {
+                xl:"350px",
+                lg: "300px",
+                md: "250px",
+                sm: "250px"
+              },
               paddingRight: 2,
             }}
           >
@@ -655,7 +661,7 @@ function VideoCard({
                   height: "100%",
                   top: "50%",
                   left: "0%",
-                  transform: "translateY(-48%)",
+                  transform: "translateY(-50%)",
                 }}
               >
                 <CardMedia
@@ -669,28 +675,30 @@ function VideoCard({
                   image={thumbnail}
                 />
                 <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    position: "absolute",
-                    bottom: "4px",
-                    right: "4px",
-                    width: "35px",
-                    height: "20px",
-                    backgroundColor: "rgba(0,0,0,0.6)",
-                    borderRadius: "6px",
-                  }}
-                >
-                  <Typography
-                    variant="body2"
-                    color="#f1f1f1"
-                    fontSize="0.75rem"
-                    lineHeight="0"
+                    sx={{
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      position: "absolute",
+                      bottom: "0",
+                      right: "0",
+                      margin: "4px",
+                      width: "35px",
+                      height: "20px",
+                      backgroundColor: "rgba(0,0,0,0.6)",
+                      borderRadius: "6px",
+                      userSelect: "none",
+                    }}
                   >
-                    {formatDuration(duration)}
-                  </Typography>
-                </Box>
+                    <Typography
+                      variant="body2"
+                      color="#f1f1f1"
+                      fontSize="0.75rem"
+                      lineHeight="0"
+                    >
+                      {formatDuration(duration)}
+                    </Typography>
+                  </Box>
               </Box>
             </Box>
           </Box>
@@ -732,7 +740,7 @@ function VideoCard({
                     color="#f1f1f1"
                     sx={{
                       display: "-webkit-box",
-                      fontSize: "1.2rem",
+                      fontSize: "1.2rem!important",
                       WebkitBoxOrient: "vertical",
                       WebkitLineClamp: 2,
                       overflow: "hidden",

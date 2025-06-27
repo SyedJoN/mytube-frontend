@@ -172,9 +172,11 @@ video {
   height: 100%;
   opacity: 1;
 }
-
-.hidden {
+.hide {
   display: none;
+}
+.hidden {
+  visibility: hidden;
 }
 
 .hide-cursor {
@@ -214,6 +216,10 @@ video {
     transition: opacity 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.5));
     z-index: 1;
+}
+.right-controls {
+  display: flex;
+  height: 100%;
 }
 .title-background-overlay {
     position: absolute;
@@ -352,6 +358,9 @@ vt-interaction.animate:not(.down) .stroke {
     stroke-opacity: .15;
     stroke-width: 2px;
     fill: none;
+}
+.ctrl-mini {
+  width: 36px
 }
 .control-svg-fill {
   fill: #fff;
