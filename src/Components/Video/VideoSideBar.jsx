@@ -57,7 +57,6 @@ function VideoSideBar({
                     createdAt={formatDate(video.createdAt)}
                     activeOptionsId={activeOptionsId}
                     setActiveOptionsId={setActiveOptionsId}
-                    videoUrl={video.videoFile?.url}
                   />
                 </Grid>
               ) : (
@@ -74,6 +73,7 @@ function VideoSideBar({
                     owner={video?.owner?.username}
                     videoId={video._id}
                     thumbnail={video.thumbnail.url}
+                    previewUrl={video.thumbnail.preview}
                     title={video.title}
                     video={true}
                     fullName={video.owner.fullName}
@@ -82,7 +82,6 @@ function VideoSideBar({
                     createdAt={formatDate(video.createdAt)}
                     activeOptionsId={activeOptionsId}
                     setActiveOptionsId={setActiveOptionsId}
-                    videoUrl={video.videoFile?.url}
                   />
                 </Box>
               )}

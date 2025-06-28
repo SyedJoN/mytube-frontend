@@ -16,9 +16,9 @@ body {
     margin: 0!important;
     overflow-y: scroll!important;
     overflow-x: hidden;
-    
+    height: 100%;
+  
 }
-
 
 .video-wrapper {
   position: relative;
@@ -141,11 +141,11 @@ animation-name: arrow-fade-out-1;
     opacity: 0;
 }
 }
-#background {
-  transition: opacity 0 ease-in;
-}
+
+
 video {
   display: block;
+  background: #000;
 }
 .ambient-wrapper {
   position: relative;

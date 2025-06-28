@@ -28,6 +28,7 @@ import TheatreSvg from "../Utils/TheatreSvg";
 import { useUserInteraction } from "../../routes/__root";
 import { PiPSvg } from "../Utils/PiPSvg";
 import { useTheme } from "@emotion/react";
+import { ReplaySvg } from "../Utils/ReplaySvg";
 
 const tooltipStyles = {
   whiteSpace: "nowrap",
@@ -100,6 +101,7 @@ const VideoControls = forwardRef(
       isAnimating,
       isTheatre,
       isMini,
+      isReplay,
       setIsTheatre,
       videoContainerWidth,
       controlOpacity,
@@ -153,7 +155,6 @@ const VideoControls = forwardRef(
 
     const handleSeekMove = (e) => {
       if (!sliderRef.current || !videoRef.current) return;
-
       const rect = sliderRef.current.getBoundingClientRect();
       const offsetX = e.clientX - rect.left;
       const newProgress = Math.min(
@@ -352,7 +353,37 @@ const VideoControls = forwardRef(
                   </a>
                 </Tooltip>
               )}
-              <Tooltip
+              {isReplay ? 
+            <Tooltip
+                disableInteractive
+                disableFocusListener
+                disableTouchListener
+                disableHoverListener={isMini}
+                title={"Replay"}
+                placement="top"
+                slotProps={{
+                  popper: {
+                    disablePortal: true,
+                    modifiers: popperModifiers,
+                  },
+                  tooltip: {
+                    sx: tooltipStyles,
+                  },
+                }}
+              >
+                <a
+                  className="control"
+                  style={controlStyles}
+                  onClick={() => {
+                    togglePlayPause();
+                    setShowIcon(false);
+                  }}
+                >
+                  <ReplaySvg />
+                </a>
+              </Tooltip>
+              :  
+               <Tooltip
                 disableInteractive
                 disableFocusListener
                 disableTouchListener
@@ -380,6 +411,8 @@ const VideoControls = forwardRef(
                   <PlayPauseSvg isPlaying={isPlaying} />
                 </a>
               </Tooltip>
+            }
+             
               <Tooltip
                 disableInteractive
                 disableFocusListener
@@ -650,7 +683,7 @@ const VideoControls = forwardRef(
           </Box>
 
           <Box
-            className="progress-bar-container control"
+            className={`progress-bar-container control`}
             sx={{
               position: "absolute",
               display: "block",

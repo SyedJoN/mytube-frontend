@@ -143,6 +143,7 @@ function Signin(props) {
               }}
               margin="dense"
               {...register("email")}
+              autoComplete="username"
               error={!!errors.email}
               helperText={
                 <span style={{ minHeight: "20px", display: "block" }}>
@@ -185,6 +186,7 @@ function Signin(props) {
               }}
               label="Password"
               type="password"
+              autoComplete="current-password"
               margin="dense"
               {...register("password")}
               error={!!errors.password}

@@ -118,6 +118,7 @@ const Signup = (props) => {
             },
           }}
           margin="dense"
+          autoComplete="username"
           {...register("username")}
           error={!!errors.username}
           helperText={
@@ -204,6 +205,7 @@ const Signup = (props) => {
           }}
           label="Email"
           margin="dense"
+          autoComplete="email"
           {...register("email")}
           error={!!errors.email}
           helperText={
@@ -247,6 +249,7 @@ const Signup = (props) => {
           }}
           label="Password"
           type="password"
+          autoComplete="current-password"
           margin="dense"
           {...register("password")}
           error={!!errors.password}

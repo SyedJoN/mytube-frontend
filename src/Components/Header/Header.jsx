@@ -37,28 +37,36 @@ import AccountMenu from "../Menus/AccountMenu";
 import { useLocation } from "@tanstack/react-router";
 import { useNavigate } from "@tanstack/react-router";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
+import { OpenContext } from "../../routes/__root";
 
-function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
+function Header({watch, search, home, userProfile, ...props }) {
   const theme = useTheme();
+    const context = React.useContext(OpenContext);
+  const { open, setOpen } = context ?? {};
+  
   const isLaptop = useMediaQuery(theme.breakpoints.down("lg"));
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const drawerWidth = "var(--drawer-width)";
-  const miniDrawerWidth = "var(--mini-drawer-width)"; 
-  
+  const miniDrawerWidth = "var(--mini-drawer-width)";
+
   const location = useLocation();
   const [searchMenu, setSearchMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [scrollY, setScrollY] = useState("");
-  const [opacity, setOpacity] = useState(0);
   const { window: windowProp } = props;
+  const [opacity, setOpacity] = useState(0);
   const navigate = useNavigate();
 
   const container =
     windowProp !== undefined ? () => window().document.body : undefined;
 
   React.useEffect(() => {
+    if (home || search || userProfile) return;
+
     const handleScroll = () => {
+      if (open) return;
+
       const y = Math.max(0, window.scrollY);
       const maxScroll = 40;
       const steps = 10;
@@ -66,13 +74,13 @@ function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
       const stepSize = maxScroll / steps;
       const step = Math.min(steps, Math.floor(y / stepSize));
 
-      setOpacity(step * 0.25);
+      setOpacity(step / steps); // ✅ guarantees 0 <= opacity <= 1
     };
 
     window.addEventListener("scroll", handleScroll);
     handleScroll();
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [home, search, userProfile, open]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -86,6 +94,13 @@ function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
       setSearchMenu(false);
     }
   }, [isMobile]);
+  React.useEffect(() => {
+    if (!open) {
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+    }
+  }, [open]);
 
   return (
     <Box>
@@ -111,7 +126,8 @@ function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
               edge="start"
               color="inherit"
               aria-label="menu"
-              onClick={onClose}
+              onClick={()=> setOpen((prev)=> !prev)}
+
               sx={{
                 width: "40px",
                 height: "40px",
@@ -186,7 +202,7 @@ function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
         <Box
           sx={{
             background: "#0f0f0f",
-            opacity: opacity,
+            opacity: open || home ? 1 : `${opacity}!important`,
             position: "absolute",
             zIndex: -1,
             inset: 0,
@@ -224,7 +240,7 @@ function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
               edge="start"
               color="inherit"
               aria-label="menu"
-              onClick={onClose}
+              onClick={()=> setOpen((prev)=> !prev)}
               sx={{ pl: 2, mr: 1 }}
             >
               <MenuIcon sx={{ color: "#f1f1f1" }} />
@@ -263,7 +279,7 @@ function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
                         display: "flex",
                         flexDirection: open ? "row" : "column",
                         alignItems: "center",
-                        justifyContent: open ? "flex-start" : "center", 
+                        justifyContent: open ? "flex-start" : "center",
                         borderRadius: "10px",
                         paddingX: 2,
                         paddingY: open ? 1 : 1.5,
@@ -449,7 +465,7 @@ function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
               edge="start"
               color="inherit"
               aria-label="menu"
-              onClick={onClose}
+              onClick={()=> setOpen((prev)=> !prev)}
               sx={{ pl: 2, mr: 1 }}
             >
               <MenuIcon sx={{ color: "#f1f1f1" }} />
@@ -489,7 +505,7 @@ function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
                         flexDirection: open && !isLaptop ? "row" : "column",
                         alignItems: "center",
                         justifyContent:
-                          open && !isLaptop ? "flex-start" : "center", 
+                          open && !isLaptop ? "flex-start" : "center",
                         borderRadius: "10px",
                         paddingX: 2,
                         paddingY: open && !isLaptop ? 1 : 1.5,
@@ -562,7 +578,7 @@ function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
                   sx={{
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "flex-start", 
+                    justifyContent: "flex-start",
                     borderRadius: "10px",
                     paddingX: 2,
                     paddingY: 1,
@@ -644,10 +660,12 @@ function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
 
       {isLaptop && (
         <Drawer
+          disableScrollLock
           container={container}
           variant="temporary"
           open={open}
-          onClose={isLaptop ? onClose : undefined}
+          onClose={()=> isLaptop ? setOpen((prev)=> !prev) : undefined}
+          ModalProps={{ keepMounted: true }}
           transitionDuration={200}
           sx={{
             "& .MuiDrawer-paper": {
@@ -663,7 +681,7 @@ function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
             sx={{
               minHeight: "var(--toolbar-height)",
               "@media (min-width:600px)": {
-                minHeight: "var(--toolbar-height)", 
+                minHeight: "var(--toolbar-height)",
               },
             }}
           >
@@ -672,7 +690,7 @@ function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
               edge="start"
               color="inherit"
               aria-label="menu"
-              onClick={onClose}
+              onClick={()=> setOpen((prev)=> !prev)}
               sx={{ pl: !isMobile ? 2 : 3 }}
             >
               <MenuIcon sx={{ color: "#f1f1f1" }} />
@@ -767,7 +785,7 @@ function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
                 sx={{
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "flex-start", 
+                  justifyContent: "flex-start",
                   borderRadius: "10px",
                   paddingX: 2,
                   paddingY: 1,
@@ -848,7 +866,6 @@ function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
 
       {watch && (
         <Drawer
-          container={container}
           variant="persistent"
           open={open}
           sx={{
@@ -871,7 +888,7 @@ function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
               edge="start"
               color="inherit"
               aria-label="menu"
-              onClick={onClose}
+              onClick={()=> setOpen((prev)=> !prev)}
               sx={{ pl: 2, mr: 1 }}
             >
               <MenuIcon sx={{ color: "#f1f1f1" }} />
@@ -965,7 +982,7 @@ function Header({ open, onClose, watch, search, home, userProfile, ...props }) {
                   sx={{
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "flex-start", 
+                    justifyContent: "flex-start",
                     borderRadius: "10px",
                     paddingX: 2,
                     paddingY: 1,

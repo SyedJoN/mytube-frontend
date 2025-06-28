@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { ThemeProvider, Box } from "@mui/material";
-import { Outlet } from "react-router-dom";
 import theme from "./assets/Theme";
 import Header from "./Components/Header/Header";
 import Home from "./Pages/Home";
@@ -16,6 +15,7 @@ function App() {
         <Header open={open} setOpen={setOpen} />
 
         <Box
+        
           component="main"
           sx={{
             flexGrow: 1,
@@ -23,7 +23,6 @@ function App() {
               ? `${drawerWidth - "70px"}px`
               : `${drawerWidth - "70px"}px`,
             backgroundColor: theme.palette.primary.main,
-
             padding: "80px 20px",
           }}
         >

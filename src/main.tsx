@@ -29,7 +29,6 @@ if (!rootElement.innerHTML) {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider theme={theme}>
           <RouterProvider router={router}>
-            {/* Your app content will go here */}
             <TanStackRouterDevtools router={router} />
           </RouterProvider>
         </ThemeProvider>

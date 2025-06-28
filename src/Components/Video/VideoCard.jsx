@@ -1,4 +1,5 @@
 import * as React from "react";
+import LazyLoad from "react-lazyload";
 import { styled } from "@mui/material/styles";
 import Card from "@mui/material/Card";
 import CardHeader from "@mui/material/CardHeader";
@@ -39,6 +40,9 @@ import {
   UserInteractionContext,
   useUserInteraction,
 } from "../../routes/__root";
+import { fetchVideoById } from "../../apis/videoFn";
+import { useQuery } from "@tanstack/react-query";
+import useHoverPreview from "../Utils/useHoverPreview";
 
 const tooltipStyles = {
   whiteSpace: "nowrap",
@@ -88,6 +92,7 @@ function VideoCard({
   videoId,
   owner,
   thumbnail,
+  previewUrl,
   title,
   description,
   avatar,
@@ -101,7 +106,6 @@ function VideoCard({
   home,
   search,
   video,
-  videoUrl,
   profile,
   playlist,
   playlistId,
@@ -116,28 +120,52 @@ function VideoCard({
   const theme = useTheme();
   const imgRef = React.useRef(null);
   const [bgColor, setBgColor] = React.useState("rgba(0,0,0,0.6)");
-  const [isHoverPlay, setIsHoverPlay] = React.useState(false);
-  const [isVideoPlaying, setIsVideoPlaying] = React.useState(false);
   const fac = new FastAverageColor();
   const colors = [red, blue, green, purple, orange, deepOrange, pink];
   const playlistVideoId = playlist?.videos?.map((video) => {
     return video._id;
   });
   const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
+    const {
+    isHoverPlay,
+    isVideoPlaying,
+    setIsVideoPlaying,
+    onMouseEnter,
+    onMouseLeave,
+  } = useHoverPreview({
+    delay: 300,
+  });
+
   React.useEffect(() => {
-    const video = videoRef.current;
+  const video = videoRef.current;
+  let playTimeout;
 
-    if (!video) return;
+  if (!video) return;
 
-    if (isHoverPlay) {
-      video.play().catch((err) => {
-        console.warn("Video play failed:", err);
-      });
-    } else {
+  if (isHoverPlay) {
+    playTimeout = setTimeout(() => {
+      if (video.paused) {
+        video.play().catch((err) => {
+          // Ignore AbortError from race conditions
+          if (err.name !== "AbortError") {
+            console.error("Video play error:", err);
+          }
+        });
+      }
+    }, 100); // Add slight delay to avoid immediate conflict
+  } else {
+    // Clear any scheduled play attempt
+    clearTimeout(playTimeout);
+    if (!video.paused) {
       video.pause();
-      video.currentTime = 0;
     }
-  }, [isHoverPlay]);
+    video.currentTime = 0;
+  }
+
+  // Cleanup
+  return () => clearTimeout(playTimeout);
+}, [isHoverPlay]);
+
 
   const getColor = (name) => {
     if (!name) return red[500];
@@ -175,6 +203,13 @@ function VideoCard({
       to: `/@${owner}`,
     });
   };
+  const { data: videos } = useQuery({
+    queryKey: ["video-preview-url", videoId],
+    queryFn: () => fetchVideoById(videoId),
+    enabled: isHoverPlay,
+    staleTime: 1000 * 60 * 5,
+  });
+
 
   return (
     <>
@@ -364,16 +399,8 @@ function VideoCard({
         </Card>
       ) : video ? (
         <Card
-          onMouseEnter={() => {
-            hoverTimeoutRef.current = setTimeout(() => {
-              setIsHoverPlay(true);
-            }, 300);
-          }}
-          onMouseLeave={() => {
-            clearTimeout(hoverTimeoutRef.current);
-            setIsHoverPlay(false);
-            setIsVideoPlaying(false);
-          }}
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
           onClick={() => setIsUserInteracted(true)}
           onMouseDown={(e) => {
             handleMouseDown(e);
@@ -430,28 +457,31 @@ function VideoCard({
                     }
                   }}
                 >
-                  <CardMedia
-                    sx={{
-                      borderRadius: "8px",
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                      userSelect: "none",
-                      opacity: isHoverPlay && isVideoPlaying ? 0 : 1,
-                      transition: "opacity 0.3s ease",
-                    }}
-                    component="img"
-                    draggable="false"
-                    image={thumbnail}
-                  />
-
-                  <video
+                  <LazyLoad height={200} once offset={100}>
+                    <CardMedia
+                      loading="lazy"
+                      sx={{
+                        borderRadius: "8px",
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        userSelect: "none",
+                        opacity: isHoverPlay && isVideoPlaying ? 0 : 1,
+                        transition: "opacity 0.3s ease",
+                      }}
+                      component="img"
+                      draggable="false"
+                      image={thumbnail}
+                    />
+               
+                         <video
+                         loop
                     playsInline
                     ref={videoRef}
                     muted
                     onPlaying={() => setIsVideoPlaying(true)}
                     id="video-player"
-                    key={videoId}
+                    key={previewUrl}
                     className={`hover-interaction ${isHoverPlay ? "" : "hide"}`}
                     crossOrigin="anonymous"
                     style={{
@@ -466,11 +496,17 @@ function VideoCard({
                       transition: "opacity 0.3s ease",
                     }}
                   >
-                    {videoUrl && <source src={videoUrl} type="video/mp4" />}
+                       {previewUrl &&
+                   <source src={previewUrl} type="video/mp4" />
+                       }
                   </video>
+                  
+                   
+                  </LazyLoad>
+           
 
                   <Box
-                    className={`hover-interaction ${isHoverPlay && isVideoPlaying ? "hidden" : ""}`}
+                    className={`${isHoverPlay && isVideoPlaying ? "hidden" : ""}`}
                     sx={{
                       display: "flex",
                       justifyContent: "center",

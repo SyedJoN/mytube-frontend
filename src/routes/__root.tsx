@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect } from "react";
+import React, { createContext, useState, useEffect, useCallback } from "react";
 import { Outlet } from "@tanstack/react-router";
 import {
   QueryClient,
@@ -90,22 +90,31 @@ function RouteComponent() {
   }, []);
 
   useEffect(() => {
-    const body = document.body;
+  const body = document.body;
 
-    if (open && isLaptop) {
-      scrollYRef.current = window.scrollY;
-      body.style.position = "fixed";
-      body.style.top = `-${scrollYRef.current}px`; 
-      body.style.left = "0";
-      body.style.right = "0";
-      body.style.overflow = "revert!important";
-    } else if (!open && isLaptop) {
-      body.style.position = "";
-      body.style.top = "";
-      body.style.paddingRight = "0!important";
-      window.scrollTo(0, prevScrollRef.current); 
-    }
-  }, [open, isLaptop]);
+  if (open && isLaptop) {
+
+    scrollYRef.current = window.scrollY;
+
+    
+    body.style.position = "fixed";
+    body.style.top = `-${scrollYRef.current}px`;
+    body.style.left = "0";
+    body.style.right = "0";
+    body.style.overflow = "hidden";
+    body.style.width = "100%";
+  } else if (!open && isLaptop) {
+    body.style.position = "";
+    body.style.top = "";
+    body.style.left = "";
+    body.style.right = "";
+    body.style.overflow = "";
+    body.style.width = "";
+
+    window.scrollTo(0, scrollYRef.current);
+  }
+}, [open, isLaptop]);
+
 
   useEffect(() => {
     const handleScroll = throttle(() => {
@@ -146,7 +155,7 @@ function RouteComponent() {
     }
   }, [home, search, userProfile]);
 
-  const toggleDrawer = () => setOpen((prev) => !prev);
+  const toggleDrawer = useCallback(() => setOpen((prev) => !prev), []);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["user"],
@@ -161,7 +170,6 @@ function RouteComponent() {
 
         <Header
           open={open}
-          onClose={toggleDrawer}
           home={home}
           search={search}
           watch={watch}

@@ -57,9 +57,6 @@ const queryClient = useQueryClient();
     const filtered = videos.filter((video) => video._id !== videoId);
     return shuffleArray(filtered);
   }, [videoId, videos]);
-useEffect(()=>{
-  console.log(filteredVideos)
-}, [filteredVideos])
   const {
     data: userData,
     isLoading: isUserLoading,
