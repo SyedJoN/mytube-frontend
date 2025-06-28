@@ -4,7 +4,7 @@ const BASE_URL = "http://localhost:3000/api/v1/videos"
 
 
 const fetchVideos = async ({ queryKey }) => {
-  const [, query] = queryKey; // Extract only the query string
+  const [, query] = queryKey; 
   const res = await axios.get(`${BASE_URL}/all-videos?query=${query || ""}`);
   return res.data;
 };

@@ -173,7 +173,7 @@ video {
   opacity: 1;
 }
 .hide {
-  display: none;
+  display: none!important;
 }
 .hidden {
   visibility: hidden;
@@ -236,7 +236,12 @@ video {
 .large-play-btn { 
   transition: fill .1s cubic-bezier(.4,0,1,1), fill-opacity .1s cubic-bezier(.4,0,1,1);
 }
-
+.cancel-mini-btn{
+  opacity: .9;
+}
+.cancel-mini-btn:hover{
+  opacity: 1;
+}
 .custom-thumb {
   appearance: none;
   background: var(--progress-color);

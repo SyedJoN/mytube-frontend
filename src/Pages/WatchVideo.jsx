@@ -17,6 +17,7 @@ import VideoSideBar from "../Components/Video/VideoSideBar";
 import { shuffleArray } from "../helper/shuffle";
 import { fetchPlaylistById } from "../apis/playlistFn";
 import { getUserChannelProfile } from "../apis/userFn";
+import { filter } from "lodash";
 
 function WatchVideo({ videoId, playlistId }) {
   const navigate = useNavigate();
@@ -56,7 +57,9 @@ const queryClient = useQueryClient();
     const filtered = videos.filter((video) => video._id !== videoId);
     return shuffleArray(filtered);
   }, [videoId, videos]);
-
+useEffect(()=>{
+  console.log(filteredVideos)
+}, [filteredVideos])
   const {
     data: userData,
     isLoading: isUserLoading,

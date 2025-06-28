@@ -14,24 +14,21 @@ import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
 import handleMouseDown from "../../helper/intertactionHelper";
 import Interaction from "../Utils/Interaction";
 
-
-
 function VideoSideBar({
   filteredVideos,
   isLoadingList,
   isErrorList,
   errorList,
 }) {
-
   const [activeOptionsId, setActiveOptionsId] = React.useState(null);
   const isCustomWidth = useMediaQuery("(max-width:1014px)");
-const gridSize = {
-                    xs: 12,
-                    sm: 6,
-                    md: 4,
-                    lg: 3.8,
-                    xl: open ? 3.88 : 2.89,
-                  }
+  const gridSize = {
+    xs: 12,
+    sm: 6,
+    md: 4,
+    lg: 3.8,
+    xl: open ? 3.88 : 2.89,
+  };
   return (
     <>
       {isErrorList && <Typography>Error: {errorList.message}</Typography>}
@@ -47,9 +44,7 @@ const gridSize = {
           {filteredVideos.map((video) => (
             <React.Fragment key={video._id}>
               {isCustomWidth ? (
-                <Grid
-                  size={gridSize}
-                >
+                <Grid size={gridSize}>
                   <VideoCard
                     owner={video?.owner?.username}
                     videoId={video._id}
@@ -62,6 +57,7 @@ const gridSize = {
                     createdAt={formatDate(video.createdAt)}
                     activeOptionsId={activeOptionsId}
                     setActiveOptionsId={setActiveOptionsId}
+                    videoUrl={video.videoFile?.url}
                   />
                 </Grid>
               ) : (
@@ -86,6 +82,7 @@ const gridSize = {
                     createdAt={formatDate(video.createdAt)}
                     activeOptionsId={activeOptionsId}
                     setActiveOptionsId={setActiveOptionsId}
+                    videoUrl={video.videoFile?.url}
                   />
                 </Box>
               )}

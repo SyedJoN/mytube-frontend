@@ -15,6 +15,7 @@ import FastForwardIcon from "@mui/icons-material/FastForward";
 import SmartDisplayIcon from "@mui/icons-material/SmartDisplay";
 import { Box, Icon, IconButton, Typography } from "@mui/material";
 import CircularProgress from "@mui/material/CircularProgress";
+import CancelIcon from "@mui/icons-material/Cancel";
 import ArrowRightIcon from "@mui/icons-material/ArrowRight";
 import ArrowLeftIcon from "@mui/icons-material/ArrowLeft";
 
@@ -131,6 +132,7 @@ function VideoPlayer({
   const glowCanvasRef = useRef(null);
   const thresholdRef = useRef(0);
   const [isMini, setIsMini] = useState(false);
+  const [hideMini, setHideMini] = useState(false);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["video", videoId],
@@ -140,35 +142,33 @@ function VideoPlayer({
 
   useEffect(() => {
     const container = containerRef.current;
-    const video = videoRef.current;
-    if (!container || !video) return;
+    if (!container) return;
 
     const calculateThreshold = () => {
       const rect = container.getBoundingClientRect();
       const topOffset = rect.top + window.scrollY;
       const height = rect.height;
-      thresholdRef.current = isTheatre
-        ? topOffset + height - 50
-        : topOffset + height - 60;
+      return isTheatre ? topOffset + height - 50 : topOffset + height - 60;
     };
 
+    let threshold = calculateThreshold();
     const handleScroll = () => {
       const scrollY = window.scrollY;
-      setIsMini((prev) => {
-        if (scrollY > thresholdRef.current && !prev) return true;
-        if (scrollY <= thresholdRef.current && prev) return false;
-        return prev;
-      });
+      if (scrollY > threshold && !hideMini) setIsMini(true);
+      if (scrollY < threshold) {
+        setIsMini(false);
+        if (hideMini) {
+          setHideMini(false);
+        }
+      }
     };
 
     const handleResize = () => {
       requestAnimationFrame(() => {
-        calculateThreshold();
-        handleScroll();
+        threshold = calculateThreshold();
       });
     };
 
-    // Initial call
     handleResize();
 
     window.addEventListener("scroll", handleScroll, { passive: true });
@@ -180,7 +180,7 @@ function VideoPlayer({
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("orientationchange", handleResize);
     };
-  }, [isTheatre, data?.data?._id]);
+  }, [isTheatre, data?.data?._id, hideMini]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -1187,7 +1187,6 @@ function VideoPlayer({
                   left: isTheatre && !isMini ? leftOffset : 0,
                   top: isTheatre && !isMini ? topOffset : 0,
                   right: isMini ? "auto" : "",
-
                   objectFit: "cover",
                   borderRadius: isTheatre && !isMini ? "0" : "8px",
                 }}
@@ -1307,7 +1306,6 @@ function VideoPlayer({
                     sx={{
                       position: "absolute",
                       top: "60px",
-                     
                       display: "flex",
                       justifyContent: "center",
                       alignItems: "center",
@@ -1575,6 +1573,22 @@ function VideoPlayer({
                   </IconButton>
                 </Box>
               </Box>
+              <IconButton
+                className={`cancel-mini-btn ${isMini ? "" : "hide"}`}
+                onClick={() => {
+                  setIsMini(false);
+                  setHideMini(true);
+                }}
+                sx={{
+                  position: "absolute",
+                  top: "-2px",
+                  left: "-2px",
+                  cursor: "pointer",
+                  zIndex: 3,
+                }}
+              >
+                <CancelIcon sx={{ color: "#fff" }} />
+              </IconButton>
               <Box
                 ref={fullScreenTitleRef}
                 className="title-fullscreen"

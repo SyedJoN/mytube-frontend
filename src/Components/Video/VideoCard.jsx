@@ -101,6 +101,7 @@ function VideoCard({
   home,
   search,
   video,
+  videoUrl,
   profile,
   playlist,
   playlistId,
@@ -110,15 +111,33 @@ function VideoCard({
 }) {
   const navigate = useNavigate();
   const interactionRef = React.useRef(null);
+  const hoverTimeoutRef = React.useRef(null);
+  const videoRef = React.useRef(null);
   const theme = useTheme();
   const imgRef = React.useRef(null);
   const [bgColor, setBgColor] = React.useState("rgba(0,0,0,0.6)");
+  const [isHoverPlay, setIsHoverPlay] = React.useState(false);
+  const [isVideoPlaying, setIsVideoPlaying] = React.useState(false);
   const fac = new FastAverageColor();
   const colors = [red, blue, green, purple, orange, deepOrange, pink];
   const playlistVideoId = playlist?.videos?.map((video) => {
     return video._id;
   });
   const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
+  React.useEffect(() => {
+    const video = videoRef.current;
+
+    if (!video) return;
+
+    if (isHoverPlay) {
+      video.play().catch((err) => {
+        console.warn("Video play failed:", err);
+      });
+    } else {
+      video.pause();
+      video.currentTime = 0;
+    }
+  }, [isHoverPlay]);
 
   const getColor = (name) => {
     if (!name) return red[500];
@@ -156,6 +175,7 @@ function VideoCard({
       to: `/@${owner}`,
     });
   };
+
   return (
     <>
       {home ? (
@@ -344,6 +364,16 @@ function VideoCard({
         </Card>
       ) : video ? (
         <Card
+          onMouseEnter={() => {
+            hoverTimeoutRef.current = setTimeout(() => {
+              setIsHoverPlay(true);
+            }, 300);
+          }}
+          onMouseLeave={() => {
+            clearTimeout(hoverTimeoutRef.current);
+            setIsHoverPlay(false);
+            setIsVideoPlaying(false);
+          }}
           onClick={() => setIsUserInteracted(true)}
           onMouseDown={(e) => {
             handleMouseDown(e);
@@ -407,12 +437,40 @@ function VideoCard({
                       height: "100%",
                       objectFit: "cover",
                       userSelect: "none",
+                      opacity: isHoverPlay && isVideoPlaying ? 0 : 1,
+                      transition: "opacity 0.3s ease",
                     }}
                     component="img"
                     draggable="false"
                     image={thumbnail}
                   />
+
+                  <video
+                    playsInline
+                    ref={videoRef}
+                    muted
+                    onPlaying={() => setIsVideoPlaying(true)}
+                    id="video-player"
+                    key={videoId}
+                    className={`hover-interaction ${isHoverPlay ? "" : "hide"}`}
+                    crossOrigin="anonymous"
+                    style={{
+                      position: "absolute",
+                      width: "100%",
+                      height: "100%",
+                      left: 0,
+                      top: 0,
+                      objectFit: "cover",
+                      borderRadius: "8px",
+                      opacity: isHoverPlay ? 1 : 0,
+                      transition: "opacity 0.3s ease",
+                    }}
+                  >
+                    {videoUrl && <source src={videoUrl} type="video/mp4" />}
+                  </video>
+
                   <Box
+                    className={`hover-interaction ${isHoverPlay && isVideoPlaying ? "hidden" : ""}`}
                     sx={{
                       display: "flex",
                       justifyContent: "center",
@@ -637,10 +695,10 @@ function VideoCard({
               minWidth: "250px",
               maxWidth: "500px",
               width: {
-                xl:"350px",
+                xl: "350px",
                 lg: "300px",
                 md: "250px",
-                sm: "250px"
+                sm: "250px",
               },
               paddingRight: 2,
             }}
@@ -674,31 +732,32 @@ function VideoCard({
                   component="img"
                   image={thumbnail}
                 />
+
                 <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      position: "absolute",
-                      bottom: "0",
-                      right: "0",
-                      margin: "4px",
-                      width: "35px",
-                      height: "20px",
-                      backgroundColor: "rgba(0,0,0,0.6)",
-                      borderRadius: "6px",
-                      userSelect: "none",
-                    }}
+                  sx={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    position: "absolute",
+                    bottom: "0",
+                    right: "0",
+                    margin: "4px",
+                    width: "35px",
+                    height: "20px",
+                    backgroundColor: "rgba(0,0,0,0.6)",
+                    borderRadius: "6px",
+                    userSelect: "none",
+                  }}
+                >
+                  <Typography
+                    variant="body2"
+                    color="#f1f1f1"
+                    fontSize="0.75rem"
+                    lineHeight="0"
                   >
-                    <Typography
-                      variant="body2"
-                      color="#f1f1f1"
-                      fontSize="0.75rem"
-                      lineHeight="0"
-                    >
-                      {formatDuration(duration)}
-                    </Typography>
-                  </Box>
+                    {formatDuration(duration)}
+                  </Typography>
+                </Box>
               </Box>
             </Box>
           </Box>
