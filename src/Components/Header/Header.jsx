@@ -12,7 +12,6 @@ import {
   ListItem,
   ListItemButton,
   ListItemIcon,
-  ListItemText,
   Toolbar,
   Typography,
   useMediaQuery,
@@ -29,7 +28,6 @@ import SmartDisplayOutlinedIcon from "@mui/icons-material/SmartDisplayOutlined";
 import WatchLaterOutlinedIcon from "@mui/icons-material/WatchLaterOutlined";
 import SearchIcon from "@mui/icons-material/Search";
 import ThumbUpOutlinedIcon from "@mui/icons-material/ThumbUpOutlined";
-import AccountCircleOutlinedIcon from "@mui/icons-material/AccountCircleOutlined";
 import { useTheme } from "@mui/material/styles";
 import Search from "../Search/Search";
 import { Link } from "@tanstack/react-router";
@@ -38,12 +36,13 @@ import { useLocation } from "@tanstack/react-router";
 import { useNavigate } from "@tanstack/react-router";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import { OpenContext } from "../../routes/__root";
+import { throttle } from "lodash";
 
-function Header({watch, search, home, userProfile, ...props }) {
+function Header({ watch, search, home, userProfile, ...props }) {
   const theme = useTheme();
-    const context = React.useContext(OpenContext);
+  const context = React.useContext(OpenContext);
   const { open, setOpen } = context ?? {};
-  
+
   const isLaptop = useMediaQuery(theme.breakpoints.down("lg"));
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -53,7 +52,6 @@ function Header({watch, search, home, userProfile, ...props }) {
   const location = useLocation();
   const [searchMenu, setSearchMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [scrollY, setScrollY] = useState("");
   const { window: windowProp } = props;
   const [opacity, setOpacity] = useState(0);
   const navigate = useNavigate();
@@ -61,25 +59,34 @@ function Header({watch, search, home, userProfile, ...props }) {
   const container =
     windowProp !== undefined ? () => window().document.body : undefined;
 
+const toggleDrawer = () => {
+  React.startTransition(() => {
+    setOpen(prev => !prev);
+  });
+};
+
+
   React.useEffect(() => {
     if (home || search || userProfile) return;
 
     const handleScroll = () => {
       if (open) return;
 
-      const y = Math.max(0, window.scrollY);
-      const maxScroll = 40;
-      const steps = 10;
+      const scrollY = Math.max(0, window.scrollY);
+      const maxScroll = 31;
+      const stepsArray = [0, 0.3, 0.6, 1];
+      const stepSize = maxScroll / stepsArray.length;
+      const stepIndex = Math.min(
+        stepsArray.length - 1,
+        Math.floor(scrollY / stepSize)
+      );
 
-      const stepSize = maxScroll / steps;
-      const step = Math.min(steps, Math.floor(y / stepSize));
-
-      setOpacity(step / steps); // ✅ guarantees 0 <= opacity <= 1
+      setOpacity(stepsArray[stepIndex]);
     };
 
-    window.addEventListener("scroll", handleScroll);
-    handleScroll();
-    return () => window.removeEventListener("scroll", handleScroll);
+    const throttledHandleScroll = throttle(handleScroll, 100);
+    window.addEventListener("scroll", throttledHandleScroll);
+    return () => window.removeEventListener("scroll", throttledHandleScroll);
   }, [home, search, userProfile, open]);
 
   const handleSearch = (e) => {
@@ -94,6 +101,7 @@ function Header({watch, search, home, userProfile, ...props }) {
       setSearchMenu(false);
     }
   }, [isMobile]);
+  
   React.useEffect(() => {
     if (!open) {
       if (document.activeElement instanceof HTMLElement) {
@@ -102,6 +110,69 @@ function Header({watch, search, home, userProfile, ...props }) {
     }
   }, [open]);
 
+  const mainMenuItems = React.useMemo(
+    () => [
+      {
+        text: "Home",
+        path: "/",
+        icon: <HomeIcon sx={{ fontSize: "1.5rem" }} />,
+        iconOutlined: <HomeOutlinedIcon sx={{ fontSize: "1.5rem" }} />,
+      },
+      {
+        text: "Shorts",
+        path: "/shorts",
+        icon: <PlayArrowOutlinedIcon sx={{ fontSize: "1.5rem" }} />,
+      },
+      {
+        text: "Subscriptions",
+        path: "/subscriptions",
+        icon: <SubscriptionsOutlinedIcon sx={{ fontSize: "1.5rem" }} />,
+      },
+    ],
+    []
+  );
+
+  const secondaryMenuItems = React.useMemo(
+    () => [
+      {
+        text: "History",
+        icon: <HistoryOutlinedIcon />,
+      },
+      {
+        text: "Playlists",
+        icon: <PlaylistPlayOutlinedIcon />,
+      },
+      {
+        text: "Your videos",
+        icon: <SmartDisplayOutlinedIcon />,
+      },
+      {
+        text: "Watch Later",
+        icon: <WatchLaterOutlinedIcon />,
+      },
+      {
+        text: "Liked Videos",
+        icon: <ThumbUpOutlinedIcon />,
+      },
+    ],
+    []
+  );
+const MenuItem = React.memo(({ text, path, icon, iconOutlined, selected }) => (
+  <ListItem disablePadding sx={{ display: "block" }}>
+    <ListItemButton
+    disableRipple
+      component={Link}
+      to={path}
+      selected={selected}
+      sx={baseItemButtonStyles(true)}
+    >
+      <ListItemIcon sx={iconStyles}>
+        {iconOutlined && !selected ? iconOutlined : icon}
+      </ListItemIcon>
+      <Typography sx={{ ml: 2, fontSize: "0.9rem" }}>{text}</Typography>
+    </ListItemButton>
+  </ListItem>
+));
   return (
     <Box>
       <CssBaseline />
@@ -122,12 +193,12 @@ function Header({watch, search, home, userProfile, ...props }) {
             }}
           >
             <IconButton
+            disableRipple
               size="medium"
               edge="start"
               color="inherit"
               aria-label="menu"
-              onClick={()=> setOpen((prev)=> !prev)}
-
+              onClick={toggleDrawer}
               sx={{
                 width: "40px",
                 height: "40px",
@@ -158,6 +229,7 @@ function Header({watch, search, home, userProfile, ...props }) {
               />
             ) : (
               <IconButton
+              disableRipple
                 onClick={() => setSearchMenu(true)}
                 type="button"
                 sx={{
@@ -175,6 +247,7 @@ function Header({watch, search, home, userProfile, ...props }) {
             )}
 
             <IconButton
+            disableRipple
               sx={{
                 padding: "10px",
                 borderRadius: "50px",
@@ -202,235 +275,195 @@ function Header({watch, search, home, userProfile, ...props }) {
         <Box
           sx={{
             background: "#0f0f0f",
-            opacity: open || home ? 1 : `${opacity}!important`,
+            opacity: watch ? `${opacity}!important` : 1,
             position: "absolute",
             zIndex: -1,
             inset: 0,
-            transition: "opacity 200ms ease-in-out",
           }}
           id="background"
         ></Box>
       </AppBar>
 
-      {(home || search) && !isTablet && (
-        <Drawer
-          container={container}
-          variant="permanent"
-          open={open}
-          sx={{
-            "& .MuiDrawer-paper": {
-              width: open ? drawerWidth : miniDrawerWidth,
-              overflowX: "hidden",
-              border: "none",
-              zIndex: 0,
-              bgcolor: theme.palette.primary.main,
-            },
-          }}
-        >
-          <Toolbar
-            sx={{
-              minHeight: "var(--toolbar-height)",
-              "@media (min-width:600px)": {
-                minHeight: "var(--toolbar-height)",
-              },
-            }}
+    {(home || search) && !isTablet && (
+  <Drawer
+    container={container}
+    variant="permanent"
+    open={open}
+    sx={{
+      '& .MuiDrawer-paper': {
+        width: open ? drawerWidth : miniDrawerWidth,
+        overflowX: 'hidden',
+        border: 'none',
+        zIndex: 0,
+        bgcolor: theme.palette.primary.main,
+      },
+    }}
+  >
+    <Toolbar
+      sx={{
+        minHeight: 'var(--toolbar-height)',
+        '@media (min-width:600px)': {
+          minHeight: 'var(--toolbar-height)',
+        },
+      }}
+    >
+      <IconButton
+      disableRipple
+        size="medium"
+        edge="start"
+        color="inherit"
+        aria-label="menu"
+        onClick={toggleDrawer}
+        sx={{ pl: 2, mr: 1 }}
+      >
+        <MenuIcon sx={{ color: '#f1f1f1' }} />
+      </IconButton>
+      <Link style={{ color: '#fff', textDecoration: 'none' }} to="/">
+        <Typography sx={{ padding: '10px' }} variant="h6" noWrap>
+          VTube Permanent
+        </Typography>
+      </Link>
+    </Toolbar>
+
+    {/* Main Menu Items */}
+    <List sx={{ color: '#fff' }}>
+      {mainMenuItems.map(({ text, path, icon, iconOutlined }) => {
+        const isSelected = location.pathname === path;
+        return (
+          <ListItem
+            key={text}
+            disablePadding
+            sx={{ display: 'block', width: open ? 'calc(100% - 12px)' : '100%' }}
           >
-            <IconButton
-              size="medium"
-              edge="start"
-              color="inherit"
-              aria-label="menu"
-              onClick={()=> setOpen((prev)=> !prev)}
-              sx={{ pl: 2, mr: 1 }}
+            <ListItemButton
+            disableRipple
+              component={Link}
+              to={path}
+              selected={isSelected}
+              sx={{
+                display: 'flex',
+                flexDirection: open ? 'row' : 'column',
+                alignItems: 'center',
+                justifyContent: open ? 'flex-start' : 'center',
+                borderRadius: '10px',
+                paddingX: 2,
+                paddingY: open ? 1 : 1.5,
+                marginX: open ? 1 : 0,
+                gap: open ? '0' : '0.5px',
+                transition: 'background-color 0.3s ease',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                },
+                '&.Mui-selected': {
+                  backgroundColor: open ? 'rgba(255, 255, 255, 0.1)' : '',
+                  '&:hover': {
+                    backgroundColor: open
+                      ? 'rgba(255, 255, 255, 0.2)'
+                      : 'rgba(255, 255, 255, 0.1)',
+                  },
+                },
+              }}
             >
-              <MenuIcon sx={{ color: "#f1f1f1" }} />
-            </IconButton>
-            <Link style={{ color: "#fff", textDecoration: "none" }} to="/">
-              <Typography
-                sx={{ padding: "10px" }}
-                variant="h6"
-                noWrap
-                component="div"
+              <ListItemIcon
+                sx={{
+                  color: '#fff',
+                  minWidth: 0,
+                  justifyContent: 'center',
+                }}
               >
-                VTube Permanent
+                {iconOutlined && !isSelected ? iconOutlined : icon}
+              </ListItemIcon>
+              <Typography
+                sx={{
+                  marginLeft: open ? 2 : 0,
+                  fontSize: open ? '0.9rem' : '0.6rem',
+                  mt: open ? 0 : '5px',
+                }}
+              >
+                {text}
               </Typography>
-            </Link>
-          </Toolbar>
+            </ListItemButton>
+          </ListItem>
+        );
+      })}
+    </List>
 
-          <List sx={{ color: "#fff" }}>
-            {["Home", "Shorts", "Subscriptions", !open ? "You" : null]
-              .filter(Boolean)
-              .map((text, index) => {
-                const paths = ["/", "/shorts", "/subscriptions", "/profile"];
-                const route = paths[index];
-                return (
-                  <ListItem
-                    key={text}
-                    disablePadding
-                    sx={{
-                      display: "block",
-                      width: open ? "calc(100% - 12px)" : "100%",
-                    }}
-                  >
-                    <ListItemButton
-                      to={route}
-                      selected={location.pathname === route}
-                      sx={{
-                        display: "flex",
-                        flexDirection: open ? "row" : "column",
-                        alignItems: "center",
-                        justifyContent: open ? "flex-start" : "center",
-                        borderRadius: "10px",
-                        paddingX: 2,
-                        paddingY: open ? 1 : 1.5,
-                        marginX: open ? 1 : 0,
-                        gap: open ? "0" : "0.5px",
-                        transition: "background-color 0.3s ease",
-                        "&:hover": {
-                          backgroundColor: "rgba(255, 255, 255, 0.1)",
-                        },
-                        "&.Mui-selected": {
-                          backgroundColor: open
-                            ? "rgba(255, 255, 255, 0.1)"
-                            : "",
-                          "&:hover": {
-                            backgroundColor: open
-                              ? "rgba(255, 255, 255, 0.2)"
-                              : "rgba(255, 255, 255, 0.1)",
-                          },
-                        },
-                      }}
-                    >
-                      <ListItemIcon
-                        sx={{
-                          color: "#fff",
-                          minWidth: 0,
-                          justifyContent: "center",
-                        }}
-                      >
-                        {index === 0 ? (
-                          location.pathname === route ? (
-                            <HomeIcon sx={{ fontSize: "1.5rem" }} />
-                          ) : (
-                            <HomeOutlinedIcon sx={{ fontSize: "1.5rem" }} />
-                          )
-                        ) : index === 1 ? (
-                          <PlayArrowOutlinedIcon sx={{ fontSize: "1.5rem" }} />
-                        ) : index === 2 ? (
-                          <SubscriptionsOutlinedIcon
-                            sx={{ fontSize: "1.5rem" }}
-                          />
-                        ) : !open ? (
-                          <AccountCircleOutlinedIcon
-                            sx={{ fontSize: "1.5rem" }}
-                          />
-                        ) : null}
-                      </ListItemIcon>
-                      <Typography
-                        sx={{
-                          marginLeft: open ? 2 : 0,
-                          fontSize: open ? "0.9rem" : "0.6rem",
-                          mt: open ? 0 : "5px",
-                        }}
-                      >
-                        {text}
-                      </Typography>
-                    </ListItemButton>
-                  </ListItem>
-                );
-              })}
-          </List>
+    {/* Secondary Menu Items */}
+    {open && (
+      <>
+        <Divider sx={{ bgcolor: 'rgba(255, 255, 255, 0.2)', my: 1 }} />
+        <List sx={{ color: '#fff' }}>
+          <ListItem disablePadding>
+            <ListItemButton
+            disableRipple
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-start',
+                borderRadius: '10px',
+                paddingX: 2,
+                paddingY: 1,
+                gap: '0.5rem',
+                marginX: 1,
+                transition: 'background-color 0.3s ease',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                },
+              }}
+            >
+              <Typography sx={{ fontSize: '0.9rem' }}>You</Typography>
+              <ListItemIcon
+                sx={{
+                  color: '#fff',
+                  minWidth: 0,
+                  justifyContent: 'center',
+                }}
+              >
+                <ArrowForwardIosOutlinedIcon sx={{ fontSize: '0.9rem' }} />
+              </ListItemIcon>
+            </ListItemButton>
+          </ListItem>
 
-          {open && (
-            <Divider sx={{ bgcolor: "rgba(255, 255, 255, 0.2)", my: 1 }} />
-          )}
-
-          {open && (
-            <List sx={{ color: "#fff" }}>
-              <ListItem disablePadding sx={{ display: "flex" }}>
-                <ListItemButton
+          {secondaryMenuItems.map(({ text, icon }) => (
+            <ListItem key={text} disablePadding sx={{ display: 'block' }}>
+              <ListItemButton
+              disableRipple
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'flex-start',
+                  paddingY: 1,
+                  paddingX: 2,
+                  borderRadius: '10px',
+                  marginX: 1,
+                  transition: 'background-color 0.3s ease',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  },
+                }}
+              >
+                <ListItemIcon
                   sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "flex-start",
-                    borderRadius: "10px",
-                    paddingX: 2,
-                    paddingY: 1,
-                    gap: "0.5rem",
-                    marginX: 1,
-                    transition: "background-color 0.3s ease",
-                    "&:hover": {
-                      backgroundColor: "rgba(255, 255, 255, 0.1)",
-                    },
+                    color: '#fff',
+                    minWidth: 0,
+                    justifyContent: 'center',
                   }}
                 >
-                  <Typography sx={{ fontSize: "0.9rem" }}>You</Typography>
+                  {icon}
+                </ListItemIcon>
+                <Typography sx={{ marginLeft: 2, fontSize: '0.9rem' }}>
+                  {text}
+                </Typography>
+              </ListItemButton>
+            </ListItem>
+          ))}
+        </List>
+      </>
+    )}
+  </Drawer>
+)}
 
-                  <ListItemIcon
-                    sx={{
-                      color: "#fff",
-                      minWidth: 0,
-                      justifyContent: "center",
-                    }}
-                  >
-                    <ArrowForwardIosOutlinedIcon sx={{ fontSize: "0.9rem" }} />
-                  </ListItemIcon>
-                </ListItemButton>
-              </ListItem>
-
-              {[
-                "History",
-                "Playlists",
-                "Your videos",
-                "Watch Later",
-                "Liked Videos",
-              ].map((text, index) => (
-                <ListItem key={text} disablePadding sx={{ display: "block" }}>
-                  <ListItemButton
-                    sx={{
-                      display: "flex",
-                      flexDirection: open ? "row" : "column",
-                      alignItems: "center",
-                      justifyContent: open ? "flex-start" : "center",
-                      paddingY: 1,
-                      paddingX: open ? 2 : 0,
-                      borderRadius: "10px",
-                      marginX: 1,
-                      transition: "background-color 0.3s ease",
-                      "&:hover": {
-                        backgroundColor: "rgba(255, 255, 255, 0.1)",
-                      },
-                    }}
-                  >
-                    <ListItemIcon
-                      sx={{
-                        color: "#fff",
-                        minWidth: 0,
-                        justifyContent: "center",
-                      }}
-                    >
-                      {index === 0 ? (
-                        <HistoryOutlinedIcon />
-                      ) : index === 1 ? (
-                        <PlaylistPlayOutlinedIcon />
-                      ) : index === 2 ? (
-                        <SmartDisplayOutlinedIcon />
-                      ) : index === 3 ? (
-                        <WatchLaterOutlinedIcon />
-                      ) : (
-                        <ThumbUpOutlinedIcon />
-                      )}
-                    </ListItemIcon>
-                    <Typography sx={{ marginLeft: 2, fontSize: "0.9rem" }}>
-                      {text}
-                    </Typography>
-                  </ListItemButton>
-                </ListItem>
-              ))}
-            </List>
-          )}
-        </Drawer>
-      )}
 
       {userProfile && !isTablet && (
         <Drawer
@@ -461,170 +494,64 @@ function Header({watch, search, home, userProfile, ...props }) {
             }}
           >
             <IconButton
+            disableRipple
               size="medium"
               edge="start"
               color="inherit"
               aria-label="menu"
-              onClick={()=> setOpen((prev)=> !prev)}
+              onClick={toggleDrawer}
               sx={{ pl: 2, mr: 1 }}
             >
               <MenuIcon sx={{ color: "#f1f1f1" }} />
             </IconButton>
             <Link style={{ color: "#fff", textDecoration: "none" }} to="/">
-              <Typography
-                sx={{ padding: "10px" }}
-                variant="h6"
-                noWrap
-                component="div"
-              >
+              <Typography sx={{ padding: "10px" }} variant="h6" noWrap>
                 VTube
               </Typography>
             </Link>
           </Toolbar>
 
           <List sx={{ color: "#fff" }}>
-            {["Home", "Shorts", "Subscriptions", !open ? "You" : null]
-              .filter(Boolean)
-              .map((text, index) => {
-                const paths = ["/", "/shorts", "/subscriptions", "/profile"];
-                const route = paths[index];
-                return (
-                  <ListItem
-                    key={text}
-                    disablePadding
-                    sx={{
-                      display: "block",
-                      width: open && !isLaptop ? "calc(100% - 12px)" : "100%",
-                    }}
-                  >
-                    <ListItemButton
-                      to={route}
-                      selected={location.pathname === route}
-                      sx={{
-                        display: "flex",
-                        flexDirection: open && !isLaptop ? "row" : "column",
-                        alignItems: "center",
-                        justifyContent:
-                          open && !isLaptop ? "flex-start" : "center",
-                        borderRadius: "10px",
-                        paddingX: 2,
-                        paddingY: open && !isLaptop ? 1 : 1.5,
-                        marginX: open && !isLaptop ? 1 : 0,
-                        gap: open && !isLaptop ? "0" : "0.5px",
-                        transition: "background-color 0.3s ease",
-                        "&:hover": {
-                          backgroundColor: "rgba(255, 255, 255, 0.1)",
-                        },
-                        "&.Mui-selected": {
-                          backgroundColor:
-                            open && !isLaptop ? "rgba(255, 255, 255, 0.1)" : "",
-                          "&:hover": {
-                            backgroundColor:
-                              open && !isLaptop
-                                ? "rgba(255, 255, 255, 0.2)"
-                                : "rgba(255, 255, 255, 0.1)",
-                          },
-                        },
-                      }}
-                    >
-                      <ListItemIcon
-                        sx={{
-                          color: "#fff",
-                          minWidth: 0,
-                          justifyContent: "center",
-                        }}
-                      >
-                        {index === 0 ? (
-                          location.pathname === route ? (
-                            <HomeIcon sx={{ fontSize: "1.5rem" }} />
-                          ) : (
-                            <HomeOutlinedIcon sx={{ fontSize: "1.5rem" }} />
-                          )
-                        ) : index === 1 ? (
-                          <PlayArrowOutlinedIcon sx={{ fontSize: "1.5rem" }} />
-                        ) : index === 2 ? (
-                          <SubscriptionsOutlinedIcon
-                            sx={{ fontSize: "1.5rem" }}
-                          />
-                        ) : !open ? (
-                          <AccountCircleOutlinedIcon
-                            sx={{ fontSize: "1.5rem" }}
-                          />
-                        ) : null}
-                      </ListItemIcon>
-                      <Typography
-                        sx={{
-                          marginLeft: open && !isLaptop ? 2 : 0,
-                          fontSize: open && !isLaptop ? "0.9rem" : "0.6rem",
-                          mt: open && !isLaptop ? 0 : "5px",
-                        }}
-                      >
-                        {text}
-                      </Typography>
-                    </ListItemButton>
-                  </ListItem>
-                );
-              })}
-          </List>
-
-          {open && !isLaptop && (
-            <Divider sx={{ bgcolor: "rgba(255, 255, 255, 0.2)", my: 1 }} />
-          )}
-
-          {open && !isLaptop && (
-            <List sx={{ color: "#fff" }}>
-              <ListItem disablePadding sx={{ display: "flex" }}>
-                <ListItemButton
+            {mainMenuItems.map(({ text, path, icon, iconOutlined }) => {
+              const isSelected = location.pathname === path;
+              return (
+                <ListItem
+                  key={text}
+                  disablePadding
                   sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "flex-start",
-                    borderRadius: "10px",
-                    paddingX: 2,
-                    paddingY: 1,
-                    gap: "0.5rem",
-                    marginX: 1,
-                    transition: "background-color 0.3s ease",
-                    "&:hover": {
-                      backgroundColor: "rgba(255, 255, 255, 0.1)",
-                    },
+                    display: "block",
+                    width: open && !isLaptop ? "calc(100% - 12px)" : "100%",
                   }}
                 >
-                  <Typography sx={{ fontSize: "0.9rem" }}>You</Typography>
-
-                  <ListItemIcon
-                    sx={{
-                      color: "#fff",
-                      minWidth: 0,
-                      justifyContent: "center",
-                    }}
-                  >
-                    <ArrowForwardIosOutlinedIcon sx={{ fontSize: "0.9rem" }} />
-                  </ListItemIcon>
-                </ListItemButton>
-              </ListItem>
-
-              {[
-                "History",
-                "Playlists",
-                "Your videos",
-                "Watch Later",
-                "Liked Videos",
-              ].map((text, index) => (
-                <ListItem key={text} disablePadding sx={{ display: "block" }}>
                   <ListItemButton
+                  disableRipple
+                    component={Link}
+                    to={path}
+                    selected={isSelected}
                     sx={{
                       display: "flex",
-                      flexDirection: open ? "row" : "column",
+                      flexDirection: open && !isLaptop ? "row" : "column",
                       alignItems: "center",
-                      justifyContent: open ? "flex-start" : "center",
-                      paddingY: 1,
-                      paddingX: open ? 2 : 0,
+                      justifyContent:
+                        open && !isLaptop ? "flex-start" : "center",
                       borderRadius: "10px",
-                      marginX: 1,
+                      paddingX: 2,
+                      paddingY: open && !isLaptop ? 1 : 1.5,
+                      marginX: open && !isLaptop ? 1 : 0,
+                      gap: open && !isLaptop ? "0" : "0.5px",
                       transition: "background-color 0.3s ease",
                       "&:hover": {
                         backgroundColor: "rgba(255, 255, 255, 0.1)",
+                      },
+                      "&.Mui-selected": {
+                        backgroundColor:
+                          open && !isLaptop ? "rgba(255, 255, 255, 0.1)" : "",
+                        "&:hover": {
+                          backgroundColor:
+                            open && !isLaptop
+                              ? "rgba(255, 255, 255, 0.2)"
+                              : "rgba(255, 255, 255, 0.1)",
+                        },
                       },
                     }}
                   >
@@ -635,109 +562,76 @@ function Header({watch, search, home, userProfile, ...props }) {
                         justifyContent: "center",
                       }}
                     >
-                      {index === 0 ? (
-                        <HistoryOutlinedIcon />
-                      ) : index === 1 ? (
-                        <PlaylistPlayOutlinedIcon />
-                      ) : index === 2 ? (
-                        <SmartDisplayOutlinedIcon />
-                      ) : index === 3 ? (
-                        <WatchLaterOutlinedIcon />
-                      ) : (
-                        <ThumbUpOutlinedIcon />
-                      )}
+                      {iconOutlined && !isSelected ? iconOutlined : icon}
                     </ListItemIcon>
-                    <Typography sx={{ marginLeft: 2, fontSize: "0.9rem" }}>
+                    <Typography
+                      sx={{
+                        marginLeft: open && !isLaptop ? 2 : 0,
+                        fontSize: open && !isLaptop ? "0.9rem" : "0.6rem",
+                        mt: open && !isLaptop ? 0 : "5px",
+                      }}
+                    >
                       {text}
                     </Typography>
                   </ListItemButton>
                 </ListItem>
-              ))}
-            </List>
-          )}
-        </Drawer>
-      )}
+              );
+            })}
+          </List>
 
-      {isLaptop && (
-        <Drawer
-          disableScrollLock
-          container={container}
-          variant="temporary"
-          open={open}
-          onClose={()=> isLaptop ? setOpen((prev)=> !prev) : undefined}
-          ModalProps={{ keepMounted: true }}
-          transitionDuration={200}
-          sx={{
-            "& .MuiDrawer-paper": {
-              width: drawerWidth,
-              overflowX: "hidden",
-              border: "none",
-              zIndex: 0,
-              bgcolor: theme.palette.primary.main,
-            },
-          }}
-        >
-          <Toolbar
-            sx={{
-              minHeight: "var(--toolbar-height)",
-              "@media (min-width:600px)": {
-                minHeight: "var(--toolbar-height)",
-              },
-            }}
-          >
-            <IconButton
-              size="medium"
-              edge="start"
-              color="inherit"
-              aria-label="menu"
-              onClick={()=> setOpen((prev)=> !prev)}
-              sx={{ pl: !isMobile ? 2 : 3 }}
-            >
-              <MenuIcon sx={{ color: "#f1f1f1" }} />
-            </IconButton>
-            <Link style={{ color: "#fff", textDecoration: "none" }} to="/">
-              <Typography
-                sx={{ padding: "10px" }}
-                variant="h6"
-                noWrap
-                component="div"
-              >
-                VTube
-              </Typography>
-            </Link>
-          </Toolbar>
+          {open && !isLaptop && (
+            <>
+              <Divider sx={{ bgcolor: "rgba(255, 255, 255, 0.2)", my: 1 }} />
+              <List sx={{ color: "#fff" }}>
+                <ListItem disablePadding sx={{ display: "flex" }}>
+                  <ListItemButton
+                  disableRipple
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "flex-start",
+                      borderRadius: "10px",
+                      paddingX: 2,
+                      paddingY: 1,
+                      gap: "0.5rem",
+                      marginX: 1,
+                      transition: "background-color 0.3s ease",
+                      "&:hover": {
+                        backgroundColor: "rgba(255, 255, 255, 0.1)",
+                      },
+                    }}
+                  >
+                    <Typography sx={{ fontSize: "0.9rem" }}>You</Typography>
+                    <ListItemIcon
+                      sx={{
+                        color: "#fff",
+                        minWidth: 0,
+                        justifyContent: "center",
+                      }}
+                    >
+                      <ArrowForwardIosOutlinedIcon
+                        sx={{ fontSize: "0.9rem" }}
+                      />
+                    </ListItemIcon>
+                  </ListItemButton>
+                </ListItem>
 
-          <List sx={{ mx: "4px", color: "#fff" }}>
-            {["Home", "Shorts", "Subscriptions"]
-              .filter(Boolean)
-              .map((text, index) => {
-                const paths = ["/", "/shorts", "/subscriptions", "/profile"];
-                const route = paths[index];
-                return (
+                {secondaryMenuItems.map(({ text, icon }) => (
                   <ListItem key={text} disablePadding sx={{ display: "block" }}>
                     <ListItemButton
-                      to={route}
-                      selected={location.pathname === route}
+                    disableRipple
                       sx={{
                         display: "flex",
                         flexDirection: "row",
                         alignItems: "center",
                         justifyContent: "flex-start",
-                        borderRadius: "10px",
-                        paddingX: 2,
                         paddingY: 1,
+                        paddingX: 2,
+                        borderRadius: "10px",
                         marginX: 1,
-                        gap: "0",
                         transition: "background-color 0.3s ease",
                         "&:hover": {
                           backgroundColor: "rgba(255, 255, 255, 0.1)",
-                        },
-                        "&.Mui-selected": {
-                          backgroundColor: "rgba(255, 255, 255, 0.1)",
-
-                          "&:hover": {
-                            backgroundColor: "rgba(255, 255, 255, 0.2)",
-                          },
                         },
                       }}
                     >
@@ -748,40 +642,104 @@ function Header({watch, search, home, userProfile, ...props }) {
                           justifyContent: "center",
                         }}
                       >
-                        {index === 0 ? (
-                          location.pathname === route ? (
-                            <HomeIcon sx={{ fontSize: "1.5rem" }} />
-                          ) : (
-                            <HomeOutlinedIcon sx={{ fontSize: "1.5rem" }} />
-                          )
-                        ) : index === 1 ? (
-                          <PlayArrowOutlinedIcon sx={{ fontSize: "1.5rem" }} />
-                        ) : index === 2 ? (
-                          <SubscriptionsOutlinedIcon
-                            sx={{ fontSize: "1.5rem" }}
-                          />
-                        ) : null}
+                        {icon}
                       </ListItemIcon>
-                      <Typography
-                        sx={{
-                          marginLeft: 2,
-                          fontSize: "0.9rem",
-                          mt: 0,
-                        }}
-                      >
+                      <Typography sx={{ marginLeft: 2, fontSize: "0.9rem" }}>
                         {text}
                       </Typography>
                     </ListItemButton>
                   </ListItem>
-                );
-              })}
+                ))}
+              </List>
+            </>
+          )}
+        </Drawer>
+      )}
+
+      {isLaptop && !watch && (
+        <Drawer
+          disableScrollLock
+          container={container}
+          variant="temporary"
+          open={open}
+          onClose={() => setOpen(false)}
+          ModalProps={{ keepMounted: true }}
+          sx={{
+            "& .MuiDrawer-paper": {
+              width: drawerWidth,
+              overflowX: "hidden",
+              border: "none",
+              zIndex: 0,
+              bgcolor: theme.palette.primary.main,
+            },
+          }}
+        >
+      
+          <Toolbar
+            sx={{
+              minHeight: "var(--toolbar-height)",
+              "@media (min-width:600px)": {
+                minHeight: "var(--toolbar-height)",
+              },
+            }}
+          >
+            <IconButton
+            disableRipple
+              size="medium"
+              edge="start"
+              color="inherit"
+              aria-label="menu"
+              onClick={toggleDrawer}
+              sx={{ pl: !isMobile ? 2 : 3 }}
+            >
+              <MenuIcon sx={{ color: "#f1f1f1" }} />
+            </IconButton>
+
+            <Link to="/" style={{ color: "#fff", textDecoration: "none" }}>
+              <Typography
+                variant="h6"
+                noWrap
+                component="div"
+                sx={{ padding: "10px" }}
+              >
+                VTube
+              </Typography>
+            </Link>
+          </Toolbar>
+
+   
+          <List sx={{ mx: "4px", color: "#fff" }}>
+            {mainMenuItems.map(({ text, path, icon, iconOutlined }) => {
+              const isSelected = location.pathname === path;
+              return (
+                <ListItem key={text} disablePadding sx={{ display: "block" }}>
+                  <ListItemButton
+                  disableRipple
+                    component={Link}
+                    to={path}
+                    selected={isSelected}
+                    sx={baseItemButtonStyles}
+                  >
+                    <ListItemIcon sx={iconStyles}>
+                      {iconOutlined && !isSelected ? iconOutlined : icon}
+                    </ListItemIcon>
+                    <Typography sx={{ marginLeft: 2, fontSize: "0.9rem" }}>
+                      {text}
+                    </Typography>
+                  </ListItemButton>
+                </ListItem>
+              );
+            })}
           </List>
 
+   
           <Divider sx={{ bgcolor: "rgba(255, 255, 255, 0.2)", my: 1 }} />
 
+        
           <List sx={{ color: "#fff" }}>
-            <ListItem disablePadding sx={{ display: "flex" }}>
+            <ListItem disablePadding>
               <ListItemButton
+              disableRipple
                 sx={{
                   display: "flex",
                   alignItems: "center",
@@ -798,62 +756,17 @@ function Header({watch, search, home, userProfile, ...props }) {
                 }}
               >
                 <Typography sx={{ fontSize: "0.9rem" }}>You</Typography>
-
-                <ListItemIcon
-                  sx={{
-                    color: "#fff",
-                    minWidth: 0,
-                    justifyContent: "center",
-                  }}
-                >
+                <ListItemIcon sx={iconStyles}>
                   <ArrowForwardIosOutlinedIcon sx={{ fontSize: "0.9rem" }} />
                 </ListItemIcon>
               </ListItemButton>
             </ListItem>
 
-            {[
-              "History",
-              "Playlists",
-              "Your videos",
-              "Watch Later",
-              "Liked Videos",
-            ].map((text, index) => (
+           
+            {secondaryMenuItems.map(({ text, icon }) => (
               <ListItem key={text} disablePadding sx={{ display: "block" }}>
-                <ListItemButton
-                  sx={{
-                    display: "flex",
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "flex-start",
-                    paddingY: 1,
-                    paddingX: 2,
-                    borderRadius: "10px",
-                    marginX: 1,
-                    transition: "background-color 0.3s ease",
-                    "&:hover": {
-                      backgroundColor: "rgba(255, 255, 255, 0.1)",
-                    },
-                  }}
-                >
-                  <ListItemIcon
-                    sx={{
-                      color: "#fff",
-                      minWidth: 0,
-                      justifyContent: "center",
-                    }}
-                  >
-                    {index === 0 ? (
-                      <HistoryOutlinedIcon />
-                    ) : index === 1 ? (
-                      <PlaylistPlayOutlinedIcon />
-                    ) : index === 2 ? (
-                      <SmartDisplayOutlinedIcon />
-                    ) : index === 3 ? (
-                      <WatchLaterOutlinedIcon />
-                    ) : (
-                      <ThumbUpOutlinedIcon />
-                    )}
-                  </ListItemIcon>
+                <ListItemButton disableRipple sx={baseItemButtonStyles}>
+                  <ListItemIcon sx={iconStyles}>{icon}</ListItemIcon>
                   <Typography sx={{ marginLeft: 2, fontSize: "0.9rem" }}>
                     {text}
                   </Typography>
@@ -864,206 +777,155 @@ function Header({watch, search, home, userProfile, ...props }) {
         </Drawer>
       )}
 
-      {watch && (
-        <Drawer
-          variant="persistent"
-          open={open}
+    {watch && (
+  <Drawer
+    variant="temporary"
+    open={open}
+    onClose={() => setOpen(false)}
+    ModalProps={{
+      keepMounted: true,
+      disableScrollLock: true,
+    }}
+    sx={{
+      "& .MuiDrawer-paper": {
+        width: drawerWidth,
+        bgcolor: theme.palette.primary.main,
+        overflowX: "hidden",
+        border: "none",
+        zIndex: 0,
+      },
+    }}
+  >
+    <Toolbar
+      sx={{
+        minHeight: "var(--toolbar-height)",
+        "@media (min-width:600px)": {
+          minHeight: "var(--toolbar-height)",
+        },
+      }}
+    >
+      <IconButton
+      disableRipple
+        size="medium"
+        edge="start"
+        color="inherit"
+        aria-label="menu"
+        onClick={toggleDrawer}
+        sx={{ pl: 2, mr: 1 }}
+      >
+        <MenuIcon sx={{ color: "#f1f1f1" }} />
+      </IconButton>
+      <Link to="/" style={{ textDecoration: "none", color: "#fff" }}>
+        <Typography sx={{ padding: "10px" }} variant="h6" noWrap>
+          VTube
+        </Typography>
+      </Link>
+    </Toolbar>
+
+    {/* Main Menu Items */}
+    <List sx={{ color: "#fff", mx: "4px" }}>
+      {mainMenuItems.map(({ text, path, icon, iconOutlined }) => {
+        const isSelected = location.pathname === path;
+        return (
+          <ListItem key={text} disablePadding sx={{ display: "block" }}>
+            <ListItemButton
+            disableRipple
+              component={Link}
+              to={path}
+              selected={isSelected}
+              sx={baseItemButtonStyles(true)}
+            >
+              <ListItemIcon sx={iconStyles}>
+                {iconOutlined && !isSelected ? iconOutlined : icon}
+              </ListItemIcon>
+              <Typography sx={{ ml: 2, fontSize: "0.9rem" }}>
+                {text}
+              </Typography>
+            </ListItemButton>
+          </ListItem>
+        );
+      })}
+    </List>
+
+    <Divider sx={{ bgcolor: "rgba(255, 255, 255, 0.2)", my: 1 }} />
+
+    {/* "You" section */}
+    <List sx={{ color: "#fff" }}>
+      <ListItem disablePadding sx={{ display: "block" }}>
+        <ListItemButton
+        disableRipple
           sx={{
-            "& .MuiDrawer-paper": {
-              width: drawerWidth,
-              bgcolor: theme.palette.primary.main,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "flex-start",
+            borderRadius: "10px",
+            paddingX: 2,
+            paddingY: 1,
+            gap: "0.5rem",
+            marginX: 1,
+            transition: "background-color 0.3s ease",
+            "&:hover": {
+              backgroundColor: "rgba(255, 255, 255, 0.1)",
             },
           }}
         >
-          <Toolbar
+          <Typography sx={{ fontSize: "0.9rem" }}>You</Typography>
+          <ListItemIcon
             sx={{
-              minHeight: "var(--toolbar-height)",
-              "@media (min-width:600px)": {
-                minHeight: "var(--toolbar-height)",
-              },
+              color: "#fff",
+              minWidth: 0,
+              justifyContent: "center",
             }}
           >
-            <IconButton
-              size="medium"
-              edge="start"
-              color="inherit"
-              aria-label="menu"
-              onClick={()=> setOpen((prev)=> !prev)}
-              sx={{ pl: 2, mr: 1 }}
-            >
-              <MenuIcon sx={{ color: "#f1f1f1" }} />
-            </IconButton>
-            <Link style={{ color: "#fff", textDecoration: "none" }} to="/">
-              <Typography
-                sx={{ padding: "10px" }}
-                variant="h6"
-                noWrap
-                component="div"
-              >
-                VTube
-              </Typography>
-            </Link>
-          </Toolbar>
+            <ArrowForwardIosOutlinedIcon sx={{ fontSize: "0.9rem" }} />
+          </ListItemIcon>
+        </ListItemButton>
+      </ListItem>
 
-          <List sx={{ color: "#fff" }}>
-            {["Home", "Shorts", "Subscriptions"]
-              .filter(Boolean)
-              .map((text, index) => {
-                const paths = ["/", "/shorts", "/subscriptions"];
-                const route = paths[index];
-                return (
-                  <ListItem key={text} disablePadding sx={{ display: "block" }}>
-                    <ListItemButton
-                      component={Link}
-                      to={route}
-                      selected={location.pathname === route}
-                      sx={{
-                        display: "flex",
-                        flexDirection: "row",
-                        alignItems: "center",
-                        justifyContent: "flex-start",
-                        borderRadius: "10px",
-                        paddingX: 2,
-                        paddingY: 1,
-                        marginX: 1,
-                        gap: 0,
-                        transition: "background-color 0.3s ease",
-                        "&:hover": {
-                          backgroundColor: "rgba(255, 255, 255, 0.1)",
-                        },
-                        "&.Mui-selected": {
-                          backgroundColor: "rgba(255, 255, 255, 0.1)",
-                          "&:hover": {
-                            backgroundColor: "rgba(255, 255, 255, 0.2)",
-                          },
-                        },
-                      }}
-                    >
-                      <ListItemIcon
-                        sx={{
-                          color: "#fff",
-                          minWidth: 0,
-                          justifyContent: "center",
-                        }}
-                      >
-                        {index === 0 ? (
-                          <HomeIcon sx={{ fontSize: "1.5rem" }} />
-                        ) : index === 1 ? (
-                          <PlayArrowOutlinedIcon sx={{ fontSize: "1.5rem" }} />
-                        ) : index === 2 ? (
-                          <SubscriptionsOutlinedIcon
-                            sx={{ fontSize: "1.5rem" }}
-                          />
-                        ) : null}
-                      </ListItemIcon>
-                      <Typography
-                        sx={{
-                          marginLeft: 2,
-                          fontSize: "0.9rem",
-                          textDecoration: "none",
-                          color: "#f1f1f1",
-                          mt: 0,
-                        }}
-                      >
-                        {text}
-                      </Typography>
-                    </ListItemButton>
-                  </ListItem>
-                );
-              })}
-          </List>
+      {/* Secondary menu items */}
+      {secondaryMenuItems.map(({ text, icon }) => (
+        <ListItem key={text} disablePadding sx={{ display: "block" }}>
+          <ListItemButton disableRipple sx={baseItemButtonStyles(true)}>
+            <ListItemIcon sx={iconStyles}>{icon}</ListItemIcon>
+            <Typography sx={{ ml: 2, fontSize: "0.9rem" }}>
+              {text}
+            </Typography>
+          </ListItemButton>
+        </ListItem>
+      ))}
+    </List>
+  </Drawer>
+)}
 
-          <Divider sx={{ bgcolor: "rgba(255, 255, 255, 0.2)", my: 1 }} />
-
-          {open && (
-            <List sx={{ color: "#fff" }}>
-              <ListItem disablePadding sx={{ display: "flex" }}>
-                <ListItemButton
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "flex-start",
-                    borderRadius: "10px",
-                    paddingX: 2,
-                    paddingY: 1,
-                    gap: "0.5rem",
-                    marginX: 1,
-                    transition: "background-color 0.3s ease",
-                    "&:hover": {
-                      backgroundColor: "rgba(255, 255, 255, 0.1)",
-                    },
-                  }}
-                >
-                  <Typography sx={{ fontSize: "0.9rem" }}>You</Typography>
-
-                  <ListItemIcon
-                    sx={{
-                      color: "#fff",
-                      minWidth: 0,
-                      justifyContent: "center",
-                    }}
-                  >
-                    <ArrowForwardIosOutlinedIcon sx={{ fontSize: "0.9rem" }} />
-                  </ListItemIcon>
-                </ListItemButton>
-              </ListItem>
-
-              {[
-                "History",
-                "Playlists",
-                "Your videos",
-                "Watch Later",
-                "Liked Videos",
-              ].map((text, index) => (
-                <ListItem key={text} disablePadding sx={{ display: "block" }}>
-                  <ListItemButton
-                    sx={{
-                      display: "flex",
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: open ? "flex-start" : "center",
-                      paddingY: 1,
-                      paddingX: open ? 2 : 0,
-                      borderRadius: "10px",
-                      marginX: 1,
-                      transition: "background-color 0.3s ease",
-                      "&:hover": {
-                        backgroundColor: "rgba(255, 255, 255, 0.1)",
-                      },
-                    }}
-                  >
-                    <ListItemIcon
-                      sx={{
-                        color: "#fff",
-                        minWidth: 0,
-                        justifyContent: "center",
-                      }}
-                    >
-                      {index === 0 ? (
-                        <HistoryOutlinedIcon />
-                      ) : index === 1 ? (
-                        <PlaylistPlayOutlinedIcon />
-                      ) : index === 2 ? (
-                        <SmartDisplayOutlinedIcon />
-                      ) : index === 3 ? (
-                        <WatchLaterOutlinedIcon />
-                      ) : (
-                        <ThumbUpOutlinedIcon />
-                      )}
-                    </ListItemIcon>
-                    <Typography sx={{ marginLeft: 2, fontSize: "0.9rem" }}>
-                      {text}
-                    </Typography>
-                  </ListItemButton>
-                </ListItem>
-              ))}
-            </List>
-          )}
-        </Drawer>
-      )}
     </Box>
   );
 }
+const baseItemButtonStyles = () => ({
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "flex-start",
+  borderRadius: "10px",
+  paddingX: 2,
+  paddingY: 1,
+  marginX: 1,
+  gap: "0",
+  transition: "background-color 0.3s ease",
+  "&:hover": {
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+  },
+  "&.Mui-selected": {
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    "&:hover": {
+      backgroundColor: "rgba(255, 255, 255, 0.2)",
+    },
+  },
+});
+
+const iconStyles = {
+  color: "#fff",
+  minWidth: 0,
+  justifyContent: "center",
+};
 
 Header.propTypes = {
   windowProp: PropTypes.func,

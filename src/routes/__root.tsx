@@ -36,12 +36,16 @@ type UserInteractionContextType = {
   setIsUserInteracted: React.Dispatch<React.SetStateAction<boolean>>;
 };
 
-export const UserInteractionContext = createContext<UserInteractionContextType | undefined>(undefined)
+export const UserInteractionContext = createContext<
+  UserInteractionContextType | undefined
+>(undefined);
 
 export function useUserInteraction() {
   const ctx = React.useContext(UserInteractionContext);
   if (!ctx) {
-    throw new Error("useUserInteraction must be used within UserInteractionProvider");
+    throw new Error(
+      "useUserInteraction must be used within UserInteractionProvider"
+    );
   }
   return ctx;
 }
@@ -66,55 +70,55 @@ function RouteComponent() {
   const theme = useTheme();
   const isLaptop = useMediaQuery(theme.breakpoints.down("lg"));
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
-  const [open, setOpen] = useState(!(home || search || watch || userProfile));
+  const shouldBeOpen = home || search || userProfile;
+  const [open, setOpen] = useState(!shouldBeOpen);
   const [isUserInteracted, setIsUserInteracted] = useState(false);
   const scrollYRef = React.useRef(0);
   const prevScrollRef = React.useRef(0);
+  const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {
-    const observer = new MutationObserver(() => {
-      const isModalOpen = !!document.querySelector('[role="presentation"]');
-
-      if (isModalOpen) {
-        document.body.style.paddingRight = "0px";
-      } else {
-        document.body.style.paddingRight = "";
-      }
-    });
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-    });
-
-    return () => observer.disconnect();
+    setHasMounted(true);
   }, []);
 
   useEffect(() => {
-  const body = document.body;
+    if (!hasMounted) return;
 
-  if (open && isLaptop) {
+    setOpen(shouldBeOpen);
+  }, [shouldBeOpen, hasMounted]);
 
-    scrollYRef.current = window.scrollY;
+  useEffect(() => {
+    const body = document.body;
 
-    
-    body.style.position = "fixed";
-    body.style.top = `-${scrollYRef.current}px`;
-    body.style.left = "0";
-    body.style.right = "0";
-    body.style.overflow = "hidden";
-    body.style.width = "100%";
-  } else if (!open && isLaptop) {
-    body.style.position = "";
-    body.style.top = "";
-    body.style.left = "";
-    body.style.right = "";
-    body.style.overflow = "";
-    body.style.width = "";
+    if (open && isLaptop || open && watch ) {
+      console.log("true")
+      body.style.position = "fixed";
+      body.style.top = `-${scrollYRef.current}px`;
+      body.style.left = "0";
+      body.style.right = "0";
+      body.style.overflow = "hidden";
+      body.style.width = "100%";
+    } else if (!open && isLaptop || !open && watch) {
+      body.style.position = "";
+      body.style.top = "";
+      body.style.left = "";
+      body.style.right = "";
+      body.style.overflow = "";
+      body.style.width = "";
+      const maxScroll =
+        document.documentElement.scrollHeight - window.innerHeight;
+      const safeScroll = Math.min(scrollYRef.current, maxScroll);
 
-    window.scrollTo(0, scrollYRef.current);
-  }
-}, [open, isLaptop]);
-
+      window.scrollTo(0, safeScroll);
+    } else {
+       body.style.position = "";
+      body.style.top = "";
+      body.style.left = "";
+      body.style.right = "";
+      body.style.overflow = "";
+      body.style.width = "";
+    }
+  }, [open, isLaptop, watch]);
 
   useEffect(() => {
     const handleScroll = throttle(() => {
@@ -147,58 +151,51 @@ function RouteComponent() {
     };
   }, []);
 
-  useEffect(() => {
-    if (home || search || userProfile) {
-      setOpen(true);
-    } else {
-      setOpen(false);
-    }
-  }, [home, search, userProfile]);
-
-  const toggleDrawer = useCallback(() => setOpen((prev) => !prev), []);
-
   const { data, isLoading, isError } = useQuery({
     queryKey: ["user"],
     queryFn: getCurrentUser,
   });
 
+
   return (
     <SnackbarProvider>
-      <UserInteractionContext.Provider value={{ isUserInteracted, setIsUserInteracted }}>
-      <OpenContext.Provider value={{ open, setOpen, data: data || null }}>
-        <CssBaseline />
+      <UserInteractionContext.Provider
+        value={{ isUserInteracted, setIsUserInteracted }}
+      >
+        <OpenContext.Provider value={{ open, setOpen, data: data || null }}>
+          <CssBaseline />
 
-        <Header
-          open={open}
-          home={home}
-          search={search}
-          watch={watch}
-          userProfile={userProfile}
-        />
+          <Header
+            open={open}
+            home={home}
+            search={search}
+            watch={watch}
+            userProfile={userProfile}
+          />
 
-        <Box
-          component="main"
-          sx={{
-            position: "relative",
-            display: "flex",
-            overflowY: "visible",
-            marginTop: "var(--toolbar-height)",
-            marginLeft:
-              isTablet || watch
-                ? "0" 
-                : open && !isLaptop
-                  ? "var(--drawer-width)"
-                  : !open || !isTablet
-                    ? "var(--mini-drawer-width)" 
-                    : "0", 
+          <Box
+            component="main"
+            sx={{
+              position: "relative",
+              display: "flex",
+              overflowY: "visible",
+              marginTop: "var(--toolbar-height)",
+              marginLeft:
+                isTablet || watch
+                  ? "0"
+                  : open && !isLaptop
+                    ? "var(--drawer-width)"
+                    : !open || !isTablet
+                      ? "var(--mini-drawer-width)"
+                      : "0",
 
-            backgroundColor: theme.palette.primary.main,
-          }}
-        >
-          <ProgressBar />
-          <Outlet />
-        </Box>
-      </OpenContext.Provider>
+              backgroundColor: theme.palette.primary.main,
+            }}
+          >
+            <ProgressBar />
+            <Outlet />
+          </Box>
+        </OpenContext.Provider>
       </UserInteractionContext.Provider>
     </SnackbarProvider>
   );

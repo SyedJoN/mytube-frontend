@@ -19,7 +19,6 @@ function useHoverPreview(delay = 300) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
-
     setIsHoverPlay(false);
     setIsVideoPlaying(false);
   }, []);

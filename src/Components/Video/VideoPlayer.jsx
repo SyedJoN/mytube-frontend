@@ -130,7 +130,6 @@ function VideoPlayer({
   const isFastPlayback = videoRef?.current?.playbackRate === 2.0;
   const animateTimeoutRef = useRef(null);
   const captureCanvasRef = useRef(null);
-  const manuallyClosedRef = useRef(false);
 
   const glowCanvasRef = useRef(null);
   const [isMini, setIsMini] = useState(false);
@@ -141,9 +140,7 @@ function VideoPlayer({
     queryFn: () => fetchVideoById(videoId),
     enabled: !!videoId,
   });
-useEffect(() => {
-  manuallyClosedRef.current = false;
-}, [data?.data?._id]); // or location.pathname
+
 
   useEffect(() => {
     if (isOpen) return;
@@ -163,14 +160,13 @@ useEffect(() => {
       if (
         scrollY > threshold &&
         !hideMini &&
-        canPlay &&
-        !manuallyClosedRef.current
+        canPlay
       ) {
         setIsMini(true);
       }
       if (scrollY < threshold) {
         setIsMini(false);
-        manuallyClosedRef.current = false;
+    
         if (hideMini) {
           setHideMini(false);
         }
@@ -1647,7 +1643,6 @@ useEffect(() => {
                 onClick={() => {
                   setIsMini(false);
                   setHideMini(true);
-                  manuallyClosedRef.current = true;
                 }}
                 sx={{
                   position: "absolute",

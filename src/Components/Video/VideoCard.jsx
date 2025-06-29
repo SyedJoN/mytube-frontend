@@ -126,7 +126,7 @@ function VideoCard({
     return video._id;
   });
   const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
-    const {
+  const {
     isHoverPlay,
     isVideoPlaying,
     setIsVideoPlaying,
@@ -137,35 +137,30 @@ function VideoCard({
   });
 
   React.useEffect(() => {
-  const video = videoRef.current;
-  let playTimeout;
+    const video = videoRef.current;
+    let playTimeout;
 
-  if (!video) return;
+    if (!video) return;
 
-  if (isHoverPlay) {
-    playTimeout = setTimeout(() => {
-      if (video.paused) {
-        video.play().catch((err) => {
-          // Ignore AbortError from race conditions
-          if (err.name !== "AbortError") {
-            console.error("Video play error:", err);
-          }
-        });
+    if (isHoverPlay) {
+      playTimeout = setTimeout(() => {
+        if (video.paused) {
+          video.play().catch((err) => {
+            if (err.name !== "AbortError") {
+              console.error("Video play error:", err);
+            }
+          });
+        }
+      }, 100);
+    } else {
+      clearTimeout(playTimeout);
+      if (!video.paused) {
+        video.pause();
       }
-    }, 100); // Add slight delay to avoid immediate conflict
-  } else {
-    // Clear any scheduled play attempt
-    clearTimeout(playTimeout);
-    if (!video.paused) {
-      video.pause();
     }
-    video.currentTime = 0;
-  }
 
-  // Cleanup
-  return () => clearTimeout(playTimeout);
-}, [isHoverPlay]);
-
+    return () => clearTimeout(playTimeout);
+  }, [isHoverPlay]);
 
   const getColor = (name) => {
     if (!name) return red[500];
@@ -187,29 +182,12 @@ function VideoCard({
   const handleToggleOptions = (id) => {
     setActiveOptionsId((prev) => (prev === id ? null : id));
   };
-  const handleCardClick = () => {
-    navigate({
-      to: "/watch",
-      search: {
-        v: videoId,
-      },
-    });
-
-    console.log("videoID", videoId);
-  };
 
   const handleChannelClick = () => {
     navigate({
       to: `/@${owner}`,
     });
   };
-  const { data: videos } = useQuery({
-    queryKey: ["video-preview-url", videoId],
-    queryFn: () => fetchVideoById(videoId),
-    enabled: isHoverPlay,
-    staleTime: 1000 * 60 * 5,
-  });
-
 
   return (
     <>
@@ -234,14 +212,7 @@ function VideoCard({
               position: "relative",
               display: "block",
               width: "100%",
-
-              ":before": {
-                display: "block",
-                overflow: "hidden",
-                width: "100%",
-                paddingTop: "56.25%",
-                content: "''",
-              },
+              paddingTop: "56.25%",
             }}
           >
             <Link to="/watch" search={{ v: videoId }}>
@@ -255,6 +226,7 @@ function VideoCard({
                     objectFit: "cover",
                     aspectRatio: "16/9",
                   }}
+                  loading="lazy"
                   component="img"
                   image={thumbnail}
                 />
@@ -424,6 +396,7 @@ function VideoCard({
               flex: "none",
               maxWidth: "500px",
               width: "168px",
+              aspectRatio: "16/9",
               paddingRight: 1,
             }}
           >
@@ -432,8 +405,7 @@ function VideoCard({
               sx={{
                 position: "relative",
                 display: "block",
-                paddingTop: "56.25%",
-                height: "0",
+
               }}
             >
               <Box
@@ -473,37 +445,34 @@ function VideoCard({
                       draggable="false"
                       image={thumbnail}
                     />
-               
-                         <video
-                         loop
-                    playsInline
-                    ref={videoRef}
-                    muted
-                    onPlaying={() => setIsVideoPlaying(true)}
-                    id="video-player"
-                    key={previewUrl}
-                    className={`hover-interaction ${isHoverPlay ? "" : "hide"}`}
-                    crossOrigin="anonymous"
-                    style={{
-                      position: "absolute",
-                      width: "100%",
-                      height: "100%",
-                      left: 0,
-                      top: 0,
-                      objectFit: "cover",
-                      borderRadius: "8px",
-                      opacity: isHoverPlay ? 1 : 0,
-                      transition: "opacity 0.3s ease",
-                    }}
-                  >
-                       {previewUrl &&
-                   <source src={previewUrl} type="video/mp4" />
-                       }
-                  </video>
-                  
-                   
+
+                    <video
+                      loop
+                      playsInline
+                      ref={videoRef}
+                      muted
+                      onPlaying={() => setIsVideoPlaying(true)}
+                      id="video-player"
+                      key={previewUrl}
+                      className={`hover-interaction ${isHoverPlay ? "" : "hide"}`}
+                      crossOrigin="anonymous"
+                      style={{
+                        position: "absolute",
+                        width: "100%",
+                        height: "100%",
+                        left: 0,
+                        top: 0,
+                        objectFit: "cover",
+                        borderRadius: "8px",
+                        opacity: isHoverPlay ? 1 : 0,
+                        transition: "opacity 0.3s ease",
+                      }}
+                    >
+                      {previewUrl && (
+                        <source src={previewUrl} type="video/mp4" />
+                      )}
+                    </video>
                   </LazyLoad>
-           
 
                   <Box
                     className={`${isHoverPlay && isVideoPlaying ? "hidden" : ""}`}
@@ -544,12 +513,13 @@ function VideoCard({
               padding: "0!important",
               paddingRight: "24px!important",
               minWidth: 0,
+              flex: 1,
             }}
           >
             <Link
               to="/watch"
               search={{ v: videoId }}
-              style={linkStyles}
+              style={{ ...linkStyles, flex: 1 }}
               onDragEnd={() => {
                 if (interactionRef.current) {
                   interactionRef.current.classList.remove("down");
@@ -944,13 +914,7 @@ function VideoCard({
                 position: "relative",
                 display: "block",
                 width: "100%",
-                ":before": {
-                  display: "block",
-                  overflow: "hidden",
-                  width: "100%",
-                  paddingTop: "56.25%",
-                  content: "''",
-                },
+                paddingTop: "56.25%",
               }}
             >
               <Box height="100%" position="absolute" top="0" left="0">
