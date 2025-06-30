@@ -1,5 +1,4 @@
 import React, {useContext} from "react";
-import { OpenContext } from "../../routes/__root";
 import Grid from "@mui/material/Grid";
 import { Box, Container } from "@mui/material";
 import formatDate from "../../utils/formatDate";

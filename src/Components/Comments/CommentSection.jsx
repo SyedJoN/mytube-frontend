@@ -4,14 +4,14 @@ import Comments from "./Comments";
 import { useQuery } from "@tanstack/react-query";
 import { getVideoComments } from "../../apis/commentFn";
 import Box from "@mui/material/Box";
-import { OpenContext } from "../../routes/__root";
+import { UserContext } from "../../routes/__root";
 
 function CommentSection({
   videoId,
   activeAlertId,
   setActiveAlertId,
 }) {
-  const context = useContext(OpenContext);
+  const context = useContext(UserContext);
     const { data: dataContext } = context ?? {};
   const isAuthenticated = dataContext || null;
   const [activeOptionsId, setActiveOptionsId] = useState(null);

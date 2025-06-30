@@ -5,6 +5,8 @@ import React, {
   useRef,
   useEffect,
   startTransition,
+  useContext,
+  useMemo,
 } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { PlayPauseSvg } from "../Utils/PlayPauseSvg";
@@ -25,65 +27,19 @@ import "../Utils/iconMorph.css";
 import { MorphingVolIcon } from "../Utils/VolumeIcon";
 import { FullScreenSvg } from "../Utils/FullScreenSvg";
 import TheatreSvg from "../Utils/TheatreSvg";
-import { useUserInteraction } from "../../routes/__root";
+import { UserInteractionContext } from "../../routes/__root";
 import { PiPSvg } from "../Utils/PiPSvg";
 import { useTheme } from "@emotion/react";
 import { ReplaySvg } from "../Utils/ReplaySvg";
 
-const tooltipStyles = {
-  whiteSpace: "nowrap",
-  backgroundColor: "rgb(27,26,27)",
-  color: "#f1f1f1",
-  fontSize: "0.75rem",
-  fontWeight: "600",
-  borderRadius: "4px",
-  py: "4px",
-  px: "6px",
-};
 
-const nextVideoStyles = {
-  whiteSpace: "nowrap",
-  backgroundColor: "rgb(27,26,27)",
-  fontSize: "0.75rem",
-  borderRadius: "16px",
-  padding: "0",
-};
-
-const popperModifiers = [
-  {
-    name: "offset",
-    options: {
-      offset: [0, 5],
-    },
-  },
-];
-const nextVideoModifiers = [
-  {
-    name: "offset",
-    options: {
-      offset: [60, 0],
-    },
-  },
-    {
-          name: 'flip',
-          enabled: false,
-        },
-        {
-          name: 'preventOverflow',
-          enabled: false,
-        },
-        {
-          name: 'hide',
-          enabled: false,
-        },
-];
 
 const VideoControls = forwardRef(
   (
     {
       playlistId,
       bufferedVal,
-      filteredVideos,
+      shuffledVideos,
       progress,
       setProgress,
       isPlaying,
@@ -113,27 +69,79 @@ const VideoControls = forwardRef(
   ) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+    const context = useContext(UserInteractionContext);
+const tooltipStyles = useMemo(() => ({
+  whiteSpace: "nowrap",
+  backgroundColor: "rgb(27,26,27)",
+  color: "#f1f1f1",
+  fontSize: "0.75rem",
+  fontWeight: "600",
+  borderRadius: "4px",
+  py: "4px",
+  px: "6px",
+}), []);
 
-    const controlStyles = {
-      width: isMobile ? "40px" : "48px",
-      height: "100%",
-      cursor: "pointer",
-      padding: "0 2px",
-    };
+const nextVideoStyles = useMemo(() => ({
+  whiteSpace: "nowrap",
+  backgroundColor: "rgb(27,26,27)",
+  fontSize: "0.75rem",
+  borderRadius: "16px",
+  padding: "0",
+}), []);
 
-    const ContainerStyles = {
-      position: "absolute",
-      opacity: controlOpacity,
-      width: isMini ? "480px" : videoContainerWidth - 24,
-      transition: "opacity .25s cubic-bezier(0,0,.2,1)",
-      bottom: 0,
-      height: isMobile ? "36px" : "48px",
-      paddingTop: "3px",
-      textAlign: "left",
-      left: "12px",
-      borderRadius: "3px",
-      zIndex: 59,
-    };
+
+const popperModifiers = [
+  {
+    name: "offset",
+    options: {
+      offset: [0, 5],
+    },
+  },
+];
+const nextVideoModifiers = useMemo(()=>([
+  {
+    name: "offset",
+    options: {
+      offset: [60, 0],
+    },
+  },
+  {
+    name: "flip",
+    enabled: false,
+  },
+  {
+    name: "preventOverflow",
+    enabled: false,
+  },
+  {
+    name: "hide",
+    enabled: false,
+  },
+]), []);
+    const controlStyles = useMemo(
+      () => ({
+        width: isMobile ? "40px" : "48px",
+        height: "100%",
+        cursor: "pointer",
+        padding: "0 2px",
+      }),
+      [isMobile]
+    );
+
+  const ContainerStyles = useMemo(() => ({
+  position: "absolute",
+  opacity: controlOpacity,
+  width: isMini ? "480px" : videoContainerWidth - 24,
+  transition: "opacity .25s cubic-bezier(0,0,.2,1)",
+  bottom: 0,
+  height: isMobile ? "36px" : "48px",
+  paddingTop: "3px",
+  textAlign: "left",
+  left: "12px",
+  borderRadius: "3px",
+  zIndex: 59,
+}), [controlOpacity, isMini, videoContainerWidth, isMobile]);
+
 
     const isFullscreen = !!document.fullscreenElement;
     const ariaValueNow = videoRef.current
@@ -150,7 +158,7 @@ const VideoControls = forwardRef(
     var thumbWidth = 13;
     const sliderRef = useRef(null);
     const volumeSliderRef = useRef(null);
-    const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
+    const { isUserInteracted, setIsUserInteracted } = context;
     const [BarWidth, setBarWidth] = useState(0);
 
     const handleSeekMove = (e) => {
@@ -192,32 +200,110 @@ const VideoControls = forwardRef(
       setProgress(newProgress);
     };
 
-    const handleNext = () => {
-      setIsUserInteracted(true);
+    // const handleNext = () => {
+    //   setIsUserInteracted(true);
 
-      navigate({
-        to: "/watch",
-        search: { v: filteredVideos[0]?._id },
-      });
-    };
-    const handleNextPlaylist = () => {
-      if (index >= playlistVideos.length - 1) return;
-      setIsUserInteracted(true);
+    //   navigate({
+    //     to: "/watch",
+    //     search: { v: shuffledVideos[0]?._id },
+    //   });
+    // };
+    // const handleNextPlaylist = () => {
+    //   if (index >= playlistVideos.length - 1) return;
+    //   setIsUserInteracted(true);
 
-      navigate({
-        to: "/watch",
-        search: {
-          v: playlistVideos[index + 1]._id,
-          list: playlistId,
-          index: index + 2,
-        },
-      });
-    };
+    //   navigate({
+    //     to: "/watch",
+    //     search: {
+    //       v: playlistVideos[index + 1]._id,
+    //       list: playlistId,
+    //       index: index + 2,
+    //     },
+    //   });
+    // };
     // const handlePrev = () => {
     //   if (!videoRef.current) return;
     //   videoRef.current.currentTime -= 5;
     //   videoRef.current.play();
     // };
+
+    const nextSearch = useMemo(() => {
+      const isNextInPlaylist = playlistId && index < playlistVideos.length - 1;
+      const fallback = shuffledVideos?.[0]?._id ?? null;
+
+      return {
+        v: isNextInPlaylist ? playlistVideos[index + 1]?._id : fallback,
+        list: isNextInPlaylist ? playlistId : undefined,
+        index: isNextInPlaylist ? index + 2 : undefined,
+      };
+    }, [playlistId, index, playlistVideos, shuffledVideos]);
+
+    const nextVideo = useMemo(() => {
+      if (playlistId && index < playlistVideos.length - 1) {
+        return playlistVideos[index + 1];
+      }
+      return shuffledVideos?.length > 0 ? shuffledVideos[0] : null;
+    }, [playlistId, index, playlistVideos, shuffledVideos]);
+
+    const tooltipContent = useMemo(() => {
+      if (!nextVideo) return null;
+
+      return (
+        <Box
+          sx={{
+            position: "relative",
+            width: isMobile ? 200 : 240,
+            padding: "0 2px 2px 2px",
+          }}
+        >
+          <Box sx={{ padding: "0px" }}>
+            <Typography
+              sx={{
+                display: "-webkit-box",
+                WebkitLineClamp: 1,
+                WebkitBoxOrient: "vertical",
+                textAlign: "center",
+                margin: 0,
+              }}
+              color="#aaa"
+              variant="caption"
+            >
+              NEXT(SHIFT+N)
+            </Typography>
+
+            <Typography
+              sx={{
+                display: "-webkit-box",
+                WebkitLineClamp: 1,
+                WebkitBoxOrient: "vertical",
+                overflow: "hidden",
+                whiteSpace: "break-spaces",
+                textOverflow: "ellipsis",
+                textAlign: "center",
+                margin: 0,
+              }}
+              variant="caption"
+            >
+              {nextVideo.title}
+            </Typography>
+          </Box>
+
+          <CardMedia
+            sx={{
+              borderRadius: "16px 16px",
+              flexGrow: "1!important",
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              aspectRatio: "16/9",
+            }}
+            component="img"
+            loading="lazy"
+            image={nextVideo.thumbnail?.url}
+          />
+        </Box>
+      );
+    }, [nextVideo, isMobile]);
 
     const handlePrevPlaylist = () => {
       if (index <= 0) return;
@@ -236,7 +322,6 @@ const VideoControls = forwardRef(
       const updateSizes = () => {
         const rect = sliderRef.current.getBoundingClientRect();
         setBarWidth(rect.width);
-     
       };
 
       updateSizes();
@@ -353,66 +438,66 @@ const VideoControls = forwardRef(
                   </a>
                 </Tooltip>
               )}
-              {isReplay ? 
-            <Tooltip
-                disableInteractive
-                disableFocusListener
-                disableTouchListener
-                disableHoverListener={isMini}
-                title={"Replay"}
-                placement="top"
-                slotProps={{
-                  popper: {
-                    disablePortal: true,
-                    modifiers: popperModifiers,
-                  },
-                  tooltip: {
-                    sx: tooltipStyles,
-                  },
-                }}
-              >
-                <a
-                  className="control"
-                  style={controlStyles}
-                  onClick={() => {
-                    togglePlayPause();
-                    setShowIcon(false);
+              {isReplay ? (
+                <Tooltip
+                  disableInteractive
+                  disableFocusListener
+                  disableTouchListener
+                  disableHoverListener={isMini}
+                  title={"Replay"}
+                  placement="top"
+                  slotProps={{
+                    popper: {
+                      disablePortal: true,
+                      modifiers: popperModifiers,
+                    },
+                    tooltip: {
+                      sx: tooltipStyles,
+                    },
                   }}
                 >
-                  <ReplaySvg />
-                </a>
-              </Tooltip>
-              :  
-               <Tooltip
-                disableInteractive
-                disableFocusListener
-                disableTouchListener
-                disableHoverListener={isMini}
-                title={isPlaying ? "Pause (k)" : "Play (k)"}
-                placement="top"
-                slotProps={{
-                  popper: {
-                    disablePortal: true,
-                    modifiers: popperModifiers,
-                  },
-                  tooltip: {
-                    sx: tooltipStyles,
-                  },
-                }}
-              >
-                <a
-                  className="control"
-                  style={controlStyles}
-                  onClick={() => {
-                    togglePlayPause();
-                    setShowIcon(false);
+                  <a
+                    className="control"
+                    style={controlStyles}
+                    onClick={() => {
+                      togglePlayPause();
+                      setShowIcon(false);
+                    }}
+                  >
+                    <ReplaySvg />
+                  </a>
+                </Tooltip>
+              ) : (
+                <Tooltip
+                  disableInteractive
+                  disableFocusListener
+                  disableTouchListener
+                  disableHoverListener={isMini}
+                  title={isPlaying ? "Pause (k)" : "Play (k)"}
+                  placement="top"
+                  slotProps={{
+                    popper: {
+                      disablePortal: true,
+                      modifiers: popperModifiers,
+                    },
+                    tooltip: {
+                      sx: tooltipStyles,
+                    },
                   }}
                 >
-                  <PlayPauseSvg isPlaying={isPlaying} />
-                </a>
-              </Tooltip>
-            }
-             
+                  <a
+                    className="control"
+                    style={controlStyles}
+                    onClick={() => {
+                      togglePlayPause();
+                      setShowIcon(false);
+                    }}
+                  >
+                    <PlayPauseSvg isPlaying={isPlaying} />
+                  </a>
+                </Tooltip>
+              )}
+
               <Tooltip
                 disableInteractive
                 disableFocusListener
@@ -428,62 +513,7 @@ const VideoControls = forwardRef(
                   },
                 }}
                 sx={{ padding: "0!important", margin: "0!important" }}
-                title={
-                  <Box
-                    sx={{
-                      position: "relative",
-                      width: isMobile ? 200 : 240,
-                      padding: "0 2px 2px 2px",
-                    }}
-                  >
-                    <Box sx={{ padding: "0px" }}>
-                      <Typography
-                        sx={{
-                          display: "-webkit-box",
-                          WebkitLineClamp: 1,
-                          WebkitBoxOrient: "vertical",
-                          textAlign: "center",
-                          margin: 0,
-                        }}
-                        color="#aaa"
-                        variant="caption"
-                      >
-                        NEXT(SHIFT+N)
-                      </Typography>
-                      <Typography
-                        sx={{
-                          display: "-webkit-box",
-                          WebkitLineClamp: 1,
-                          WebkitBoxOrient: "vertical",
-                          overflow: "hidden",
-                          whiteSpace: "break-spaces",
-                          textOverflow: "ellipsis",
-                          textAlign: "center",
-                          margin: 0,
-                        }}
-                        variant="caption"
-                      >
-                        {playlistVideos[index + 1]?.title ||
-                          filteredVideos[0]?.title}
-                      </Typography>
-                    </Box>
-                    <CardMedia
-                      sx={{
-                        borderRadius: "16px 16px",
-                        flexGrow: "1!important",
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                        aspectRatio: "16/9",
-                      }}
-                      component="img"
-                      image={
-                        playlistVideos[index + 1]?.thumbnail?.url ||
-                        filteredVideos[0]?.thumbnail?.url
-                      }
-                    />
-                  </Box>
-                }
+                title={tooltipContent}
                 placement="top"
               >
                 <Link
@@ -493,24 +523,12 @@ const VideoControls = forwardRef(
                   onClick={() => {
                     setIsUserInteracted(true);
                   }}
-                  search={{
-                    v:
-                      playlistId && index < playlistVideos.length - 1
-                        ? playlistVideos[index + 1]?._id
-                        : filteredVideos[0]?._id,
-                    list:
-                      playlistId && index < playlistVideos.length - 1
-                        ? playlistId
-                        : undefined,
-                    index:
-                      playlistId && index < playlistVideos.length - 1
-                        ? index + 2
-                        : undefined,
-                  }}
+                  search={nextSearch}
                 >
                   <SkipNextSvg />
                 </Link>
               </Tooltip>
+
               <Box
                 onMouseEnter={handleVolumeHover}
                 onMouseLeave={() => setShowVolumePanel(false)}
@@ -600,9 +618,7 @@ const VideoControls = forwardRef(
                 </Typography>
               </IconButton>
             </Box>
-            <Box
-              className={`right-controls ${isMini ? "hidden" : ""}`}
-            >
+            <Box className={`right-controls ${isMini ? "hidden" : ""}`}>
               {!isFullscreen && (
                 <Tooltip
                   disableInteractive
@@ -708,24 +724,22 @@ const VideoControls = forwardRef(
                 height: "100%",
                 touchAction: "none",
                 cursor: "pointer",
-                
               }}
             >
-       
               <Box
                 className="progress-list"
                 sx={{
                   position: "relative",
                   height: "100%",
                   transform: "scaleY(.6)",
-                  background: isMini ? "rgb(51,51,51)" : "rgba(255,255,255,0.2)",
-                  transition:
-                    "transform .1s cubic-bezier(0.4, 0, 1, 1)",
-                     "&:hover": {
-                transform: "scaleY(1.2)",
-              },
+                  background: isMini
+                    ? "rgb(51,51,51)"
+                    : "rgba(255,255,255,0.2)",
+                  transition: "transform .1s cubic-bezier(0.4, 0, 1, 1)",
+                  "&:hover": {
+                    transform: "scaleY(1.2)",
+                  },
                 }}
-                
               >
                 <div
                   className="load-progress"
@@ -738,10 +752,9 @@ const VideoControls = forwardRef(
                     transform: `scaleX(${progress / 100})`,
                     transformOrigin: "0 0",
                     zIndex: 2,
-                    
                   }}
                 ></div>
-                <div 
+                <div
                   className={`buffered-bar ${isMini ? "hide" : ""}`}
                   style={{
                     position: "absolute",

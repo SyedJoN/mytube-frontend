@@ -15,7 +15,7 @@ import handleMouseDown from "../../helper/intertactionHelper";
 import Interaction from "../Utils/Interaction";
 
 function VideoSideBar({
-  filteredVideos,
+  shuffledVideos,
   isLoadingList,
   isErrorList,
   errorList,
@@ -33,7 +33,7 @@ function VideoSideBar({
     <>
       {isErrorList && <Typography>Error: {errorList.message}</Typography>}
 
-      {filteredVideos.length > 0 ? (
+      {shuffledVideos.length > 0 ? (
         <Grid
           spacing={isCustomWidth ? 2 : 0}
           container
@@ -41,7 +41,7 @@ function VideoSideBar({
             marginTop: isCustomWidth ? "16px" : "",
           }}
         >
-          {filteredVideos.map((video) => (
+          {shuffledVideos.map((video) => (
             <React.Fragment key={video._id}>
               {isCustomWidth ? (
                 <Grid size={gridSize}>

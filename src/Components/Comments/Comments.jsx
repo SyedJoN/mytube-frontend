@@ -7,7 +7,7 @@ import React, {
   useEffect,
   useCallback,
 } from "react";
-import { OpenContext } from "../../routes/__root";
+import { UserContext } from "../../routes/__root";
 
 import {
   CardHeader,
@@ -76,7 +76,7 @@ const Comments = ({
   const theme = useTheme();
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
 
-  const context = useContext(OpenContext);
+  const context = useContext(UserContext);
   let { data: userData } = context;
   const userId = userData?.data?._id;
   const [replies, setReplies] = useState({});

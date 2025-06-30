@@ -16,7 +16,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Button from "@mui/material/Button";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import Avatar from "@mui/material/Avatar";
-import { OpenContext } from "../../routes/__root";
+import { UserContext } from "../../routes/__root";
 import Input from "@mui/material/Input";
 import InputLabel from "@mui/material/InputLabel";
 import PersonIcon from "@mui/icons-material/Person";
@@ -55,8 +55,8 @@ function AddComment({
   const currentAlertId = `addComment-${videoId}`;
   const paperOpen = activeAlertId === currentAlertId;
   const queryClient = useQueryClient();
-  const context = useContext(OpenContext);
-  let { data: userData } = context;
+  const context = useContext(UserContext);
+  let { data: userData } = context ?? {};
 
   const emojiPickerRef = useRef(null);
   const [addCommentBox, setAddComment] = useState(false);

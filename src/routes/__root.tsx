@@ -1,4 +1,10 @@
-import React, { createContext, useState, useEffect, useCallback } from "react";
+import React, {
+  createContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
 import { Outlet } from "@tanstack/react-router";
 import {
   QueryClient,
@@ -16,18 +22,16 @@ import {
 } from "@mui/material";
 import theme from "../assets/Theme";
 import Header from "../Components/Header/Header";
-import { getCurrentUser } from "../apis/userFn";
+import { getCurrentUser, getUserChannelProfile } from "../apis/userFn";
 import { throttle } from "lodash";
 import { SnackbarProvider } from "../Contexts/SnackbarContext";
 import { ProgressBar } from "../ProgressBar";
 
-// Context for managing drawer state
-type OpenContextType = {
+type DrawerContextType = {
   open: boolean;
   setOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  data?: any;
 };
-export const OpenContext = createContext<OpenContextType | undefined>(
+export const DrawerContext = createContext<DrawerContextType | undefined>(
   undefined
 );
 
@@ -40,15 +44,14 @@ export const UserInteractionContext = createContext<
   UserInteractionContextType | undefined
 >(undefined);
 
-export function useUserInteraction() {
-  const ctx = React.useContext(UserInteractionContext);
-  if (!ctx) {
-    throw new Error(
-      "useUserInteraction must be used within UserInteractionProvider"
-    );
-  }
-  return ctx;
-}
+type UserContextType = {
+  data?: any;
+};
+
+export const UserContext = createContext<UserContextType | undefined>(
+  undefined
+);
+
 // 404 Page Component
 const NotFoundComponent = () => (
   <Box sx={{ textAlign: "center", mt: 5 }}>
@@ -90,15 +93,15 @@ function RouteComponent() {
   useEffect(() => {
     const body = document.body;
 
-    if (open && isLaptop || open && watch ) {
-      console.log("true")
+    if ((open && isLaptop) || (open && watch)) {
+      console.log("true");
       body.style.position = "fixed";
       body.style.top = `-${scrollYRef.current}px`;
       body.style.left = "0";
       body.style.right = "0";
       body.style.overflow = "hidden";
       body.style.width = "100%";
-    } else if (!open && isLaptop || !open && watch) {
+    } else if ((!open && isLaptop) || (!open && watch)) {
       body.style.position = "";
       body.style.top = "";
       body.style.left = "";
@@ -111,7 +114,7 @@ function RouteComponent() {
 
       window.scrollTo(0, safeScroll);
     } else {
-       body.style.position = "";
+      body.style.position = "";
       body.style.top = "";
       body.style.left = "";
       body.style.right = "";
@@ -154,48 +157,54 @@ function RouteComponent() {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["user"],
     queryFn: getCurrentUser,
+    staleTime: 1000 * 60 * 5,
   });
 
+  const drawerValue = useMemo(() => ({ open, setOpen }), [open, setOpen]);
+  const userValue = useMemo(() => data || null, [data]);
+  const userInteractionValue = useMemo(()=> ({isUserInteracted, setIsUserInteracted}), [isUserInteracted, setIsUserInteracted]);
 
   return (
     <SnackbarProvider>
       <UserInteractionContext.Provider
-        value={{ isUserInteracted, setIsUserInteracted }}
+        value={userInteractionValue}
       >
-        <OpenContext.Provider value={{ open, setOpen, data: data || null }}>
-          <CssBaseline />
+        <UserContext.Provider value={userValue}>
+          <DrawerContext.Provider value={drawerValue}>
+            <CssBaseline />
 
-          <Header
-            open={open}
-            home={home}
-            search={search}
-            watch={watch}
-            userProfile={userProfile}
-          />
+            <Header
+              open={open}
+              home={home}
+              search={search}
+              watch={watch}
+              userProfile={userProfile}
+            />
 
-          <Box
-            component="main"
-            sx={{
-              position: "relative",
-              display: "flex",
-              overflowY: "visible",
-              marginTop: "var(--toolbar-height)",
-              marginLeft:
-                isTablet || watch
-                  ? "0"
-                  : open && !isLaptop
-                    ? "var(--drawer-width)"
-                    : !open || !isTablet
-                      ? "var(--mini-drawer-width)"
-                      : "0",
+            <Box
+              component="main"
+              sx={{
+                position: "relative",
+                display: "flex",
+                overflowY: "visible",
+                marginTop: "var(--toolbar-height)",
+                marginLeft:
+                  isTablet || watch
+                    ? "0"
+                    : open && !isLaptop
+                      ? "var(--drawer-width)"
+                      : !open || !isTablet
+                        ? "var(--mini-drawer-width)"
+                        : "0",
 
-              backgroundColor: theme.palette.primary.main,
-            }}
-          >
-            <ProgressBar />
-            <Outlet />
-          </Box>
-        </OpenContext.Provider>
+                backgroundColor: theme.palette.primary.main,
+              }}
+            >
+              <ProgressBar />
+              <Outlet />
+            </Box>
+          </DrawerContext.Provider>
+        </UserContext.Provider>
       </UserInteractionContext.Provider>
     </SnackbarProvider>
   );

@@ -5,7 +5,7 @@ import { SubscribeButton } from "../Subscribe/SubscribeButton";
 import { Avatar, Box, CardHeader, Tooltip, Typography } from "@mui/material";
 import { Link } from "@tanstack/react-router";
 import { getColor } from "../../utils/getColor";
-import { OpenContext } from "../../routes/__root";
+import { UserContext } from "../../routes/__root";
 
 const VideoDetailsPanel = ({
   videoId,
@@ -19,7 +19,7 @@ const VideoDetailsPanel = ({
   activeAlertId,
   setActiveAlertId,
 }) => {
-  const context = useContext(OpenContext);
+  const context = useContext(UserContext);
 
   const { data: dataContext } = context ?? {};
   const isAuthenticated = dataContext || null;

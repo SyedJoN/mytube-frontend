@@ -1,7 +1,8 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useParams } from "@tanstack/react-router";
 import { getUserChannelProfile } from "../apis/userFn";
 import ChannelProfile from "../Components/User/ChannelProfile";
+import React from "react";
 
 export const Route = createFileRoute("/$username")({
   loader: async ({ params }) => {
@@ -13,9 +14,11 @@ export const Route = createFileRoute("/$username")({
 });
 
 function AppLayoutComponent() {
+
   const { userData } = Route.useLoaderData();
   const { username } = useParams({ strict: false });
   const cleanUsername = username.startsWith("@") ? username.slice(1) : username;
+
   return (
     <>
       <ChannelProfile username={cleanUsername} userData={userData} />

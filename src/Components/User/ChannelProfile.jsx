@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect, useRef } from "react";
-import { OpenContext } from "../../routes/__root";
+import { DrawerContext, UserContext } from "../../routes/__root";
 import { getColor } from "../../utils/getColor";
 import { Outlet, useLocation, useParams } from "@tanstack/react-router";
 
@@ -35,14 +35,18 @@ const ChannelProfile = ({ username, userData }) => {
   );
   const ComponentToRender =
     currentTabIndex === -1 ? components[0] : components[currentTabIndex];
-  const context = useContext(OpenContext);
-  let { data: dataContext, open } = context;
+  const drawerContext = useContext(DrawerContext);
+  const userContext = useContext(UserContext);
+  let { open } = drawerContext;
+  let { data: dataContext } = userContext ?? {};
   const isAuthenticated = dataContext || null;
   const [showMore, setShowMore] = useState(false);
   const userNameStyles = {
     color: "#f1f1f1",
     fontWeight: "bold",
   };
+
+
   // const {
   //   data: userData,
   //   isLoading: isUserLoading,

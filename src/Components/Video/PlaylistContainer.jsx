@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, act } from "react";
+import React, { useEffect, useState, useRef, act, useContext } from "react";
 import {
   Box,
   Typography,
@@ -26,14 +26,14 @@ import { fetchPlaylistById } from "../../apis/playlistFn";
 import { FastAverageColor } from "fast-average-color";
 import {
   UserInteractionContext,
-  useUserInteraction,
 } from "../../routes/__root";
 
 const PlaylistContainer = ({ playlistId, playlistData, videoId }) => {
   const imgRef = useRef(null);
   const fac = new FastAverageColor();
   const [collapsePlaylist, setCollapsePlayList] = useState(false);
-  const { setIsUserInteracted } = useUserInteraction();
+  const context = useContext(UserInteractionContext)
+  const { setIsUserInteracted } = context;
 
   const videos = playlistData?.data?.videos || [];
   const activeIndex = videos.findIndex((video) => video._id === videoId);

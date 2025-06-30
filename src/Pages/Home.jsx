@@ -15,12 +15,12 @@ import {
 } from "@tanstack/react-query";
 import { fetchVideos } from "../apis/videoFn.js";
 import formatDate from "../utils/formatDate.js";
-import { OpenContext } from "../routes/__root.js";
+import { DrawerContext } from "../routes/__root.js";
 import Skeleton from "@mui/material/Skeleton";
 import { Link } from "@tanstack/react-router";
 
 function Home() {
-  const context = useContext(OpenContext);
+  const context = useContext(DrawerContext);
   let { open, setOpen } = context;
   const theme = useTheme();
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
@@ -129,7 +129,6 @@ function Home() {
                     thumbnail={video.thumbnail.url}
                     title={video.title}
                     avatar={video.owner.avatar.url}
-                    open={open}
                     fullName={video.owner.fullName}
                     views={video.views}
                     duration={video.duration}

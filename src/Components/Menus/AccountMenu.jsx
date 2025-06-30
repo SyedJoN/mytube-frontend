@@ -1,7 +1,6 @@
 import * as React from "react";
-import { OpenContext } from "../../routes/__root";
+import { UserContext } from "../../routes/__root";
 import { useContext, useState } from "react";
-import { useLocation } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
 import {
   Avatar,
@@ -37,7 +36,7 @@ import {
   red,
 } from "@mui/material/colors";
 
-import Signin from "../Auth/Signin"
+import Signin from "../Auth/Signin";
 import { logoutUser } from "../../apis/userFn";
 
 export default function AccountMenu() {
@@ -47,9 +46,9 @@ export default function AccountMenu() {
   const openCreate = Boolean(createAnchorEl);
   const [dialogue, setDialogue] = useState(false);
 
-  const context = useContext(OpenContext);
+  const context = useContext(UserContext);
 
-  let { data: userData } = context || {};
+  const { data: userData } = context ?? {};
 
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -79,6 +78,7 @@ export default function AccountMenu() {
     mutate();
     setAnchorEl(null);
   };
+
 
   const { mutate, isPending, isError, error } = useMutation({
     mutationFn: logoutUser,
@@ -158,7 +158,7 @@ export default function AccountMenu() {
           </IconButton>
           <Tooltip title="Account settings">
             <IconButton
-            sx={{padding: 0}}
+              sx={{ padding: 0 }}
               onClick={handleClick}
               size="small"
               aria-controls={open ? "account-menu" : undefined}
@@ -166,11 +166,13 @@ export default function AccountMenu() {
               aria-expanded={open ? "true" : undefined}
             >
               <Avatar
-                src={userData?.data.avatar ? userData.data.avatar : null}
-                sx={{ bgcolor: getColor(userData.data.fullName) }}
+                src={
+                  userData?.data?.avatar?.url ? userData.data.avatar?.url : null
+                }
+                sx={{ bgcolor: getColor(userData?.data?.fullName) }}
               >
                 {userData.fullName ? (
-                  userData.data.fullName.charAt(0).toUpperCase()
+                  userData?.data?.fullName.charAt(0).toUpperCase()
                 ) : (
                   <PersonIcon />
                 )}
@@ -239,7 +241,9 @@ export default function AccountMenu() {
             onClick={handleClose}
           >
             <Avatar
-              src={userData?.data.avatar ? userData.data.avatar : null}
+              src={
+                userData?.data?.avatar?.url ? userData.data.avatar?.url : null
+              }
               sx={{
                 bgcolor: getColor(userData?.data?.fullName),
                 marginRight: 1,
@@ -251,7 +255,7 @@ export default function AccountMenu() {
             </Avatar>
             <Link
               style={{ color: "#f1f1f1", textDecoration: "none" }}
-              to={`/@${userData?.data?.username}`}
+              to={`/@${userData?.username}`}
             >
               <Typography variant="body1">Profile</Typography>
             </Link>
@@ -265,14 +269,16 @@ export default function AccountMenu() {
             onClick={handleClose}
           >
             <Avatar
-              src={userData?.data?.avatar?.url ? userData.data.avatar : null}
+              src={
+                userData?.data?.avatar?.url ? userData.data.avatar?.url : null
+              }
               sx={{
                 bgcolor: getColor(userData?.data?.fullName),
                 marginRight: 1,
               }}
             >
               {userData?.fullName ? (
-                userData?.data.fullName.charAt(0).toUpperCase()
+                userData?.data?.fullName.charAt(0).toUpperCase()
               ) : (
                 <PersonIcon />
               )}

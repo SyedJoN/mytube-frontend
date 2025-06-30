@@ -35,12 +35,12 @@ import AccountMenu from "../Menus/AccountMenu";
 import { useLocation } from "@tanstack/react-router";
 import { useNavigate } from "@tanstack/react-router";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
-import { OpenContext } from "../../routes/__root";
+import { DrawerContext } from "../../routes/__root";
 import { throttle } from "lodash";
 
 function Header({ watch, search, home, userProfile, ...props }) {
   const theme = useTheme();
-  const context = React.useContext(OpenContext);
+  const context = React.useContext(DrawerContext);
   const { open, setOpen } = context ?? {};
 
   const isLaptop = useMediaQuery(theme.breakpoints.down("lg"));
@@ -777,10 +777,10 @@ const MenuItem = React.memo(({ text, path, icon, iconOutlined, selected }) => (
         </Drawer>
       )}
 
-    {watch && (
+   
   <Drawer
     variant="temporary"
-    open={open}
+    open={watch && open}
     onClose={() => setOpen(false)}
     ModalProps={{
       keepMounted: true,
@@ -811,7 +811,7 @@ const MenuItem = React.memo(({ text, path, icon, iconOutlined, selected }) => (
         color="inherit"
         aria-label="menu"
         onClick={toggleDrawer}
-        sx={{ pl: 2, mr: 1 }}
+        sx={{ pl: isMobile ? 3 : 2, mr: 1 }}
       >
         <MenuIcon sx={{ color: "#f1f1f1" }} />
       </IconButton>
@@ -895,7 +895,7 @@ const MenuItem = React.memo(({ text, path, icon, iconOutlined, selected }) => (
       ))}
     </List>
   </Drawer>
-)}
+
 
     </Box>
   );

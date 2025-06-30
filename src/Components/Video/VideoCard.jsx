@@ -36,13 +36,10 @@ import { useNavigate } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
 import Interaction from "../Utils/Interaction";
 import handleMouseDown from "../../helper/intertactionHelper";
-import {
-  UserInteractionContext,
-  useUserInteraction,
-} from "../../routes/__root";
 import { fetchVideoById } from "../../apis/videoFn";
 import { useQuery } from "@tanstack/react-query";
 import useHoverPreview from "../Utils/useHoverPreview";
+import { UserInteractionContext } from "../../routes/__root";
 
 const tooltipStyles = {
   whiteSpace: "nowrap",
@@ -101,7 +98,6 @@ function VideoCard({
   duration,
   videoCount,
   createdAt,
-  open,
   fontSize,
   home,
   search,
@@ -115,7 +111,8 @@ function VideoCard({
 }) {
   const navigate = useNavigate();
   const interactionRef = React.useRef(null);
-  const hoverTimeoutRef = React.useRef(null);
+ const context = React.useContext(UserInteractionContext);
+ const {setIsUserInteracted} = context;
   const videoRef = React.useRef(null);
   const theme = useTheme();
   const imgRef = React.useRef(null);
@@ -125,7 +122,8 @@ function VideoCard({
   const playlistVideoId = playlist?.videos?.map((video) => {
     return video._id;
   });
-  const { isUserInteracted, setIsUserInteracted } = useUserInteraction();
+  const searchParams = React.useMemo(() => ({ v: videoId }), [videoId]);
+
   const {
     isHoverPlay,
     isVideoPlaying,
@@ -189,6 +187,12 @@ function VideoCard({
     });
   };
 
+  const handleDragEnd = () => {
+    if (interactionRef.current) {
+      interactionRef.current.classList.remove("down");
+      interactionRef.current.classList.add("animate");
+    }
+  };
   return (
     <>
       {home ? (
@@ -215,7 +219,7 @@ function VideoCard({
               paddingTop: "56.25%",
             }}
           >
-            <Link to="/watch" search={{ v: videoId }}>
+            <Link to="/watch" search={searchParams}>
               <Box height="100%" position="absolute" top="0" left="0">
                 <CardMedia
                   sx={{
@@ -277,7 +281,7 @@ function VideoCard({
               )}
 
               <Box sx={{ overflowX: "hidden", paddingRight: "24px" }}>
-                <Link to="/watch" search={{ v: videoId }}>
+                <Link to="/watch" search={{ searchParams }}>
                   <Tooltip
                     disableInteractive
                     disableFocusListener
@@ -405,7 +409,6 @@ function VideoCard({
               sx={{
                 position: "relative",
                 display: "block",
-
               }}
             >
               <Box
@@ -420,14 +423,9 @@ function VideoCard({
               >
                 <Link
                   to="/watch"
-                  search={{ v: videoId }}
+                  search={searchParams}
                   style={linkStyles}
-                  onDragEnd={() => {
-                    if (interactionRef.current) {
-                      interactionRef.current.classList.remove("down");
-                      interactionRef.current.classList.add("animate");
-                    }
-                  }}
+                  onDragEnd={handleDragEnd}
                 >
                   <LazyLoad height={200} once offset={100}>
                     <CardMedia
@@ -518,7 +516,7 @@ function VideoCard({
           >
             <Link
               to="/watch"
-              search={{ v: videoId }}
+              search={{ searchParams }}
               style={{ ...linkStyles, flex: 1 }}
               onDragEnd={() => {
                 if (interactionRef.current) {
@@ -900,7 +898,7 @@ function VideoCard({
         >
           <Link
             to="/watch"
-            search={{ v: videoId }}
+            search={{ searchParams }}
             style={linkStyles}
             onDragEnd={() => {
               if (interactionRef.current) {
@@ -966,7 +964,7 @@ function VideoCard({
             >
               <Link
                 to="/watch"
-                search={{ v: videoId }}
+                search={{ searchParams }}
                 style={linkStyles}
                 onDragEnd={() => {
                   if (interactionRef.current) {
@@ -1204,7 +1202,7 @@ function VideoCard({
               >
                 <Link
                   to="/watch"
-                  search={{ v: videoId }}
+                  search={{ searchParams }}
                   style={linkStyles}
                   onDragEnd={() => {
                     if (interactionRef.current) {
@@ -1231,7 +1229,7 @@ function VideoCard({
                           fontSize: "0.85rem",
                           WebkitBoxOrient: "vertical",
                           overflow: "hidden",
-                          WebkitLineClamp: 2, // Ensures 2 lines max
+                          WebkitLineClamp: 2, 
                           textOverflow: "ellipsis",
                           fontWeight: 600,
                         }}
