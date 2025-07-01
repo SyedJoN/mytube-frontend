@@ -59,12 +59,11 @@ function Header({ watch, search, home, userProfile, ...props }) {
   const container =
     windowProp !== undefined ? () => window().document.body : undefined;
 
-const toggleDrawer = () => {
-  React.startTransition(() => {
-    setOpen(prev => !prev);
-  });
-};
-
+  const toggleDrawer = () => {
+    React.startTransition(() => {
+      setOpen((prev) => !prev);
+    });
+  };
 
   React.useEffect(() => {
     if (home || search || userProfile) return;
@@ -101,7 +100,7 @@ const toggleDrawer = () => {
       setSearchMenu(false);
     }
   }, [isMobile]);
-  
+
   React.useEffect(() => {
     if (!open) {
       if (document.activeElement instanceof HTMLElement) {
@@ -109,6 +108,91 @@ const toggleDrawer = () => {
       }
     }
   }, [open]);
+
+  const mainMenuStyles = React.useMemo(
+    () => ({
+      display: "flex",
+      flexDirection: open ? "row" : "column",
+      alignItems: "center",
+      justifyContent: open ? "flex-start" : "center",
+      borderRadius: "10px",
+      paddingX: 2,
+      paddingY: open ? 1 : 1.5,
+      marginX: open ? 1 : 0,
+      gap: open ? "0" : "0.5px",
+      transition: "background-color 0.3s ease",
+      "&:hover": {
+        backgroundColor: "rgba(255, 255, 255, 0.1)",
+      },
+      "&.Mui-selected": {
+        backgroundColor: open ? "rgba(255, 255, 255, 0.1)" : "",
+        "&:hover": {
+          backgroundColor: open
+            ? "rgba(255, 255, 255, 0.2)"
+            : "rgba(255, 255, 255, 0.1)",
+        },
+      },
+    }),
+    [open]
+  );
+
+  const mainMenuUserStyles = React.useMemo(
+    () => ({
+      display: "flex",
+      flexDirection: open && !isLaptop ? "row" : "column",
+      alignItems: "center",
+      justifyContent: open && !isLaptop ? "flex-start" : "center",
+      borderRadius: "10px",
+      paddingX: 2,
+      paddingY: open && !isLaptop ? 1 : 1.5,
+      marginX: open && !isLaptop ? 1 : 0,
+      gap: open && !isLaptop ? "0" : "0.5px",
+      transition: "background-color 0.3s ease",
+      "&:hover": {
+        backgroundColor: "rgba(255, 255, 255, 0.1)",
+      },
+      "&.Mui-selected": {
+        backgroundColor: open && !isLaptop ? "rgba(255, 255, 255, 0.1)" : "",
+        "&:hover": {
+          backgroundColor:
+            open && !isLaptop
+              ? "rgba(255, 255, 255, 0.2)"
+              : "rgba(255, 255, 255, 0.1)",
+        },
+      },
+    }),
+    [open, isLaptop]
+  );
+  const drawerStylesUser = React.useMemo(
+    () => ({
+      "& .MuiDrawer-paper": {
+        width: !isLaptop
+          ? open
+            ? drawerWidth
+            : miniDrawerWidth
+          : miniDrawerWidth,
+        overflowX: "hidden",
+        border: "none",
+        zIndex: 0,
+        bgcolor: theme.palette.primary.main,
+        transitionDuration: "200ms!important",
+      },
+    }),
+    [open, isLaptop]
+  );
+
+  const drawerStylesHome = React.useMemo(
+    () => ({
+      "& .MuiDrawer-paper": {
+        width: open ? drawerWidth : miniDrawerWidth,
+        overflowX: "hidden",
+        border: "none",
+        zIndex: 0,
+        bgcolor: theme.palette.primary.main,
+      },
+    }),
+    [open]
+  );
 
   const mainMenuItems = React.useMemo(
     () => [
@@ -157,22 +241,24 @@ const toggleDrawer = () => {
     ],
     []
   );
-const MenuItem = React.memo(({ text, path, icon, iconOutlined, selected }) => (
-  <ListItem disablePadding sx={{ display: "block" }}>
-    <ListItemButton
-    disableRipple
-      component={Link}
-      to={path}
-      selected={selected}
-      sx={baseItemButtonStyles(true)}
-    >
-      <ListItemIcon sx={iconStyles}>
-        {iconOutlined && !selected ? iconOutlined : icon}
-      </ListItemIcon>
-      <Typography sx={{ ml: 2, fontSize: "0.9rem" }}>{text}</Typography>
-    </ListItemButton>
-  </ListItem>
-));
+  const MenuItem = React.memo(
+    ({ text, path, icon, iconOutlined, selected }) => (
+      <ListItem disablePadding sx={{ display: "block" }}>
+        <ListItemButton
+          disableRipple
+          component={Link}
+          to={path}
+          selected={selected}
+          sx={baseItemButtonStyles(true)}
+        >
+          <ListItemIcon sx={iconStyles}>
+            {iconOutlined && !selected ? iconOutlined : icon}
+          </ListItemIcon>
+          <Typography sx={{ ml: 2, fontSize: "0.9rem" }}>{text}</Typography>
+        </ListItemButton>
+      </ListItem>
+    )
+  );
   return (
     <Box>
       <CssBaseline />
@@ -193,7 +279,7 @@ const MenuItem = React.memo(({ text, path, icon, iconOutlined, selected }) => (
             }}
           >
             <IconButton
-            disableRipple
+              disableRipple
               size="medium"
               edge="start"
               color="inherit"
@@ -229,7 +315,7 @@ const MenuItem = React.memo(({ text, path, icon, iconOutlined, selected }) => (
               />
             ) : (
               <IconButton
-              disableRipple
+                disableRipple
                 onClick={() => setSearchMenu(true)}
                 type="button"
                 sx={{
@@ -247,7 +333,7 @@ const MenuItem = React.memo(({ text, path, icon, iconOutlined, selected }) => (
             )}
 
             <IconButton
-            disableRipple
+              disableRipple
               sx={{
                 padding: "10px",
                 borderRadius: "50px",
@@ -284,206 +370,12 @@ const MenuItem = React.memo(({ text, path, icon, iconOutlined, selected }) => (
         ></Box>
       </AppBar>
 
-    {(home || search) && !isTablet && (
-  <Drawer
-    container={container}
-    variant="permanent"
-    open={open}
-    sx={{
-      '& .MuiDrawer-paper': {
-        width: open ? drawerWidth : miniDrawerWidth,
-        overflowX: 'hidden',
-        border: 'none',
-        zIndex: 0,
-        bgcolor: theme.palette.primary.main,
-      },
-    }}
-  >
-    <Toolbar
-      sx={{
-        minHeight: 'var(--toolbar-height)',
-        '@media (min-width:600px)': {
-          minHeight: 'var(--toolbar-height)',
-        },
-      }}
-    >
-      <IconButton
-      disableRipple
-        size="medium"
-        edge="start"
-        color="inherit"
-        aria-label="menu"
-        onClick={toggleDrawer}
-        sx={{ pl: 2, mr: 1 }}
-      >
-        <MenuIcon sx={{ color: '#f1f1f1' }} />
-      </IconButton>
-      <Link style={{ color: '#fff', textDecoration: 'none' }} to="/">
-        <Typography sx={{ padding: '10px' }} variant="h6" noWrap>
-          VTube Permanent
-        </Typography>
-      </Link>
-    </Toolbar>
-
-    {/* Main Menu Items */}
-    <List sx={{ color: '#fff' }}>
-      {mainMenuItems.map(({ text, path, icon, iconOutlined }) => {
-        const isSelected = location.pathname === path;
-        return (
-          <ListItem
-            key={text}
-            disablePadding
-            sx={{ display: 'block', width: open ? 'calc(100% - 12px)' : '100%' }}
-          >
-            <ListItemButton
-            disableRipple
-              component={Link}
-              to={path}
-              selected={isSelected}
-              sx={{
-                display: 'flex',
-                flexDirection: open ? 'row' : 'column',
-                alignItems: 'center',
-                justifyContent: open ? 'flex-start' : 'center',
-                borderRadius: '10px',
-                paddingX: 2,
-                paddingY: open ? 1 : 1.5,
-                marginX: open ? 1 : 0,
-                gap: open ? '0' : '0.5px',
-                transition: 'background-color 0.3s ease',
-                '&:hover': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                },
-                '&.Mui-selected': {
-                  backgroundColor: open ? 'rgba(255, 255, 255, 0.1)' : '',
-                  '&:hover': {
-                    backgroundColor: open
-                      ? 'rgba(255, 255, 255, 0.2)'
-                      : 'rgba(255, 255, 255, 0.1)',
-                  },
-                },
-              }}
-            >
-              <ListItemIcon
-                sx={{
-                  color: '#fff',
-                  minWidth: 0,
-                  justifyContent: 'center',
-                }}
-              >
-                {iconOutlined && !isSelected ? iconOutlined : icon}
-              </ListItemIcon>
-              <Typography
-                sx={{
-                  marginLeft: open ? 2 : 0,
-                  fontSize: open ? '0.9rem' : '0.6rem',
-                  mt: open ? 0 : '5px',
-                }}
-              >
-                {text}
-              </Typography>
-            </ListItemButton>
-          </ListItem>
-        );
-      })}
-    </List>
-
-    {/* Secondary Menu Items */}
-    {open && (
-      <>
-        <Divider sx={{ bgcolor: 'rgba(255, 255, 255, 0.2)', my: 1 }} />
-        <List sx={{ color: '#fff' }}>
-          <ListItem disablePadding>
-            <ListItemButton
-            disableRipple
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'flex-start',
-                borderRadius: '10px',
-                paddingX: 2,
-                paddingY: 1,
-                gap: '0.5rem',
-                marginX: 1,
-                transition: 'background-color 0.3s ease',
-                '&:hover': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                },
-              }}
-            >
-              <Typography sx={{ fontSize: '0.9rem' }}>You</Typography>
-              <ListItemIcon
-                sx={{
-                  color: '#fff',
-                  minWidth: 0,
-                  justifyContent: 'center',
-                }}
-              >
-                <ArrowForwardIosOutlinedIcon sx={{ fontSize: '0.9rem' }} />
-              </ListItemIcon>
-            </ListItemButton>
-          </ListItem>
-
-          {secondaryMenuItems.map(({ text, icon }) => (
-            <ListItem key={text} disablePadding sx={{ display: 'block' }}>
-              <ListItemButton
-              disableRipple
-                sx={{
-                  display: 'flex',
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'flex-start',
-                  paddingY: 1,
-                  paddingX: 2,
-                  borderRadius: '10px',
-                  marginX: 1,
-                  transition: 'background-color 0.3s ease',
-                  '&:hover': {
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  },
-                }}
-              >
-                <ListItemIcon
-                  sx={{
-                    color: '#fff',
-                    minWidth: 0,
-                    justifyContent: 'center',
-                  }}
-                >
-                  {icon}
-                </ListItemIcon>
-                <Typography sx={{ marginLeft: 2, fontSize: '0.9rem' }}>
-                  {text}
-                </Typography>
-              </ListItemButton>
-            </ListItem>
-          ))}
-        </List>
-      </>
-    )}
-  </Drawer>
-)}
-
-
-      {userProfile && !isTablet && (
+      {(home || search) && !isTablet && (
         <Drawer
-          id="userProfile"
           container={container}
           variant="permanent"
           open={open}
-          sx={{
-            "& .MuiDrawer-paper": {
-              width: !isLaptop
-                ? open
-                  ? drawerWidth
-                  : miniDrawerWidth
-                : miniDrawerWidth,
-              overflowX: "hidden",
-              border: "none",
-              zIndex: 0,
-              bgcolor: theme.palette.primary.main,
-            },
-          }}
+          sx={drawerStylesHome}
         >
           <Toolbar
             sx={{
@@ -494,7 +386,7 @@ const MenuItem = React.memo(({ text, path, icon, iconOutlined, selected }) => (
             }}
           >
             <IconButton
-            disableRipple
+              disableRipple
               size="medium"
               edge="start"
               color="inherit"
@@ -506,11 +398,12 @@ const MenuItem = React.memo(({ text, path, icon, iconOutlined, selected }) => (
             </IconButton>
             <Link style={{ color: "#fff", textDecoration: "none" }} to="/">
               <Typography sx={{ padding: "10px" }} variant="h6" noWrap>
-                VTube
+                VTube Permanent
               </Typography>
             </Link>
           </Toolbar>
 
+          {/* Main Menu Items */}
           <List sx={{ color: "#fff" }}>
             {mainMenuItems.map(({ text, path, icon, iconOutlined }) => {
               const isSelected = location.pathname === path;
@@ -520,40 +413,15 @@ const MenuItem = React.memo(({ text, path, icon, iconOutlined, selected }) => (
                   disablePadding
                   sx={{
                     display: "block",
-                    width: open && !isLaptop ? "calc(100% - 12px)" : "100%",
+                    width: open ? "calc(100% - 12px)" : "100%",
                   }}
                 >
                   <ListItemButton
-                  disableRipple
+                    disableRipple
                     component={Link}
                     to={path}
                     selected={isSelected}
-                    sx={{
-                      display: "flex",
-                      flexDirection: open && !isLaptop ? "row" : "column",
-                      alignItems: "center",
-                      justifyContent:
-                        open && !isLaptop ? "flex-start" : "center",
-                      borderRadius: "10px",
-                      paddingX: 2,
-                      paddingY: open && !isLaptop ? 1 : 1.5,
-                      marginX: open && !isLaptop ? 1 : 0,
-                      gap: open && !isLaptop ? "0" : "0.5px",
-                      transition: "background-color 0.3s ease",
-                      "&:hover": {
-                        backgroundColor: "rgba(255, 255, 255, 0.1)",
-                      },
-                      "&.Mui-selected": {
-                        backgroundColor:
-                          open && !isLaptop ? "rgba(255, 255, 255, 0.1)" : "",
-                        "&:hover": {
-                          backgroundColor:
-                            open && !isLaptop
-                              ? "rgba(255, 255, 255, 0.2)"
-                              : "rgba(255, 255, 255, 0.1)",
-                        },
-                      },
-                    }}
+                    sx={mainMenuStyles}
                   >
                     <ListItemIcon
                       sx={{
@@ -566,9 +434,9 @@ const MenuItem = React.memo(({ text, path, icon, iconOutlined, selected }) => (
                     </ListItemIcon>
                     <Typography
                       sx={{
-                        marginLeft: open && !isLaptop ? 2 : 0,
-                        fontSize: open && !isLaptop ? "0.9rem" : "0.6rem",
-                        mt: open && !isLaptop ? 0 : "5px",
+                        marginLeft: open ? 2 : 0,
+                        fontSize: open ? "0.9rem" : "0.6rem",
+                        mt: open ? 0 : "5px",
                       }}
                     >
                       {text}
@@ -579,13 +447,14 @@ const MenuItem = React.memo(({ text, path, icon, iconOutlined, selected }) => (
             })}
           </List>
 
-          {open && !isLaptop && (
+          {/* Secondary Menu Items */}
+          {open && (
             <>
               <Divider sx={{ bgcolor: "rgba(255, 255, 255, 0.2)", my: 1 }} />
               <List sx={{ color: "#fff" }}>
-                <ListItem disablePadding sx={{ display: "flex" }}>
+                <ListItem disablePadding>
                   <ListItemButton
-                  disableRipple
+                    disableRipple
                     sx={{
                       display: "flex",
                       alignItems: "center",
@@ -619,7 +488,161 @@ const MenuItem = React.memo(({ text, path, icon, iconOutlined, selected }) => (
                 {secondaryMenuItems.map(({ text, icon }) => (
                   <ListItem key={text} disablePadding sx={{ display: "block" }}>
                     <ListItemButton
+                      disableRipple
+                      sx={{
+                        display: "flex",
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "flex-start",
+                        paddingY: 1,
+                        paddingX: 2,
+                        borderRadius: "10px",
+                        marginX: 1,
+                        transition: "background-color 0.3s ease",
+                        "&:hover": {
+                          backgroundColor: "rgba(255, 255, 255, 0.1)",
+                        },
+                      }}
+                    >
+                      <ListItemIcon
+                        sx={{
+                          color: "#fff",
+                          minWidth: 0,
+                          justifyContent: "center",
+                        }}
+                      >
+                        {icon}
+                      </ListItemIcon>
+                      <Typography sx={{ marginLeft: 2, fontSize: "0.9rem" }}>
+                        {text}
+                      </Typography>
+                    </ListItemButton>
+                  </ListItem>
+                ))}
+              </List>
+            </>
+          )}
+        </Drawer>
+      )}
+
+      {userProfile && !isTablet && (
+        <Drawer
+          id="userProfile"
+          container={container}
+          variant="permanent"
+          open={open}
+          sx={drawerStylesUser}
+        >
+          <Toolbar
+            sx={{
+              minHeight: "var(--toolbar-height)",
+              "@media (min-width:600px)": {
+                minHeight: "var(--toolbar-height)",
+              },
+            }}
+          >
+            <IconButton
+              disableRipple
+              size="medium"
+              edge="start"
+              color="inherit"
+              aria-label="menu"
+              onClick={toggleDrawer}
+              sx={{ pl: 2, mr: 1 }}
+            >
+              <MenuIcon sx={{ color: "#f1f1f1" }} />
+            </IconButton>
+            <Link style={{ color: "#fff", textDecoration: "none" }} to="/">
+              <Typography sx={{ padding: "10px" }} variant="h6" noWrap>
+                VTube
+              </Typography>
+            </Link>
+          </Toolbar>
+
+          <List sx={{ color: "#fff" }}>
+            {mainMenuItems.map(({ text, path, icon, iconOutlined }) => {
+              const isSelected = location.pathname === path;
+              return (
+                <ListItem
+                  key={text}
+                  disablePadding
+                  sx={{
+                    display: "block",
+                    width: open && !isLaptop ? "calc(100% - 12px)" : "100%",
+                  }}
+                >
+                  <ListItemButton
                     disableRipple
+                    component={Link}
+                    to={path}
+                    selected={isSelected}
+                    sx={mainMenuUserStyles}
+                  >
+                    <ListItemIcon
+                      sx={{
+                        color: "#fff",
+                        minWidth: 0,
+                        justifyContent: "center",
+                      }}
+                    >
+                      {iconOutlined && !isSelected ? iconOutlined : icon}
+                    </ListItemIcon>
+                    <Typography
+                      sx={{
+                        marginLeft: open && !isLaptop ? 2 : 0,
+                        fontSize: open && !isLaptop ? "0.9rem" : "0.6rem",
+                        mt: open && !isLaptop ? 0 : "5px",
+                      }}
+                    >
+                      {text}
+                    </Typography>
+                  </ListItemButton>
+                </ListItem>
+              );
+            })}
+          </List>
+
+          {open && !isLaptop && (
+            <>
+              <Divider sx={{ bgcolor: "rgba(255, 255, 255, 0.2)", my: 1 }} />
+              <List sx={{ color: "#fff" }}>
+                <ListItem disablePadding sx={{ display: "flex" }}>
+                  <ListItemButton
+                    disableRipple
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "flex-start",
+                      borderRadius: "10px",
+                      paddingX: 2,
+                      paddingY: 1,
+                      gap: "0.5rem",
+                      marginX: 1,
+                      transition: "background-color 0.3s ease",
+                      "&:hover": {
+                        backgroundColor: "rgba(255, 255, 255, 0.1)",
+                      },
+                    }}
+                  >
+                    <Typography sx={{ fontSize: "0.9rem" }}>You</Typography>
+                    <ListItemIcon
+                      sx={{
+                        color: "#fff",
+                        minWidth: 0,
+                        justifyContent: "center",
+                      }}
+                    >
+                      <ArrowForwardIosOutlinedIcon
+                        sx={{ fontSize: "0.9rem" }}
+                      />
+                    </ListItemIcon>
+                  </ListItemButton>
+                </ListItem>
+
+                {secondaryMenuItems.map(({ text, icon }) => (
+                  <ListItem key={text} disablePadding sx={{ display: "block" }}>
+                    <ListItemButton
+                      disableRipple
                       sx={{
                         display: "flex",
                         flexDirection: "row",
@@ -674,7 +697,6 @@ const MenuItem = React.memo(({ text, path, icon, iconOutlined, selected }) => (
             },
           }}
         >
-      
           <Toolbar
             sx={{
               minHeight: "var(--toolbar-height)",
@@ -684,7 +706,7 @@ const MenuItem = React.memo(({ text, path, icon, iconOutlined, selected }) => (
             }}
           >
             <IconButton
-            disableRipple
+              disableRipple
               size="medium"
               edge="start"
               color="inherit"
@@ -707,14 +729,13 @@ const MenuItem = React.memo(({ text, path, icon, iconOutlined, selected }) => (
             </Link>
           </Toolbar>
 
-   
           <List sx={{ mx: "4px", color: "#fff" }}>
             {mainMenuItems.map(({ text, path, icon, iconOutlined }) => {
               const isSelected = location.pathname === path;
               return (
                 <ListItem key={text} disablePadding sx={{ display: "block" }}>
                   <ListItemButton
-                  disableRipple
+                    disableRipple
                     component={Link}
                     to={path}
                     selected={isSelected}
@@ -732,14 +753,12 @@ const MenuItem = React.memo(({ text, path, icon, iconOutlined, selected }) => (
             })}
           </List>
 
-   
           <Divider sx={{ bgcolor: "rgba(255, 255, 255, 0.2)", my: 1 }} />
 
-        
           <List sx={{ color: "#fff" }}>
             <ListItem disablePadding>
               <ListItemButton
-              disableRipple
+                disableRipple
                 sx={{
                   display: "flex",
                   alignItems: "center",
@@ -762,7 +781,6 @@ const MenuItem = React.memo(({ text, path, icon, iconOutlined, selected }) => (
               </ListItemButton>
             </ListItem>
 
-           
             {secondaryMenuItems.map(({ text, icon }) => (
               <ListItem key={text} disablePadding sx={{ display: "block" }}>
                 <ListItemButton disableRipple sx={baseItemButtonStyles}>
@@ -777,126 +795,123 @@ const MenuItem = React.memo(({ text, path, icon, iconOutlined, selected }) => (
         </Drawer>
       )}
 
-   
-  <Drawer
-    variant="temporary"
-    open={watch && open}
-    onClose={() => setOpen(false)}
-    ModalProps={{
-      keepMounted: true,
-      disableScrollLock: true,
-    }}
-    sx={{
-      "& .MuiDrawer-paper": {
-        width: drawerWidth,
-        bgcolor: theme.palette.primary.main,
-        overflowX: "hidden",
-        border: "none",
-        zIndex: 0,
-      },
-    }}
-  >
-    <Toolbar
-      sx={{
-        minHeight: "var(--toolbar-height)",
-        "@media (min-width:600px)": {
-          minHeight: "var(--toolbar-height)",
-        },
-      }}
-    >
-      <IconButton
-      disableRipple
-        size="medium"
-        edge="start"
-        color="inherit"
-        aria-label="menu"
-        onClick={toggleDrawer}
-        sx={{ pl: isMobile ? 3 : 2, mr: 1 }}
+      <Drawer
+        variant="temporary"
+        open={watch && open}
+        onClose={() => setOpen(false)}
+        ModalProps={{
+          keepMounted: true,
+          disableScrollLock: true,
+        }}
+        sx={{
+          "& .MuiDrawer-paper": {
+            width: drawerWidth,
+            bgcolor: theme.palette.primary.main,
+            overflowX: "hidden",
+            border: "none",
+            zIndex: 0,
+          },
+        }}
       >
-        <MenuIcon sx={{ color: "#f1f1f1" }} />
-      </IconButton>
-      <Link to="/" style={{ textDecoration: "none", color: "#fff" }}>
-        <Typography sx={{ padding: "10px" }} variant="h6" noWrap>
-          VTube
-        </Typography>
-      </Link>
-    </Toolbar>
-
-    {/* Main Menu Items */}
-    <List sx={{ color: "#fff", mx: "4px" }}>
-      {mainMenuItems.map(({ text, path, icon, iconOutlined }) => {
-        const isSelected = location.pathname === path;
-        return (
-          <ListItem key={text} disablePadding sx={{ display: "block" }}>
-            <ListItemButton
-            disableRipple
-              component={Link}
-              to={path}
-              selected={isSelected}
-              sx={baseItemButtonStyles(true)}
-            >
-              <ListItemIcon sx={iconStyles}>
-                {iconOutlined && !isSelected ? iconOutlined : icon}
-              </ListItemIcon>
-              <Typography sx={{ ml: 2, fontSize: "0.9rem" }}>
-                {text}
-              </Typography>
-            </ListItemButton>
-          </ListItem>
-        );
-      })}
-    </List>
-
-    <Divider sx={{ bgcolor: "rgba(255, 255, 255, 0.2)", my: 1 }} />
-
-    {/* "You" section */}
-    <List sx={{ color: "#fff" }}>
-      <ListItem disablePadding sx={{ display: "block" }}>
-        <ListItemButton
-        disableRipple
+        <Toolbar
           sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "flex-start",
-            borderRadius: "10px",
-            paddingX: 2,
-            paddingY: 1,
-            gap: "0.5rem",
-            marginX: 1,
-            transition: "background-color 0.3s ease",
-            "&:hover": {
-              backgroundColor: "rgba(255, 255, 255, 0.1)",
+            minHeight: "var(--toolbar-height)",
+            "@media (min-width:600px)": {
+              minHeight: "var(--toolbar-height)",
             },
           }}
         >
-          <Typography sx={{ fontSize: "0.9rem" }}>You</Typography>
-          <ListItemIcon
-            sx={{
-              color: "#fff",
-              minWidth: 0,
-              justifyContent: "center",
-            }}
+          <IconButton
+            disableRipple
+            size="medium"
+            edge="start"
+            color="inherit"
+            aria-label="menu"
+            onClick={toggleDrawer}
+            sx={{ pl: isMobile ? 3 : 2, mr: 1 }}
           >
-            <ArrowForwardIosOutlinedIcon sx={{ fontSize: "0.9rem" }} />
-          </ListItemIcon>
-        </ListItemButton>
-      </ListItem>
-
-      {/* Secondary menu items */}
-      {secondaryMenuItems.map(({ text, icon }) => (
-        <ListItem key={text} disablePadding sx={{ display: "block" }}>
-          <ListItemButton disableRipple sx={baseItemButtonStyles(true)}>
-            <ListItemIcon sx={iconStyles}>{icon}</ListItemIcon>
-            <Typography sx={{ ml: 2, fontSize: "0.9rem" }}>
-              {text}
+            <MenuIcon sx={{ color: "#f1f1f1" }} />
+          </IconButton>
+          <Link to="/" style={{ textDecoration: "none", color: "#fff" }}>
+            <Typography sx={{ padding: "10px" }} variant="h6" noWrap>
+              VTube
             </Typography>
-          </ListItemButton>
-        </ListItem>
-      ))}
-    </List>
-  </Drawer>
+          </Link>
+        </Toolbar>
 
+        {/* Main Menu Items */}
+        <List sx={{ color: "#fff", mx: "4px" }}>
+          {mainMenuItems.map(({ text, path, icon, iconOutlined }) => {
+            const isSelected = location.pathname === path;
+            return (
+              <ListItem key={text} disablePadding sx={{ display: "block" }}>
+                <ListItemButton
+                  disableRipple
+                  component={Link}
+                  to={path}
+                  selected={isSelected}
+                  sx={baseItemButtonStyles(true)}
+                >
+                  <ListItemIcon sx={iconStyles}>
+                    {iconOutlined && !isSelected ? iconOutlined : icon}
+                  </ListItemIcon>
+                  <Typography sx={{ ml: 2, fontSize: "0.9rem" }}>
+                    {text}
+                  </Typography>
+                </ListItemButton>
+              </ListItem>
+            );
+          })}
+        </List>
 
+        <Divider sx={{ bgcolor: "rgba(255, 255, 255, 0.2)", my: 1 }} />
+
+        {/* "You" section */}
+        <List sx={{ color: "#fff" }}>
+          <ListItem disablePadding sx={{ display: "block" }}>
+            <ListItemButton
+              disableRipple
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "flex-start",
+                borderRadius: "10px",
+                paddingX: 2,
+                paddingY: 1,
+                gap: "0.5rem",
+                marginX: 1,
+                transition: "background-color 0.3s ease",
+                "&:hover": {
+                  backgroundColor: "rgba(255, 255, 255, 0.1)",
+                },
+              }}
+            >
+              <Typography sx={{ fontSize: "0.9rem" }}>You</Typography>
+              <ListItemIcon
+                sx={{
+                  color: "#fff",
+                  minWidth: 0,
+                  justifyContent: "center",
+                }}
+              >
+                <ArrowForwardIosOutlinedIcon sx={{ fontSize: "0.9rem" }} />
+              </ListItemIcon>
+            </ListItemButton>
+          </ListItem>
+
+          {/* Secondary menu items */}
+          {secondaryMenuItems.map(({ text, icon }) => (
+            <ListItem key={text} disablePadding sx={{ display: "block" }}>
+              <ListItemButton disableRipple sx={baseItemButtonStyles(true)}>
+                <ListItemIcon sx={iconStyles}>{icon}</ListItemIcon>
+                <Typography sx={{ ml: 2, fontSize: "0.9rem" }}>
+                  {text}
+                </Typography>
+              </ListItemButton>
+            </ListItem>
+          ))}
+        </List>
+      </Drawer>
     </Box>
   );
 }

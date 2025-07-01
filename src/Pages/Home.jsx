@@ -21,7 +21,7 @@ import { Link } from "@tanstack/react-router";
 
 function Home() {
   const context = useContext(DrawerContext);
-  let { open, setOpen } = context;
+  let { open, setOpen } = context ?? {};
   const theme = useTheme();
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
 

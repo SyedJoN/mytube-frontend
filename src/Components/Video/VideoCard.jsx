@@ -112,7 +112,7 @@ function VideoCard({
   const navigate = useNavigate();
   const interactionRef = React.useRef(null);
  const context = React.useContext(UserInteractionContext);
- const {setIsUserInteracted} = context;
+ const {setIsUserInteracted} = context ?? {};
   const videoRef = React.useRef(null);
   const theme = useTheme();
   const imgRef = React.useRef(null);
@@ -270,7 +270,7 @@ function VideoCard({
             }}
           >
             <Box sx={{ display: "flex" }}>
-              {avatar && (
+             
                 <Avatar
                   onClick={handleChannelClick}
                   src={avatar ? avatar : null}
@@ -278,7 +278,7 @@ function VideoCard({
                 >
                   {fullName ? fullName.charAt(0).toUpperCase() : "?"}
                 </Avatar>
-              )}
+           
 
               <Box sx={{ overflowX: "hidden", paddingRight: "24px" }}>
                 <Link to="/watch" search={{ searchParams }}>

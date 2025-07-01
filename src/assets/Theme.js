@@ -34,6 +34,12 @@ let theme = createTheme({
         xl: 1920, // Desktops
       },
     },
+      transitions: {
+    duration: {
+      enteringScreen: 200,
+      leavingScreen: 200,
+    },
+  },
    
   });
 theme = responsiveFontSizes(theme, {
