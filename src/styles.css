@@ -142,6 +142,9 @@ animation-name: arrow-fade-out-1;
 }
 }
 
+a {
+  text-decoration: none;
+}
 
 video {
   display: block;

@@ -61,6 +61,7 @@ function Signin(props) {
   };
   return (
     <Dialog
+    disableScrollLock
       maxWidth="sm"
       sx={{
         background: "rgba(38, 37, 37, 0.5)",

@@ -70,6 +70,7 @@ export default function StatsDialog({
         />
       )}
       <Dialog
+      disableScrollLock
         slotProps={{
           paper: {
             sx: {

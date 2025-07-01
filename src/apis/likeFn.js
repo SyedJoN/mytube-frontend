@@ -12,9 +12,9 @@ const toggleVideoLike = async (videoId) => {
     try {
       const res = await axios.patch(
         `${BASE_URL}/video/${videoId}/toggle`,
-        {}, // Send an empty body if needed
+        {},
         {
-          withCredentials: true, // Ensure cookies are sent
+          withCredentials: true,
         }
       );
       return res.data;
@@ -28,9 +28,9 @@ const toggleVideoLike = async (videoId) => {
     try {
       const res = await axios.patch(
         `${BASE_URL}/comment/${commentId}/toggle`,
-        {}, // Send an empty body if needed
+        {}, 
         {
-          withCredentials: true, // Ensure cookies are sent
+          withCredentials: true,
         }
       );
       return res.data;

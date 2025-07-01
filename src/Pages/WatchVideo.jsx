@@ -169,6 +169,7 @@ function WatchVideo({ videoId, playlistId }) {
             mt: 2,
           }}
         >
+          <Box marginTop={2}>
           <VideoDetailsPanel
             videoId={videoId}
             data={data}
@@ -181,6 +182,7 @@ function WatchVideo({ videoId, playlistId }) {
             activeAlertId={activeAlertId}
             setActiveAlertId={setActiveAlertId}
           />
+        </Box>
         </Box>
         <Box sx={{ display: !isCustomWidth && !isTheatre ? "block" : "none" }}>
           <CommentSection

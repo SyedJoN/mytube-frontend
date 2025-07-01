@@ -17,7 +17,7 @@ const videoView = async (videoId) => {
 
 const fetchVideoById = async (videoId) => {
     const res = await axios.get(`${BASE_URL}/${videoId}`);
-    return res.data; // ✅ No need for resolve()
+    return res.data; 
   };
 
 const publishVideo = async(formData) => {

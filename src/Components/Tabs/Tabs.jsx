@@ -51,7 +51,7 @@ export default function BasicTabs({ username, tabPaths }) {
 
   const currentTabIndex = React.useMemo(() => {
     const matched = tabPaths.findIndex((path) =>
-      location.pathname.toLowerCase().includes(`/${path.toLowerCase()}`)
+      location.pathname.toLowerCase().includes(path.toLowerCase())
     );
     return matched === -1 ? 0 : matched;
   }, [location.pathname, tabPaths]);

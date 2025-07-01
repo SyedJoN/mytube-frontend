@@ -241,26 +241,9 @@ function Header({ watch, search, home, userProfile, ...props }) {
     ],
     []
   );
-  const MenuItem = React.memo(
-    ({ text, path, icon, iconOutlined, selected }) => (
-      <ListItem disablePadding sx={{ display: "block" }}>
-        <ListItemButton
-          disableRipple
-          component={Link}
-          to={path}
-          selected={selected}
-          sx={baseItemButtonStyles(true)}
-        >
-          <ListItemIcon sx={iconStyles}>
-            {iconOutlined && !selected ? iconOutlined : icon}
-          </ListItemIcon>
-          <Typography sx={{ ml: 2, fontSize: "0.9rem" }}>{text}</Typography>
-        </ListItemButton>
-      </ListItem>
-    )
-  );
+
   return (
-    <Box>
+    <>
       <CssBaseline />
 
       <AppBar position="fixed" sx={{ boxShadow: "none", background: "none" }}>
@@ -912,7 +895,7 @@ function Header({ watch, search, home, userProfile, ...props }) {
           ))}
         </List>
       </Drawer>
-    </Box>
+    </>
   );
 }
 const baseItemButtonStyles = () => ({

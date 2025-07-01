@@ -148,7 +148,6 @@ const VideoDetailsPanel = ({
             />
           </Box>
           <LikeDislikeButtons
-            dataContext={dataContext}
             isAuthenticated={isAuthenticated}
             data={data}
             videoId={videoId}

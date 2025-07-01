@@ -145,6 +145,15 @@ function VideoPlayer({
     queryFn: () => fetchVideoById(videoId),
     enabled: !!videoId,
   });
+
+  useEffect(()=> {
+    const video = videoRef.current;
+    if (!video) return;
+   if (isUserInteracted) {
+      videoRef.current?.play();
+    }
+  }, [isUserInteracted])
+
   const handlePlay = () => {
     setIsReplay(false);
     setCanPlay(true);
@@ -184,7 +193,7 @@ function VideoPlayer({
       });
     };
 
-    handleResize();
+
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     window.addEventListener("resize", handleResize);
@@ -421,7 +430,6 @@ function VideoPlayer({
       const rect = video.getBoundingClientRect();
       const x = e.clientX;
       const y = e.clientY;
-      console.log("isPlaying", isPlaying);
       const inside =
         x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
 
@@ -1513,6 +1521,7 @@ function VideoPlayer({
               </Box>
 
               <Box
+              sx={{userSelect: "none"}}
                 onClick={handleClick}
                 onMouseDown={isUserInteracted ? DoubleSpeed : null}
                 className="video-overlay"

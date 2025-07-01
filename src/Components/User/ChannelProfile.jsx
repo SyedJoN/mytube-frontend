@@ -18,6 +18,8 @@ import StatsDialog from "../Dialogs/StatsDialog";
 import BasicTabs from "../Tabs/Tabs";
 import ManageButtons from "./ManageButtons";
 import UserVideos from "./UserVideos";
+import { useMemo } from "react";
+import { debounce, throttle } from "lodash";
 
 const ChannelProfile = ({ username, userData }) => {
   const location = useLocation();
@@ -28,16 +30,43 @@ const ChannelProfile = ({ username, userData }) => {
   const isDesktop = useMediaQuery(theme.breakpoints.up("lg"));
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
   const userPlaylists = userData?.data?.playlists.length;
-  const tabPaths = ["Videos", userPlaylists > 0 ? "Playlists" : null, "Posts"].filter(Boolean);
-  const components = [UserVideos, userPlaylists > 0 ? BasicTabs : null, StatsDialog].filter(Boolean);
+  const [padding, setPadding] = useState(0);
+
+
+  useEffect(() => {
+    if (!headerRef.current) return;
+  const handleResize = () => {
+    setPadding(headerRef.current.offsetHeight);
+  }
+  handleResize();
+    window.addEventListener("resize", handleResize);
+
+    return() => {
+      window.removeEventListener("resize", handleResize)
+    }
+  }, []);
+  
+  const tabPaths = [
+    "Videos",
+    userPlaylists > 0 ? "Playlists" : null,
+    "Posts",
+  ].filter(Boolean);
+
+  const components = [
+    UserVideos,
+    userPlaylists > 0 ? StatsDialog : null,
+    StatsDialog,
+  ].filter(Boolean);
+
   const currentTabIndex = tabPaths.findIndex((path) =>
     location.pathname.includes(path.toLowerCase())
   );
+
   const ComponentToRender =
     currentTabIndex === -1 ? components[0] : components[currentTabIndex];
   const drawerContext = useContext(DrawerContext);
   const userContext = useContext(UserContext);
-  let { open } = drawerContext;
+  let { open } = drawerContext ?? {};
   let { data: dataContext } = userContext ?? {};
   const isAuthenticated = dataContext || null;
   const [showMore, setShowMore] = useState(false);
@@ -45,18 +74,6 @@ const ChannelProfile = ({ username, userData }) => {
     color: "#f1f1f1",
     fontWeight: "bold",
   };
-
-
-  // const {
-  //   data: userData,
-  //   isLoading: isUserLoading,
-  //   isError: isUserError,
-  //   error: userError,
-  // } = useQuery({
-  //   queryKey: ["channelProfile", username],
-  //   queryFn: () => getUserChannelProfile(username),
-  //   enabled: true,
-  // });
 
   const channelId = userData?.data?._id;
   const [subscriberCount, setSubscriberCount] = useState(
@@ -76,9 +93,9 @@ const ChannelProfile = ({ username, userData }) => {
   const [translateY, setTranslateY] = useState(0);
   const scrollYRef = useRef(0);
 
-  useEffect(() => {
+    useEffect(() => {
     const handleScroll = () => {
-      const stickyVal = headerRef.current?.offsetHeight - 46 || 0;
+      const stickyVal = headerRef.current?.offsetHeight - 45 || 0;
 
       const currentScrollY =
         document.body.style.position === "fixed"
@@ -89,17 +106,43 @@ const ChannelProfile = ({ username, userData }) => {
       setTranslateY(-clampY);
     };
 
+    // Throttle the handleScroll function
+    const throttledHandleScroll = throttle(handleScroll, 16); // Aim for ~60fps (1000ms / 60 frames = ~16ms)
+
     if (open) {
       scrollYRef.current = window.scrollY;
     }
 
-    window.addEventListener("scroll", handleScroll);
-    handleScroll();
+    window.addEventListener("scroll", throttledHandleScroll);
 
     return () => {
-      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("scroll", throttledHandleScroll);
+      throttledHandleScroll.cancel(); // Cancel any pending throttled calls
     };
   }, [open]);
+
+  const headerStyles = useMemo(
+    () => ({
+      position: "fixed",
+      background: "#0f0f0f",
+      top: 0,
+      marginTop: "var(--toolbar-height)",
+      left: isDesktop
+        ? open
+          ? "var(--drawer-width)"
+          : "var(--mini-drawer-width)"
+        : isMobile
+          ? "0"
+          : isTablet
+            ? "0"
+            : "72px",
+      right: 0,
+      zIndex: 500,
+      transform: `translate3d(0px, ${translateY}px, 0px)`,
+      transition: "transform 0ms linear",
+    }),
+    [open, isMobile, isTablet, isDesktop, translateY]
+  );
 
   return (
     <>
@@ -121,39 +164,10 @@ const ChannelProfile = ({ username, userData }) => {
           alignItems: "center",
         }}
       >
-        <Box id="wrapper" sx={{ width: "100%", height: "100%" }}>
-          <Box
-            ref={headerRef}
-            id="header"
-            sx={{
-              position: "fixed",
-              background: "#0f0f0f",
-              top: 0,
-              marginTop: "var(--toolbar-height)",
-              left: isDesktop
-                ? open
-                  ? "var(--drawer-width)"
-                  : "var(--mini-drawer-width)"
-                : isMobile
-                  ? "0"
-                  : isTablet
-                    ? "0"
-                    : "72px",
-              right: 0,
-              zIndex: 500,
-              transform: `translate3d(0px, ${translateY}px, 0px)`,
-              transition: "transform 0ms linear",
-            }}
-          >
+        <Box id="header-wrapper" sx={{ width: "100%", height: "100%" }}>
+          <Box ref={headerRef} id="header" sx={headerStyles}>
             <Box sx={{ display: "flex", flexDirection: "column" }}>
-              <Container
-                fixed
-                sx={
-                  {
-                    // paddingX: `calc(50% - ${isLaptop ? 535 : isTablet ? 428 : isMobile ? 321 : 642}px)`,
-                  }
-                }
-              >
+              <Container fixed>
                 <Box
                   sx={{
                     position: "relative",
@@ -217,7 +231,9 @@ const ChannelProfile = ({ username, userData }) => {
                     avatar={
                       <Avatar
                         src={
-                          userData?.data?.avatar?.url ? userData?.data?.avatar?.url : null
+                          userData?.data?.avatar?.url
+                            ? userData?.data?.avatar?.url
+                            : null
                         }
                         sx={{
                           bgcolor: getColor(userData?.data?.fullName),
@@ -438,10 +454,11 @@ const ChannelProfile = ({ username, userData }) => {
               <BasicTabs username={username} tabPaths={tabPaths} />
             </Box>
           </Box>
+
           <Box
             sx={{
               position: "relative",
-              paddingTop: `${headerRef.current?.offsetHeight}px`,
+              paddingTop: `${padding}px`,
               zIndex: 0,
             }}
           ></Box>

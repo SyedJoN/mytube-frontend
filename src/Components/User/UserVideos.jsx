@@ -28,7 +28,7 @@ const { userData } = useLoaderData({
           <Box sx={{ width: "100%" }}>
             <VideoCard
               profile={true}
-              thumbnail={video.thumbnail}
+              thumbnail={video.thumbnail.url}
               title={video.title}
               open={open}
               views={video.views}

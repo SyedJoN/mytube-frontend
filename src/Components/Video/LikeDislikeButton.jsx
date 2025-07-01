@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { toggleVideoLike } from "../../apis/likeFn";
 import { toggleVideoDislike } from "../../apis/dislikeFn";
@@ -17,45 +17,37 @@ import ThumbUpAltIcon from "@mui/icons-material/ThumbUpAlt";
 import ThumbUpOffAltIcon from "@mui/icons-material/ThumbUpOffAlt";
 import ThumbDownAltIcon from "@mui/icons-material/ThumbDownAlt";
 import ThumbDownOffAltIcon from "@mui/icons-material/ThumbDownOffAlt";
+import { UserContext } from "../../routes/__root";
 
 export const LikeDislikeButtons = React.memo(
-  ({
-    dataContext,
-    isAuthenticated,
-    data,
-    videoId,
-    activeAlertId,
-    setActiveAlertId,
-  }) => {
+  ({ isAuthenticated, data, videoId, activeAlertId, setActiveAlertId }) => {
     const queryClient = useQueryClient();
-    const theme = useTheme();
+    const context = useContext(UserContext);
     const isTablet = useMediaQuery("(max-width:959px)");
     const isMobile = useMediaQuery("(max-width:526px)");
     const likeAlertId = `like-alert-${videoId}`;
     const dislikeAlertId = `dislike-alert-${videoId}`;
-
+    const { data: dataContext } = context ?? {};
     const isLikeAlertOpen = activeAlertId === likeAlertId;
     const isDislikeAlertOpen = activeAlertId === dislikeAlertId;
 
     const [isLike, setIsLike] = useState({
-      isLiked: data?.data?.likedBy.includes(dataContext?.data?._id) || false,
+      isLiked: data?.data?.likedBy.includes(dataContext?._id) || false,
       likeCount: data?.data.likesCount || 0,
     });
     const [isDislike, setIsDislike] = useState({
-      isDisliked:
-        data?.data?.disLikedBy.includes(dataContext?.data?._id) || false,
+      isDisliked: data?.data?.disLikedBy.includes(dataContext?._id) || false,
     });
     const [isSignIn, setIsSignIn] = useState(false);
 
     useEffect(() => {
       if (data?.data) {
         setIsLike({
-          isLiked: data.data.likedBy.includes(dataContext?.data?._id) || false,
+          isLiked: data.data.likedBy.includes(dataContext?._id) || false,
           likeCount: data.data.likesCount || 0,
         });
         setIsDislike({
-          isDisliked:
-            data.data.disLikedBy.includes(dataContext?.data?._id) || false,
+          isDisliked: data.data.disLikedBy.includes(dataContext?._id) || false,
         });
       }
     }, [data?.data, dataContext?.data?._id]);
@@ -153,11 +145,10 @@ export const LikeDislikeButtons = React.memo(
           >
             <Box sx={{ position: "relative" }}>
               <Tooltip
-              disableInteractive
-                  disableFocusListener
-                  disableTouchListener
-              title={isLike.isLiked ? "Unlike" : "I like this"}
-             
+                disableInteractive
+                disableFocusListener
+                disableTouchListener
+                title={isLike.isLiked ? "Unlike" : "I like this"}
               >
                 <Button
                   disableRipple
@@ -209,9 +200,9 @@ export const LikeDislikeButtons = React.memo(
             />
             <Box sx={{ position: "relative" }}>
               <Tooltip
-              disableInteractive
-                  disableFocusListener
-                  disableTouchListener
+                disableInteractive
+                disableFocusListener
+                disableTouchListener
                 title={
                   isDislike.isDisliked ? "Remove dislike" : "I dislike this"
                 }

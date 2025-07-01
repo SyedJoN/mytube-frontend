@@ -14,6 +14,7 @@ export default function SimpleSnackbar({ open, setOpen, message }) {
 
   return (
     <Snackbar
+
       open={open}
       autoHideDuration={6000}
       onClose={handleClose}

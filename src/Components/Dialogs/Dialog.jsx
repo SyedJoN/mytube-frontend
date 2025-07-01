@@ -22,6 +22,7 @@ export default function AlertDialog({
 
   return (
     <Dialog
+    disableScrollLock
     disableEnforceFocus
     disableAutoFocus
     disableRestoreFocus

@@ -34,6 +34,7 @@ export default function ShareDialog({ open, onClose, shareUrl }) {
               message="Link copied to clipboard"
             />
              <Dialog
+             disableScrollLock
       slotProps={{
         paper: {
           sx: {

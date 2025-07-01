@@ -280,7 +280,7 @@ function VideoCard({
                 </Avatar>
            
 
-              <Box sx={{ overflowX: "hidden", paddingRight: "24px" }}>
+              <Box sx={{ overflowX: "hidden", paddingRight: "24px", flex: 1, minWidth: 0 }}>
                 <Link to="/watch" search={{ searchParams }}>
                   <Tooltip
                     disableInteractive
@@ -898,7 +898,7 @@ function VideoCard({
         >
           <Link
             to="/watch"
-            search={{ searchParams }}
+            search={ searchParams }
             style={linkStyles}
             onDragEnd={() => {
               if (interactionRef.current) {
