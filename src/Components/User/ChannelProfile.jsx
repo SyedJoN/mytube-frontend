@@ -32,20 +32,19 @@ const ChannelProfile = ({ username, userData }) => {
   const userPlaylists = userData?.data?.playlists.length;
   const [padding, setPadding] = useState(0);
 
-
   useEffect(() => {
     if (!headerRef.current) return;
-  const handleResize = () => {
-    setPadding(headerRef.current.offsetHeight);
-  }
-  handleResize();
+    const handleResize = () => {
+      setPadding(headerRef.current.offsetHeight);
+    };
+    handleResize();
     window.addEventListener("resize", handleResize);
 
-    return() => {
-      window.removeEventListener("resize", handleResize)
-    }
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
   }, []);
-  
+
   const tabPaths = [
     "Videos",
     userPlaylists > 0 ? "Playlists" : null,
@@ -90,34 +89,35 @@ const ChannelProfile = ({ username, userData }) => {
     }
   }, [userData]);
 
-  const [translateY, setTranslateY] = useState(0);
   const scrollYRef = useRef(0);
+  useEffect(() => {
+    const headerEl = headerRef.current;
 
-    useEffect(() => {
-    const handleScroll = () => {
-      const stickyVal = headerRef.current?.offsetHeight - 45 || 0;
+    let ticking = false;
 
-      const currentScrollY =
-        document.body.style.position === "fixed"
-          ? scrollYRef.current
-          : window.scrollY;
+    const onScroll = () => {
+      const collapseHeight = headerEl.offsetHeight - 45 || 0; // YouTube uses ~48px collapse
+      if (!ticking) {
+        const currentScrollY =
+          document.body.style.position === "fixed"
+            ? scrollYRef.current
+            : window.scrollY;
+        window.requestAnimationFrame(() => {
+          const y = Math.min(currentScrollY, collapseHeight);
 
-      const clampY = Math.min(currentScrollY, stickyVal);
-      setTranslateY(-clampY);
+          headerEl.style.transform = `translate3d(0, ${-y}px, 0)`;
+          headerEl.style.transitionDuration = "0ms";
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
-
-    // Throttle the handleScroll function
-    const throttledHandleScroll = throttle(handleScroll, 16); // Aim for ~60fps (1000ms / 60 frames = ~16ms)
-
     if (open) {
       scrollYRef.current = window.scrollY;
     }
-
-    window.addEventListener("scroll", throttledHandleScroll);
-
+    window.addEventListener("scroll", onScroll);
     return () => {
-      window.removeEventListener("scroll", throttledHandleScroll);
-      throttledHandleScroll.cancel(); // Cancel any pending throttled calls
+      window.removeEventListener("scroll", onScroll);
     };
   }, [open]);
 
@@ -138,10 +138,8 @@ const ChannelProfile = ({ username, userData }) => {
             : "72px",
       right: 0,
       zIndex: 500,
-      transform: `translate3d(0px, ${translateY}px, 0px)`,
-      transition: "transform 0ms linear",
     }),
-    [open, isMobile, isTablet, isDesktop, translateY]
+    [open, isMobile, isTablet, isDesktop]
   );
 
   return (
