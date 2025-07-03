@@ -21,13 +21,13 @@ import { Link } from "@tanstack/react-router";
 
 function Home() {
   const context = useContext(DrawerContext);
-  let { open, setOpen } = context ?? {};
+  let { open } = context ?? {};
   const theme = useTheme();
-  const isTablet = useMediaQuery(theme.breakpoints.down("md"));
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["videos"],
     queryFn: fetchVideos,
+    staleTime: 1000 * 60 * 5
   });
 
   const videos = data?.data?.docs || [];
@@ -66,6 +66,13 @@ function Home() {
                       marginBottom: 24,
                     },
                   }}
+                  // size={{
+                  //   xs: 12,
+                  //   sm: 6,
+                  //   md: 5.7,
+                  //   lg: open ? 3.8 : 2.8,
+                  //   xl: open ? 3.88 : 2.89,
+                  // }}
                 >
                   <Skeleton
                     variant="rectangular"

@@ -73,6 +73,8 @@ function RouteComponent() {
   const theme = useTheme();
   const isLaptop = useMediaQuery(theme.breakpoints.down("lg"));
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
+  const isCustomWidth = useMediaQuery("(min-width:1284px)");
+
   const shouldBeOpen = home || search || userProfile;
   const [open, setOpen] = useState(!shouldBeOpen);
   const [isUserInteracted, setIsUserInteracted] = useState(false);
@@ -162,13 +164,33 @@ function RouteComponent() {
 
   const drawerValue = useMemo(() => ({ open, setOpen }), [open, setOpen]);
   const userValue = useMemo(() => data || null, [data]);
-  const userInteractionValue = useMemo(()=> ({isUserInteracted, setIsUserInteracted}), [isUserInteracted, setIsUserInteracted]);
+  const userInteractionValue = useMemo(
+    () => ({ isUserInteracted, setIsUserInteracted }),
+    [isUserInteracted, setIsUserInteracted]
+  );
 
+  const rootStyles = useMemo(
+    () => ({
+      position: "relative",
+      display: "flex",
+      overflowY: "visible",
+      marginTop: "var(--toolbar-height)",
+      marginLeft:
+        isTablet || watch
+          ? "0"
+          : open && !isLaptop
+            ? "var(--drawer-width)"
+            : !open || !isTablet
+              ? "var(--mini-drawer-width)"
+              : "0",
+
+      backgroundColor: theme.palette.primary.main,
+    }),
+    [isTablet, watch, isLaptop, open]
+  );
   return (
     <SnackbarProvider>
-      <UserInteractionContext.Provider
-        value={userInteractionValue}
-      >
+      <UserInteractionContext.Provider value={userInteractionValue}>
         <UserContext.Provider value={userValue}>
           <DrawerContext.Provider value={drawerValue}>
             <CssBaseline />
@@ -181,25 +203,7 @@ function RouteComponent() {
               userProfile={userProfile}
             />
 
-            <Box
-              component="main"
-              sx={{
-                position: "relative",
-                display: "flex",
-                overflowY: "visible",
-                marginTop: "var(--toolbar-height)",
-                marginLeft:
-                  isTablet || watch
-                    ? "0"
-                    : open && !isLaptop
-                      ? "var(--drawer-width)"
-                      : !open || !isTablet
-                        ? "var(--mini-drawer-width)"
-                        : "0",
-
-                backgroundColor: theme.palette.primary.main,
-              }}
-            >
+            <Box component="main" sx={rootStyles}>
               <ProgressBar />
               <Outlet />
             </Box>

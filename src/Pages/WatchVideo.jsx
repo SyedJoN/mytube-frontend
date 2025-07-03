@@ -21,7 +21,6 @@ function WatchVideo({ videoId, playlistId }) {
   const userInteractionContext = useContext(UserInteractionContext);
   
   const { data: dataContext } = userContext ?? {};
-  const { isUserInteracted, setIsUserInteracted } = userInteractionContext;
   const [index, setIndex] = useState(0);
   const isAuthenticated = dataContext || null;
   const [activeAlertId, setActiveAlertId] = useState(null);

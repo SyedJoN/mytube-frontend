@@ -158,7 +158,7 @@ const nextVideoModifiers = useMemo(()=>([
     var thumbWidth = 13;
     const sliderRef = useRef(null);
     const volumeSliderRef = useRef(null);
-    const { isUserInteracted, setIsUserInteracted } = context;
+    const { isUserInteracted, setIsUserInteracted } = context ?? {};
     const [BarWidth, setBarWidth] = useState(0);
 
     const handleSeekMove = (e) => {

@@ -91,33 +91,30 @@ const ChannelProfile = ({ username, userData }) => {
 
   const scrollYRef = useRef(0);
   useEffect(() => {
-    const headerEl = headerRef.current;
+    const header = headerRef.current;
+    if (!header) return;
 
-    let ticking = false;
+    const handleScroll = () => {
+      const stickyVal = headerRef.current?.offsetHeight - 45 || 0;
 
-    const onScroll = () => {
-      const collapseHeight = headerEl.offsetHeight - 45 || 0; // YouTube uses ~48px collapse
-      if (!ticking) {
+      requestAnimationFrame(() => {
         const currentScrollY =
           document.body.style.position === "fixed"
             ? scrollYRef.current
             : window.scrollY;
-        window.requestAnimationFrame(() => {
-          const y = Math.min(currentScrollY, collapseHeight);
+        const clampY = Math.min(currentScrollY, stickyVal);
 
-          headerEl.style.transform = `translate3d(0, ${-y}px, 0)`;
-          headerEl.style.transitionDuration = "0ms";
-          ticking = false;
-        });
-        ticking = true;
-      }
+        header.style.transform = `translate3d(0, ${-clampY}px, 0)`;
+        header.style.transitionDuration = "0ms";
+      });
     };
     if (open) {
       scrollYRef.current = window.scrollY;
     }
-    window.addEventListener("scroll", onScroll);
+    window.addEventListener("scroll", handleScroll);
+
     return () => {
-      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("scroll", handleScroll);
     };
   }, [open]);
 

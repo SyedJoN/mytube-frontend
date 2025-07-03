@@ -82,10 +82,11 @@ function VideoPlayer({
   const fullScreenTitleRef = useRef(null);
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
-  const { open: isOpen } = drawerContext;
+  const { open: isOpen } = drawerContext ?? {};
   const { data: dataContext } = userContext ?? {};
   const isAuthenticated = dataContext || null;
-  const { isUserInteracted, setIsUserInteracted } = userInteractionContext;
+  const { isUserInteracted, setIsUserInteracted } =
+    userInteractionContext ?? {};
   const videoPauseStatus = useRef(null);
   const prevVolumeRef = useRef(null);
   const [prevTheatre, setPrevTheatre] = useState(false);
@@ -146,13 +147,13 @@ function VideoPlayer({
     enabled: !!videoId,
   });
 
-  useEffect(()=> {
+  useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-   if (isUserInteracted) {
+    if (isUserInteracted) {
       videoRef.current?.play();
     }
-  }, [isUserInteracted])
+  }, [isUserInteracted]);
 
   const handlePlay = () => {
     setIsReplay(false);
@@ -192,8 +193,6 @@ function VideoPlayer({
         threshold = calculateThreshold();
       });
     };
-
-
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     window.addEventListener("resize", handleResize);
@@ -335,7 +334,8 @@ function VideoPlayer({
   };
 
   const DoubleSpeed = (e) => {
-    if (e.button === 2) return;
+    if (e.type === "mousedown" && e.button === 2) return;
+
     const video = videoRef.current;
     if (!video) return;
     clearTimeout(clickTimeout.current);
@@ -393,9 +393,13 @@ function VideoPlayer({
     };
 
     window.addEventListener("mouseup", handleMouseUp);
+    window.addEventListener("touchend", handleMouseUp);
+    window.addEventListener("touchcancel", handleMouseUp);
 
     return () => {
       window.removeEventListener("mouseup", handleMouseUp);
+      window.removeEventListener("touchend", handleMouseUp);
+      window.addEventListener("touchcancel", handleMouseUp);
     };
   }, []);
 
@@ -667,15 +671,27 @@ function VideoPlayer({
     };
   }, [prevTheatre]);
 
-  const toggleFullScreen = useCallback(() => {
+  const toggleFullScreen = () => {
     const el = containerRef.current;
-    if (!document.fullscreenElement) {
-      el?.requestFullscreen?.();
+    if (!el) return;
+
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isFullScreen = !!document.fullscreenElement;
+
+    if (!isFullScreen) {
+      el.requestFullscreen?.().then(() => {
+        if (!isIOS) {
+          screen.orientation?.lock?.("landscape").catch(() => {});
+        } else {
+          alert("Rotate your device for best fullscreen experience.");
+        }
+      });
     } else {
-      document.exitFullscreen?.();
+      document.exitFullscreen?.().then(() => {
+        screen.orientation?.unlock?.();
+      });
     }
-    setIsUserInteracted(true);
-  }, []);
+  };
 
   const togglePlayPause = useCallback(() => {
     const video = videoRef.current;
@@ -800,7 +816,7 @@ function VideoPlayer({
       if (isAuthenticated && isValidStart && isUserInteracted) {
         video.currentTime = startTimeDuration;
       }
-      console.log("kro play")
+      console.log("kro play");
       await video.play();
       setIsPlaying(true);
     } catch (err) {
@@ -1521,9 +1537,10 @@ function VideoPlayer({
               </Box>
 
               <Box
-              sx={{userSelect: "none"}}
+                sx={{ userSelect: "none" }}
                 onClick={handleClick}
                 onMouseDown={isUserInteracted ? DoubleSpeed : null}
+                onTouchStart={isUserInteracted ? DoubleSpeed : null}
                 className="video-overlay"
               >
                 <Box

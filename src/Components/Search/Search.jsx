@@ -23,11 +23,12 @@ export default function Search({
       onSubmit={handleSearch}
       component="form"
       sx={{
+        flex: 1,
+        minWidth: 0,
         p: "0px 4px",
         display: "flex",
         alignItems: "center",
-        width: 600,
-        ml: "auto",
+        ml: "40px",
         borderRadius: 100,
         border: "1px solid hsl(0,0%,18.82%)",
         backgroundColor: "#0f0f0f",
