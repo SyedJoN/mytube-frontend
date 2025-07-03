@@ -35,17 +35,20 @@ import AccountMenu from "../Menus/AccountMenu";
 import { useLocation } from "@tanstack/react-router";
 import { useNavigate } from "@tanstack/react-router";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
-import { DrawerContext } from "../../routes/__root";
+import { DrawerContext, UserContext } from "../../routes/__root";
 import { throttle } from "lodash";
 
 function Header({ watch, search, home, userProfile, ...props }) {
   const theme = useTheme();
   const context = React.useContext(DrawerContext);
+  const userContext = React.useContext(UserContext);
   const { open, setOpen } = context ?? {}; // Ensure setOpen is available
-
+  const { data: dataContext } = userContext ?? {};
+  const isAuthenticated = dataContext || null;
   const isLaptop = useMediaQuery(theme.breakpoints.down("lg"));
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isSmallScreen = useMediaQuery("(max-width:430px)");
   const drawerWidth = "var(--drawer-width)";
   const miniDrawerWidth = "var(--mini-drawer-width)";
 
@@ -271,7 +274,7 @@ function Header({ watch, search, home, userProfile, ...props }) {
             }}
           >
             <Box className="header-content" sx={{display: "flex", alignItems: "center", justifyContent: "space-between", flex: 1, minWidth: 0}}>
-                 <Box sx={{display: "flex", justifyContent: "center", alignItems: "center", flex: 1}} className="start">
+                 <Box sx={{display: "flex", justifyContent: "center", alignItems: "center"}} className="start">
             <IconButton
               disableRipple
               size="medium"
@@ -330,11 +333,12 @@ function Header({ watch, search, home, userProfile, ...props }) {
             <IconButton
               disableRipple
               sx={{
+                display: isSmallScreen ? "none" : "inline-flex",
                 padding: "10px",
                 borderRadius: "50px",
                 backgroundColor: "hsla(0,0%,100%,.08)",
-                marginLeft: isMobile ? 1 : "10px",
-                marginRight: isMobile ? 0 : "auto",
+                marginLeft: 1,
+                marginRight: "0",
                 "&:hover": {
                   backgroundColor: "hsl(0,0%,18.82%)",
                 },
@@ -343,7 +347,7 @@ function Header({ watch, search, home, userProfile, ...props }) {
               <MicOutlinedIcon sx={{ color: "#fff" }} />
             </IconButton>
             </Box>
-            <Box sx={{display: "flex", justifyContent: "flex-end", alignItems: "center", flex: "none", minWidth: "225px"}} className="end">
+            <Box sx={{display: "flex", justifyContent: isSmallScreen && isAuthenticated ? "flex-start" : "flex-end", alignItems: "center", flex: "none", minWidth: isSmallScreen ? 0 : "225px"}} className="end">
             <AccountMenu />
           </Box>
           </Box>

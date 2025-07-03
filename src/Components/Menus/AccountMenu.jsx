@@ -12,6 +12,7 @@ import {
   Tooltip,
   Button,
   Box,
+  useMediaQuery,
 } from "@mui/material";
 import { useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -45,13 +46,13 @@ export default function AccountMenu() {
   const open = Boolean(anchorEl);
   const openCreate = Boolean(createAnchorEl);
   const [dialogue, setDialogue] = useState(false);
+  const isSmallScreen = useMediaQuery("(max-width:400px)");
 
   const context = useContext(UserContext);
 
   const { data: userData } = context ?? {};
 
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
 
   const handleClick = (event) => {
     setAnchorEl((prev) => (prev ? null : event.currentTarget));
@@ -153,7 +154,7 @@ export default function AccountMenu() {
               </Typography>
             </IconButton>
           </Box>
-          <IconButton sx={{ minWidth: 50, paddingY: 1, paddingX: 1.5 }}>
+          <IconButton sx={{ display: isSmallScreen ? "none" : "inline-flex", minWidth: 50, paddingY: 1, paddingX: 1.5 }}>
             <NotificationsNoneOutlinedIcon sx={{ color: "#fff" }} />
           </IconButton>
           <Tooltip title="Account settings">
