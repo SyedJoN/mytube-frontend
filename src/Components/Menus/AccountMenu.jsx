@@ -80,7 +80,6 @@ export default function AccountMenu() {
     setAnchorEl(null);
   };
 
-
   const { mutate, isPending, isError, error } = useMutation({
     mutationFn: logoutUser,
     onSuccess: () => {
@@ -120,7 +119,8 @@ export default function AccountMenu() {
     <React.Fragment>
       {userData ? (
         <Box
-          sx={{ display: "flex", alignItems: "center", textAlign: "center" }}
+        className="account-wrapper"
+          sx={{ display: "flex", alignItems: "center", textAlign: "center",gap: isSmallScreen ? "16px" : 0 }}
         >
           <Box
             sx={{
@@ -154,7 +154,14 @@ export default function AccountMenu() {
               </Typography>
             </IconButton>
           </Box>
-          <IconButton sx={{ display: isSmallScreen ? "none" : "inline-flex", minWidth: 50, paddingY: 1, paddingX: 1.5 }}>
+          <IconButton
+            sx={{
+              display: isSmallScreen ? "none" : "inline-flex",
+              minWidth: 50,
+              paddingY: 1,
+              paddingX: 1.5,
+            }}
+          >
             <NotificationsNoneOutlinedIcon sx={{ color: "#fff" }} />
           </IconButton>
           <Tooltip title="Account settings">

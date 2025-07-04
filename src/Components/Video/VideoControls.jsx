@@ -59,6 +59,7 @@ const VideoControls = forwardRef(
       isMini,
       isReplay,
       setIsTheatre,
+      isPiActive,
       videoContainerWidth,
       controlOpacity,
       showVolumePanel,
@@ -151,6 +152,7 @@ const nextVideoModifiers = useMemo(()=>([
       ? Math.round(videoRef.current.duration)
       : 0;
     const theatreTitle = isTheatre ? "Default view (t)" : "Theatre mode (t)";
+    const pipTitle = isPiActive ? "Exit picture-in-picture" : "Picture-in-picture";
     const fullScreenTitle = isFullscreen
       ? "Exit full screen (f)"
       : "Full screen (f)";
@@ -624,7 +626,7 @@ const nextVideoModifiers = useMemo(()=>([
                   disableInteractive
                   disableFocusListener
                   disableTouchListener
-                  title={theatreTitle}
+                  title={pipTitle}
                   placement="top"
                   slotProps={{
                     popper: {

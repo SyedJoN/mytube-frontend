@@ -96,6 +96,7 @@ function VideoPlayer({
   const [controlOpacity, setControlOpacity] = useState(0);
   const [titleOpacity, setTitleOpacity] = useState(0);
   const [showVolumePanel, setShowVolumePanel] = useState(false);
+  const [isPiActive, setIsPiPActive] = useState(false);
   const [canPlay, setCanPlay] = useState(true);
   const isInside = useRef(null);
   const queryClient = useQueryClient();
@@ -291,6 +292,37 @@ function VideoPlayer({
       }
     }, 2000);
   }, [data?.data?._id]);
+
+  const handleEnterPiP = useCallback(() => {
+    setIsPiPActive(true);
+  }, []);
+
+  const handleLeavePiP = useCallback(() => {
+    const video = videoRef.current;
+    if (video) {
+      video.pause(); // ⛔️ Stop playback
+      video.removeAttribute("src"); // 🔄 Remove source
+      video.load(); // ♻️ Force reset to clear video buffer
+    }
+    setIsPiPActive(false);
+  }, []);
+
+  useEffect(() => {
+    const video = videoRef.current;
+
+    if (!video) return;
+    
+
+    video.addEventListener("enterpictureinpicture", handleEnterPiP);
+    video.addEventListener("leavepictureinpicture", handleLeavePiP);
+
+    return () => {
+      if (video) {
+        video.removeEventListener("enterpictureinpicture", handleEnterPiP);
+        video.removeEventListener("leavepictureinpicture", handleLeavePiP);
+      }
+    };
+  }, [handleEnterPiP, handleLeavePiP]);
 
   const handleTogglePiP = useCallback(async () => {
     const video = videoRef.current;
@@ -1288,6 +1320,7 @@ function VideoPlayer({
                 isAnimating={isAnimating}
                 isMini={isMini}
                 isTheatre={isTheatre}
+                isPiActive={isPiActive}
                 setIsTheatre={setIsTheatre}
                 setPrevTheatre={setPrevTheatre}
                 videoContainerWidth={videoContainerWidth}

@@ -176,17 +176,19 @@ function RouteComponent() {
       overflowY: "visible",
       marginTop: "var(--toolbar-height)",
       marginLeft:
-        isTablet || watch
-          ? "0"
+         isTablet || watch
+          ? "0" :
+      ((home || search || userProfile) && isLaptop && !isTablet) ?
+      "var(--mini-drawer-width)" 
           : open && !isLaptop
             ? "var(--drawer-width)"
-            : !open || !isTablet
+            : !open && !isTablet || userProfile
               ? "var(--mini-drawer-width)"
               : "0",
 
       backgroundColor: theme.palette.primary.main,
     }),
-    [isTablet, watch, isLaptop, open]
+    [isTablet, watch, isLaptop, open, userProfile]
   );
   return (
     <SnackbarProvider>

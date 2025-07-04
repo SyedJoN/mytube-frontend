@@ -258,21 +258,20 @@ const ChannelProfile = ({ username, userData }) => {
 
                         {isTablet ? (
                           <>
-                            <Typography
+                            <Box
                               sx={{
                                 display: "flex",
                                 flexDirection: isXs ? "column" : "row",
                                 alignItems: isXs ? "start" : "center",
                                 whiteSpace: "nowrap",
+                                color: "#aaa",
                                 mt: 1,
                                 fontSize: {
                                   xs: "0.8rem",
                                   sm: "0.95rem",
                                 },
                               }}
-                              variant="body2"
-                              color="#aaa"
-                              fontSize="0.85rem"
+                       
                             >
                               <span style={userNameStyles}>
                                 @{userData?.data?.username}
@@ -295,7 +294,7 @@ const ChannelProfile = ({ username, userData }) => {
                                     : "videos"}
                                 </span>
                               </Box>
-                            </Typography>
+                            </Box>
                             {!isXs ? (
                               <Typography
                                 variant="body2"
