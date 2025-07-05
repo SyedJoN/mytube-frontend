@@ -43,6 +43,6 @@ let theme = createTheme({
    
   });
 theme = responsiveFontSizes(theme, {
-  factor: 1.2, // Default 2.0 hota hai, kam kar diya
+  factor: 1.2, 
 });
 export default theme;

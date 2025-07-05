@@ -38,6 +38,7 @@ import { useNavigate } from "@tanstack/react-router";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import { DrawerContext, UserContext } from "../../routes/__root";
 import { throttle } from "lodash";
+import CustomSlide from "./Slide";
 
 const getListItemButtonStyles = (isExpanded, isUserMenu = false) => {
   return {
@@ -102,15 +103,15 @@ const DrawerContent = React.memo(
             color="inherit"
             aria-label="menu"
             onClick={toggleDrawer}
-           sx={{
-                    width: "40px",
-                    height: "40px",
-                    m: 0,
-                    borderRadius: "50px",
-                    "&:hover": {
-                      background: "rgba(255,255,255,0.1)",
-                    },
-                  }}
+            sx={{
+              width: "40px",
+              height: "40px",
+              m: 0,
+              borderRadius: "50px",
+              "&:hover": {
+                background: "rgba(255,255,255,0.1)",
+              },
+            }}
           >
             <MenuIcon sx={{ color: "#f1f1f1" }} />
           </IconButton>
@@ -226,8 +227,6 @@ DrawerContent.propTypes = {
   toggleDrawer: PropTypes.func.isRequired,
 };
 
-
-
 function Header({ watch, search, home, userProfile, ...props }) {
   const theme = useTheme();
   const context = React.useContext(DrawerContext);
@@ -249,10 +248,6 @@ function Header({ watch, search, home, userProfile, ...props }) {
   const [opacity, setOpacity] = useState(0);
   const navigate = useNavigate();
 
-  const container = useCallback(
-    () => (windowProp !== undefined ? windowProp().document.body : undefined),
-    [windowProp]
-  );
 
   const toggleDrawer = useCallback(() => {
     if (setOpen) {
@@ -268,7 +263,7 @@ function Header({ watch, search, home, userProfile, ...props }) {
     const scrollY = Math.max(0, window.scrollY);
     const maxScroll = 31;
     const stepsArray = [0, 0.3, 0.6, 1];
-    const stepSize = maxScroll / stepsArray.length
+    const stepSize = maxScroll / stepsArray.length;
     const stepIndex = Math.min(
       stepsArray.length - 1,
       Math.floor(scrollY / stepSize)
@@ -360,14 +355,12 @@ function Header({ watch, search, home, userProfile, ...props }) {
   const isPermanentDrawerVisible = (home || search || userProfile) && !isLaptop;
   const isWatchTemporaryDrawerVisible = watch;
 
-  
   const isDrawerContentExpanded = useMemo(() => {
     if (isWatchTemporaryDrawerVisible) {
       return true;
     }
 
     if ((home || search || userProfile) && !isLaptop) {
-  
       return open;
     }
     if ((home || search || userProfile) && isLaptop && !isTablet) {
@@ -386,7 +379,6 @@ function Header({ watch, search, home, userProfile, ...props }) {
     isWatchTemporaryDrawerVisible,
   ]);
 
-
   const currentDrawerWidth = isDrawerContentExpanded
     ? drawerWidth
     : miniDrawerWidth;
@@ -398,7 +390,6 @@ function Header({ watch, search, home, userProfile, ...props }) {
       border: "none",
       zIndex: 1,
       bgcolor: theme.palette.primary.main,
-      transitionDuration: "200ms!important",
     },
   };
   const cssVarDrawerStyles = {
@@ -408,7 +399,6 @@ function Header({ watch, search, home, userProfile, ...props }) {
       border: "none",
       zIndex: 1,
       bgcolor: theme.palette.primary.main,
-      transitionDuration: "200ms!important",
     },
   };
 
@@ -572,12 +562,12 @@ function Header({ watch, search, home, userProfile, ...props }) {
         ></Box>
       </AppBar>
 
-      {/* Unified Drawer Rendering */}
-
       <Drawer
-    
+      TransitionComponent={CustomSlide}
         variant={
-          isPermanentDrawerVisible || !isTablet && !watch ? "permanent" : "temporary"
+          isPermanentDrawerVisible || (!isTablet && !watch)
+            ? "permanent"
+            : "temporary"
         }
         open={watch && open}
         onClose={
@@ -586,9 +576,8 @@ function Header({ watch, search, home, userProfile, ...props }) {
             : undefined
         }
         ModalProps={{
-          keepMounted: true,
+          keepMounted: false,
           disableScrollLock: true,
-        
         }}
         sx={jsControlledDrawerStyles}
       >
@@ -602,12 +591,13 @@ function Header({ watch, search, home, userProfile, ...props }) {
       </Drawer>
       {(home || search || userProfile) && isLaptop && (
         <Drawer
- 
+      TransitionComponent={CustomSlide}
+
           variant="temporary"
           open={open}
           onClose={() => setOpen(false)}
           ModalProps={{
-            keepMounted: true,
+            keepMounted: false,
             disableScrollLock: true,
           }}
           sx={cssVarDrawerStyles}

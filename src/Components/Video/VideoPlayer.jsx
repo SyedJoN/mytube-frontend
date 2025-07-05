@@ -163,9 +163,10 @@ function VideoPlayer({
   };
 
   useEffect(() => {
-    if (isOpen) return;
     const container = containerRef.current;
+    if (isOpen) return;
     if (!container) return;
+    let threshold;
 
     const calculateThreshold = () => {
       const rect = container.getBoundingClientRect();
@@ -174,9 +175,10 @@ function VideoPlayer({
       return isTheatre ? topOffset + height - 50 : topOffset + height - 60;
     };
 
-    let threshold = calculateThreshold();
     const handleScroll = () => {
+      threshold = calculateThreshold();
       const scrollY = window.scrollY;
+
       if (scrollY > threshold && !hideMini && canPlay) {
         setIsMini(true);
       }
@@ -220,33 +222,47 @@ function VideoPlayer({
   }, []);
 
   useEffect(() => {
+    const width = 110;
+    const height = 75;
+    const centerX = width / 2;
+    const centerY = height / 2;
+
     const interval = setInterval(() => {
       const video = videoRef.current;
       const captureCanvas = captureCanvasRef.current;
       const glowCanvas = glowCanvasRef.current;
 
-      if (!video || !captureCanvas || !glowCanvas || video.readyState < 2)
+      if (!video || !captureCanvas || !glowCanvas || video.readyState < 2) {
         return;
+      }
 
       const captureCtx = captureCanvas.getContext("2d", {
         willReadFrequently: true,
       });
-      const glowCtx = glowCanvas.getContext("2d", { willReadFrequently: true });
+      const glowCtx = glowCanvas.getContext("2d", {
+        willReadFrequently: true,
+      });
+
+      if (!captureCtx || !glowCtx) return;
 
       try {
-        captureCtx.drawImage(video, 0, 0, 110, 75);
-        const frame = captureCtx.getImageData(0, 0, 110, 75).data;
+        captureCtx.drawImage(video, 0, 0, width, height);
+
+        const frame = captureCtx.getImageData(0, 0, width, height).data;
 
         let r = 0,
           g = 0,
           b = 0,
           count = 0;
-        for (let i = 0; i < frame.length; i += 4) {
+
+        for (let i = 0; i < frame.length; i += 64) {
           r += frame[i];
           g += frame[i + 1];
           b += frame[i + 2];
           count++;
         }
+
+        if (count === 0) return;
 
         r = Math.round(r / count);
         g = Math.round(g / count);
@@ -254,26 +270,28 @@ function VideoPlayer({
 
         const color = `rgb(${r}, ${g}, ${b})`;
 
-        glowCtx.clearRect(0, 0, 110, 75);
+        glowCtx.clearRect(0, 0, width, height);
         const gradient = glowCtx.createRadialGradient(
-          55,
-          37.5,
+          centerX,
+          centerY,
           5,
-          55,
-          37.5,
+          centerX,
+          centerY,
           70
         );
         gradient.addColorStop(0, color);
         gradient.addColorStop(1, "transparent");
+
         glowCtx.fillStyle = gradient;
-        glowCtx.fillRect(0, 0, 110, 75);
+        glowCtx.fillRect(0, 0, width, height);
       } catch (e) {
         console.warn("Glow error:", e);
       }
-    }, 200);
+    }, 500);
 
     return () => clearInterval(interval);
   }, []);
+
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -300,9 +318,9 @@ function VideoPlayer({
   const handleLeavePiP = useCallback(() => {
     const video = videoRef.current;
     if (video) {
-      video.pause(); // ⛔️ Stop playback
-      video.removeAttribute("src"); // 🔄 Remove source
-      video.load(); // ♻️ Force reset to clear video buffer
+      video.pause();
+      video.removeAttribute("src");
+      video.load();
     }
     setIsPiPActive(false);
   }, []);
@@ -311,7 +329,6 @@ function VideoPlayer({
     const video = videoRef.current;
 
     if (!video) return;
-    
 
     video.addEventListener("enterpictureinpicture", handleEnterPiP);
     video.addEventListener("leavepictureinpicture", handleLeavePiP);
@@ -858,9 +875,13 @@ function VideoPlayer({
   };
 
   useEffect(() => {
+    let timeoutId
     if (location.pathname === "/") {
-      setIsUserInteracted(true);
+       timeoutId = setTimeout(() => {
+        setIsUserInteracted(true);
+      }, 500);
     }
+    return () => clearTimeout(timeoutId);
   }, [location.pathname]);
 
   const { mutate: sendHistoryMutation } = useMutation({

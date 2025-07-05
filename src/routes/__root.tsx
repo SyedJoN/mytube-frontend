@@ -73,10 +73,9 @@ function RouteComponent() {
   const theme = useTheme();
   const isLaptop = useMediaQuery(theme.breakpoints.down("lg"));
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
-  const isCustomWidth = useMediaQuery("(min-width:1284px)");
 
-  const shouldBeOpen = home || search || userProfile;
-  const [open, setOpen] = useState(!shouldBeOpen);
+  const shouldBeOpen = home || search || userProfile || watch;
+  const [open, setOpen] = useState(false);
   const [isUserInteracted, setIsUserInteracted] = useState(false);
   const scrollYRef = React.useRef(0);
   const prevScrollRef = React.useRef(0);
