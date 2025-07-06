@@ -74,7 +74,7 @@ function RouteComponent() {
   const isLaptop = useMediaQuery(theme.breakpoints.down("lg"));
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
 
-  const shouldBeOpen = home || search || userProfile || watch;
+  const shouldBeOpen = home || search || userProfile;
   const [open, setOpen] = useState(false);
   const [isUserInteracted, setIsUserInteracted] = useState(false);
   const scrollYRef = React.useRef(0);

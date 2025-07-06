@@ -137,6 +137,7 @@ function VideoPlayer({
   const isFastPlayback = videoRef?.current?.playbackRate === 2.0;
   const animateTimeoutRef = useRef(null);
   const captureCanvasRef = useRef(null);
+  const prevHoverStateRef = useRef(null);
 
   const glowCanvasRef = useRef(null);
   const [isMini, setIsMini] = useState(false);
@@ -155,6 +156,14 @@ function VideoPlayer({
       videoRef.current?.play();
     }
   }, [isUserInteracted]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const onPause = () => flushSync(() => setIsPlaying(false));
+    video.addEventListener("pause", onPause);
+    return () => video.removeEventListener("pause", onPause);
+  }, [setIsPlaying]);
 
   const handlePlay = () => {
     setIsReplay(false);
@@ -292,54 +301,36 @@ function VideoPlayer({
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-    if (isUserInteracted) {
-      setControlOpacity(1);
-    }
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    const controls = container.getElementsByClassName("MuiPopper-root");
-
-    timeoutRef.current = setTimeout(() => {
-      if (!controls.length) {
-        if (!showVolumePanel) {
-          setControlOpacity(0);
-          setTitleOpacity(0);
-        }
-      }
-    }, 2000);
-  }, [data?.data?._id]);
+  const exitingPiPViaOurUIButtonRef = useRef(false);
 
   const handleEnterPiP = useCallback(() => {
+    setControlOpacity(1);
     setIsPiPActive(true);
+
+    if (!prevVideoRef.current) videoRef.current?.play();
   }, []);
 
   const handleLeavePiP = useCallback(() => {
-    const video = videoRef.current;
-    if (video) {
-      video.pause();
-      video.removeAttribute("src");
-      video.load();
-    }
     setIsPiPActive(false);
-  }, []);
+
+    if (videoRef.current?.paused) {
+      setIsPlaying(false);
+    }
+    exitingPiPViaOurUIButtonRef.current = false;
+  }, [setIsPlaying]);
 
   useEffect(() => {
     const video = videoRef.current;
-
     if (!video) return;
 
     video.addEventListener("enterpictureinpicture", handleEnterPiP);
     video.addEventListener("leavepictureinpicture", handleLeavePiP);
 
     return () => {
-      if (video) {
-        video.removeEventListener("enterpictureinpicture", handleEnterPiP);
-        video.removeEventListener("leavepictureinpicture", handleLeavePiP);
-      }
+      video.removeEventListener("enterpictureinpicture", handleEnterPiP);
+      video.removeEventListener("leavepictureinpicture", handleLeavePiP);
     };
-  }, [handleEnterPiP, handleLeavePiP]);
+  }, [data?.data?._id, handleEnterPiP, handleLeavePiP]);
 
   const handleTogglePiP = useCallback(async () => {
     const video = videoRef.current;
@@ -347,12 +338,16 @@ function VideoPlayer({
 
     try {
       if (document.pictureInPictureElement) {
+        // We’re exiting via our UI, so set the ref
+        exitingPiPViaOurUIButtonRef.current = true;
         await document.exitPictureInPicture();
       } else {
         await video.requestPictureInPicture();
       }
     } catch (err) {
       console.error("PiP error:", err);
+      // reset just in case
+      exitingPiPViaOurUIButtonRef.current = false;
     }
   }, []);
 
@@ -389,6 +384,7 @@ function VideoPlayer({
     if (!video) return;
     clearTimeout(clickTimeout.current);
     clickTimeout.current = null;
+    prevHoverStateRef.current = controlOpacity;
     pressTimer.current = setTimeout(() => {
       console.log("down");
       setIsLongPress(true);
@@ -422,8 +418,16 @@ function VideoPlayer({
       setTitleOpacity(1);
     }
     flushSync(() => {
-      setControlOpacity(isInside.current ? 1 : 0);
-      setTitleOpacity(isInside.current ? 1 : 0);
+      setControlOpacity(
+        isInside.current && prevHoverStateRef.current === 1
+          ? prevHoverStateRef.current
+          : 0
+      );
+      setTitleOpacity(
+        isInside.current && prevHoverStateRef.current === 1
+          ? prevHoverStateRef.current
+          : 0
+      );
     });
 
     clearTimeout(pressTimer.current);
@@ -475,6 +479,10 @@ function VideoPlayer({
           if (!showVolumePanel) {
             setControlOpacity(0);
             setTitleOpacity(0);
+            container
+              .querySelector(".video-overlay")
+              ?.classList.add("hide-cursor");
+            container.querySelector(".controls")?.classList.add("hide-cursor");
           }
         }
       }, 2000);
@@ -875,9 +883,9 @@ function VideoPlayer({
   };
 
   useEffect(() => {
-    let timeoutId
+    let timeoutId;
     if (location.pathname === "/") {
-       timeoutId = setTimeout(() => {
+      timeoutId = setTimeout(() => {
         setIsUserInteracted(true);
       }, 500);
     }
@@ -1401,6 +1409,7 @@ function VideoPlayer({
                       borderRadius: "4px",
                       color: "#f1f1f1",
                       background: "rgba(0, 0, 0, 0.5)",
+                      padding: "6px 20px",
                     }}
                   >
                     <Typography fontWeight="500" variant="h6">
@@ -1593,8 +1602,12 @@ function VideoPlayer({
               <Box
                 sx={{ userSelect: "none" }}
                 onClick={handleClick}
-                onMouseDown={isUserInteracted ? DoubleSpeed : null}
-                onTouchStart={isUserInteracted ? DoubleSpeed : null}
+                onMouseDown={
+                  isUserInteracted && !isPiActive ? DoubleSpeed : null
+                }
+                onTouchStart={
+                  isUserInteracted && !isPiActive ? DoubleSpeed : null
+                }
                 className="video-overlay"
               >
                 <Box

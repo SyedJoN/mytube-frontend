@@ -130,7 +130,7 @@ function WatchVideo({ videoId, playlistId }) {
         },
       });
     }
-  }, [navigate, playlistId, shuffledVideos, playlistVideos, index]);
+  }, [playlistId, shuffledVideos, playlistVideos, index]);
  
   return (
     <Grid

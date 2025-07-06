@@ -563,6 +563,7 @@ function Header({ watch, search, home, userProfile, ...props }) {
       </AppBar>
 
       <Drawer
+      disablePortal={true}
       TransitionComponent={CustomSlide}
         variant={
           isPermanentDrawerVisible || (!isTablet && !watch)
@@ -576,7 +577,7 @@ function Header({ watch, search, home, userProfile, ...props }) {
             : undefined
         }
         ModalProps={{
-          keepMounted: false,
+          keepMounted: true,
           disableScrollLock: true,
         }}
         sx={jsControlledDrawerStyles}
@@ -597,7 +598,7 @@ function Header({ watch, search, home, userProfile, ...props }) {
           open={open}
           onClose={() => setOpen(false)}
           ModalProps={{
-            keepMounted: false,
+            keepMounted: true,
             disableScrollLock: true,
           }}
           sx={cssVarDrawerStyles}

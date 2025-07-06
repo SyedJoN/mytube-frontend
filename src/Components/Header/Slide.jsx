@@ -11,7 +11,6 @@ const CustomSlide = forwardRef(function CustomSlide(props, ref) {
       timeout={timeout}
       ref={ref}
       mountOnEnter
-      unmountOnExit 
       onEnter={(node) => {
         node.style.transform = "translate3d(-100%, 0, 0)";
         node.style.transition =
