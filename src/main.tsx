@@ -7,9 +7,7 @@ import theme from "./assets/Theme";
 import { routeTree } from "./routeTree.gen";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
-import NProgress from "nprogress";
 import "./styles.css"; // your global styles
-import { ProgressBar } from "./ProgressBar";
 
 const queryClient = new QueryClient();
 const router = createRouter({ routeTree });
@@ -29,7 +27,6 @@ if (!rootElement.innerHTML) {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider theme={theme}>
           <RouterProvider router={router}>
-            <TanStackRouterDevtools router={router} />
           </RouterProvider>
         </ThemeProvider>
       </QueryClientProvider>

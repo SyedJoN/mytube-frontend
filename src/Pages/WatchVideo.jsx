@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useState, useCallback } from "react";
+import { useContext, useEffect, useMemo, useState, useCallback, startTransition } from "react";
 import VideoPlayer from "../Components/Video/VideoPlayer";
 import { useNavigate } from "@tanstack/react-router";
 import { Grid, useMediaQuery } from "@mui/material";
@@ -59,8 +59,9 @@ function WatchVideo({ videoId, playlistId }) {
   const shuffled = filtered.length > 0
     ? shuffleArray(filtered)
     : [...videos]; 
-
-  setShuffledVideos(shuffled);
+  startTransition(() => {
+    setShuffledVideos(shuffled);
+  });
 }, [videoId, videos]);
 
 

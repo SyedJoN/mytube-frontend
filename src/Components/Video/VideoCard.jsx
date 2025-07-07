@@ -186,7 +186,9 @@ function VideoCard({
       to: `/@${owner}`,
     });
   };
-
+const handleInteraction = () => {
+  setIsUserInteracted(true);
+}
   const handleDragEnd = () => {
     if (interactionRef.current) {
       interactionRef.current.classList.remove("down");
@@ -197,7 +199,7 @@ function VideoCard({
     <>
       {home ? (
         <Card
-          onClick={() => setIsUserInteracted(true)}
+          onClick={handleInteraction}
           sx={{
             position: "relative",
             transition: "0.3s ease-in-out",
@@ -377,7 +379,7 @@ function VideoCard({
         <Card
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}
-          onClick={() => setIsUserInteracted(true)}
+          onClick={handleInteraction}
           onMouseDown={(e) => {
             handleMouseDown(e);
             e.stopPropagation();
@@ -1036,7 +1038,7 @@ function VideoCard({
       ) : (
         playlist && (
           <Box
-            onClick={() => setIsUserInteracted(true)}
+            onClick={handleInteraction}
             sx={{
               position: "relative",
               display: "block",

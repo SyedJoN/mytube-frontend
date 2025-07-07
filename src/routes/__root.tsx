@@ -1,29 +1,13 @@
-import React, {
-  createContext,
-  useState,
-  useEffect,
-  useCallback,
-  useMemo,
-} from "react";
+import React, { createContext, useState, useEffect, useMemo } from "react";
 import { Outlet } from "@tanstack/react-router";
-import {
-  QueryClient,
-  QueryClientProvider,
-  useQuery,
-} from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { createRootRoute } from "@tanstack/react-router";
 import { useLocation } from "@tanstack/react-router";
-import {
-  ThemeProvider,
-  Box,
-  CssBaseline,
-  useTheme,
-  useMediaQuery,
-} from "@mui/material";
+import { Box, CssBaseline, useTheme, useMediaQuery } from "@mui/material";
 import theme from "../assets/Theme";
 import Header from "../Components/Header/Header";
-import { getCurrentUser, getUserChannelProfile } from "../apis/userFn";
-import { throttle } from "lodash";
+import { getCurrentUser } from "../apis/userFn";
+import throttle from "lodash/throttle";
 import { SnackbarProvider } from "../Contexts/SnackbarContext";
 import { ProgressBar } from "../ProgressBar";
 
@@ -79,17 +63,12 @@ function RouteComponent() {
   const [isUserInteracted, setIsUserInteracted] = useState(false);
   const scrollYRef = React.useRef(0);
   const prevScrollRef = React.useRef(0);
-  const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {
-    setHasMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!hasMounted) return;
-
-    setOpen(shouldBeOpen);
-  }, [shouldBeOpen, hasMounted]);
+    requestAnimationFrame(() => {
+      setOpen(shouldBeOpen);
+    });
+  }, [shouldBeOpen]);
 
   useEffect(() => {
     const body = document.body;
@@ -124,21 +103,24 @@ function RouteComponent() {
     }
   }, [open, isLaptop, watch]);
 
-  useEffect(() => {
-    const handleScroll = throttle(() => {
-      if (!open) {
-        const currentScrollY = window.scrollY;
-        scrollYRef.current = currentScrollY;
-        prevScrollRef.current = currentScrollY;
-      }
-    }, 300);
+const handleScroll = React.useCallback(
+  throttle(() => {
+    if (!open) {
+      const currentScrollY = window.scrollY;
+      scrollYRef.current = currentScrollY;
+      prevScrollRef.current = currentScrollY;
+    }
+  }, 300),
+  [open]
+);
 
-    window.addEventListener("scroll", handleScroll);
+useEffect(() => {
+  window.addEventListener("scroll", handleScroll as EventListener);
 
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-    };
-  }, [open]);
+  return () => {
+    window.removeEventListener("scroll", handleScroll as EventListener);
+  };
+}, [handleScroll]);
 
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -175,15 +157,15 @@ function RouteComponent() {
       overflowY: "visible",
       marginTop: "var(--toolbar-height)",
       marginLeft:
-         isTablet || watch
-          ? "0" :
-      ((home || search || userProfile) && isLaptop && !isTablet) ?
-      "var(--mini-drawer-width)" 
-          : open && !isLaptop
-            ? "var(--drawer-width)"
-            : !open && !isTablet || userProfile
-              ? "var(--mini-drawer-width)"
-              : "0",
+        isTablet || watch
+          ? "0"
+          : (home || search || userProfile) && isLaptop && !isTablet
+            ? "var(--mini-drawer-width)"
+            : open && !isLaptop
+              ? "var(--drawer-width)"
+              : (!open && !isTablet) || userProfile
+                ? "var(--mini-drawer-width)"
+                : "0",
 
       backgroundColor: theme.palette.primary.main,
     }),
@@ -197,7 +179,6 @@ function RouteComponent() {
             <CssBaseline />
 
             <Header
-              open={open}
               home={home}
               search={search}
               watch={watch}

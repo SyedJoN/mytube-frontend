@@ -310,14 +310,19 @@ function VideoPlayer({
     if (!prevVideoRef.current) videoRef.current?.play();
   }, []);
 
-  const handleLeavePiP = useCallback(() => {
-    setIsPiPActive(false);
+ const handleLeavePiP = useCallback(() => {
+  setShowIcon(false)
 
-    if (videoRef.current?.paused) {
-      setIsPlaying(false);
-    }
-    exitingPiPViaOurUIButtonRef.current = false;
-  }, [setIsPlaying]);
+  setIsPiPActive(false);
+
+  exitingPiPViaOurUIButtonRef.current = false;
+
+requestAnimationFrame(() => {
+  setIsPlaying(videoRef.current?.paused ? false : true);
+});
+
+}, [setIsPlaying]);
+
 
   useEffect(() => {
     const video = videoRef.current;
@@ -335,10 +340,11 @@ function VideoPlayer({
   const handleTogglePiP = useCallback(async () => {
     const video = videoRef.current;
     if (!video) return;
+    setIsUserInteracted(true);
 
     try {
       if (document.pictureInPictureElement) {
-        // We’re exiting via our UI, so set the ref
+
         exitingPiPViaOurUIButtonRef.current = true;
         await document.exitPictureInPicture();
       } else {
@@ -346,7 +352,7 @@ function VideoPlayer({
       }
     } catch (err) {
       console.error("PiP error:", err);
-      // reset just in case
+      
       exitingPiPViaOurUIButtonRef.current = false;
     }
   }, []);

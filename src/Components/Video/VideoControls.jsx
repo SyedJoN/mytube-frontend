@@ -71,6 +71,8 @@ const VideoControls = forwardRef(
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
     const context = useContext(UserInteractionContext);
+    const pipSupported = !!document.pictureInPictureEnabled;
+
 const tooltipStyles = useMemo(() => ({
   whiteSpace: "nowrap",
   backgroundColor: "rgb(27,26,27)",
@@ -621,7 +623,7 @@ const nextVideoModifiers = useMemo(()=>([
               </IconButton>
             </Box>
             <Box className={`right-controls ${isMini ? "hidden" : ""}`}>
-              {!isFullscreen && (
+              {!isFullscreen && pipSupported && (
                 <Tooltip
                   disableInteractive
                   disableFocusListener

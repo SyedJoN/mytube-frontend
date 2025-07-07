@@ -78,6 +78,7 @@ const getListItemIconStyles = () => ({
   justifyContent: "center",
 });
 
+
 const DrawerContent = React.memo(
   ({
     isExpanded,
@@ -88,40 +89,60 @@ const DrawerContent = React.memo(
   }) => {
     return (
       <Box className="drawer-content" sx={{ flex: 1 }}>
-        <Toolbar
-          sx={{
-            minHeight: "var(--toolbar-height)",
-            "@media (min-width:600px)": {
-              minHeight: "var(--toolbar-height)",
-            },
-          }}
-        >
-          <IconButton
-            disableRipple
-            size="medium"
-            edge="start"
-            color="inherit"
-            aria-label="menu"
-            onClick={toggleDrawer}
+          <Toolbar
             sx={{
-              width: "40px",
-              height: "40px",
-              m: 0,
-              borderRadius: "50px",
-              "&:hover": {
-                background: "rgba(255,255,255,0.1)",
+              paddingLeft: "16px",
+              paddingRight: "16px",
+              minHeight: "var(--toolbar-height)",
+              "@media (min-width:600px)": {
+                paddingLeft: "16px",
+                paddingRight: "16px",
+                minHeight: "var(--toolbar-height)",
               },
             }}
           >
-            <MenuIcon sx={{ color: "#f1f1f1" }} />
-          </IconButton>
-
-          <Link style={{ color: "#fff", textDecoration: "none" }} to="/">
-            <Typography sx={{ padding: "10px" }} variant="h6" noWrap>
-              VTube
-            </Typography>
-          </Link>
-        </Toolbar>
+      
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+                className="start"
+              >
+                <IconButton
+                  disableRipple
+                  size="medium"
+                  edge="start"
+                  color="inherit"
+                  aria-label="menu"
+                  onClick={toggleDrawer}
+                  sx={{
+                    width: "40px",
+                    height: "40px",
+                    m: 0,
+                  }}
+                >
+                  <MenuIcon sx={{color: "#fff"}}/>
+                </IconButton>
+                <Link
+                  style={{
+                    display: "inline-block",
+                    verticalAlign: "middle",
+                    color: "#fff",
+                    textDecoration: "none",
+                    paddingLeft: "8px",
+                    flexGrow: 1,
+                  }}
+                  to="/"
+                >
+                  <Typography variant="h6" noWrap component="div">
+                    VTube
+                  </Typography>
+                </Link>
+              </Box>
+                </Toolbar>
+          
 
         <List sx={{ color: "#fff" }}>
           {mainMenuItems.map(({ text, path, icon, iconOutlined }) => {
@@ -247,7 +268,6 @@ function Header({ watch, search, home, userProfile, ...props }) {
   const { window: windowProp } = props;
   const [opacity, setOpacity] = useState(0);
   const navigate = useNavigate();
-
 
   const toggleDrawer = useCallback(() => {
     if (setOpen) {
@@ -463,7 +483,7 @@ function Header({ watch, search, home, userProfile, ...props }) {
                     verticalAlign: "middle",
                     color: "#fff",
                     textDecoration: "none",
-                    paddingLeft: "16px",
+                    paddingLeft: "8px",
                     flexGrow: 1,
                   }}
                   to="/"
@@ -563,22 +583,22 @@ function Header({ watch, search, home, userProfile, ...props }) {
       </AppBar>
 
       <Drawer
-      disablePortal={true}
-      TransitionComponent={CustomSlide}
+        TransitionComponent={CustomSlide}
         variant={
           isPermanentDrawerVisible || (!isTablet && !watch)
             ? "permanent"
             : "temporary"
         }
         open={watch && open}
-        onClose={
-          (home || search || userProfile) && isTablet
-            ? () => setOpen(false)
-            : undefined
-        }
+        onClose={() => setOpen(false)}
         ModalProps={{
           keepMounted: true,
           disableScrollLock: true,
+        }}
+        slotProps={{
+          backdrop: {
+            onClick: toggleDrawer,
+          },
         }}
         sx={jsControlledDrawerStyles}
       >
@@ -592,8 +612,7 @@ function Header({ watch, search, home, userProfile, ...props }) {
       </Drawer>
       {(home || search || userProfile) && isLaptop && (
         <Drawer
-      TransitionComponent={CustomSlide}
-
+          TransitionComponent={CustomSlide}
           variant="temporary"
           open={open}
           onClose={() => setOpen(false)}
