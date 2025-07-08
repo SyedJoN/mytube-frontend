@@ -1113,7 +1113,7 @@ function VideoPlayer({
           DoubleSpeed(e);
           isHolding.current = true;
           holdTimer.current = null;
-        }, 200);
+        }, 100);
       } else if (e.shiftKey && e.key.toLowerCase() === "n") {
         handleNextVideo();
       } else if (e.key.toLowerCase() === "f") {
@@ -1159,8 +1159,6 @@ function VideoPlayer({
     };
 
     const handleKeyUp = (e) => {
-      const overlay = container.querySelector(".video-overlay");
-      const controls = container.querySelector(".controls");
       e.preventDefault();
       if (e.code === "Space") {
         if (isHolding.current) {
@@ -1171,6 +1169,10 @@ function VideoPlayer({
         } else {
           clearTimeout(holdTimer.current);
           holdTimer.current = null;
+          flushSync(() => {
+            setShowIcon(true);
+            setShowVolumeIcon(false);
+          });
           togglePlayPause();
         }
       }

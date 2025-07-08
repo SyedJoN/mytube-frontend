@@ -52,7 +52,7 @@ const tooltipStyles = {
   padding: "4px",
 };
 
-const linkStyles = { textDecoration: "none" };
+const linkStyles = { display: "inline-block", textDecoration: "none" };
 
 const viewStyles = {
   display: "inline-block",
@@ -401,16 +401,17 @@ const handleInteraction = () => {
               display: "flex",
               flex: "none",
               maxWidth: "500px",
-              width: "168px",
-              aspectRatio: "16/9",
+              width: "176px",
               paddingRight: 1,
             }}
           >
             <Box
               width="100%"
+              height="100%"
               sx={{
                 position: "relative",
                 display: "block",
+                paddingTop: "56.25%"
               }}
             >
               <Box
@@ -426,7 +427,7 @@ const handleInteraction = () => {
                 <Link
                   to="/watch"
                   search={searchParams}
-                  style={linkStyles}
+                  style={{...linkStyles}}
                   onDragEnd={handleDragEnd}
                 >
                   <LazyLoad height={200} once offset={100}>
@@ -439,7 +440,6 @@ const handleInteraction = () => {
                         objectFit: "cover",
                         userSelect: "none",
                         opacity: isHoverPlay && isVideoPlaying ? 0 : 1,
-                        transition: "opacity 0.3s ease",
                       }}
                       component="img"
                       draggable="false"
