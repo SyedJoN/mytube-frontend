@@ -138,6 +138,8 @@ function VideoPlayer({
   const animateTimeoutRef = useRef(null);
   const captureCanvasRef = useRef(null);
   const prevHoverStateRef = useRef(null);
+  const holdTimer = useRef(null);
+  const isHolding = useRef(null);
 
   const glowCanvasRef = useRef(null);
   const [isMini, setIsMini] = useState(false);
@@ -310,19 +312,17 @@ function VideoPlayer({
     if (!prevVideoRef.current) videoRef.current?.play();
   }, []);
 
- const handleLeavePiP = useCallback(() => {
-  setShowIcon(false)
+  const handleLeavePiP = useCallback(() => {
+    setShowIcon(false);
 
-  setIsPiPActive(false);
+    setIsPiPActive(false);
 
-  exitingPiPViaOurUIButtonRef.current = false;
+    exitingPiPViaOurUIButtonRef.current = false;
 
-requestAnimationFrame(() => {
-  setIsPlaying(videoRef.current?.paused ? false : true);
-});
-
-}, [setIsPlaying]);
-
+    requestAnimationFrame(() => {
+      setIsPlaying(videoRef.current?.paused ? false : true);
+    });
+  }, [setIsPlaying]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -344,7 +344,6 @@ requestAnimationFrame(() => {
 
     try {
       if (document.pictureInPictureElement) {
-
         exitingPiPViaOurUIButtonRef.current = true;
         await document.exitPictureInPicture();
       } else {
@@ -352,7 +351,7 @@ requestAnimationFrame(() => {
       }
     } catch (err) {
       console.error("PiP error:", err);
-      
+
       exitingPiPViaOurUIButtonRef.current = false;
     }
   }, []);
@@ -481,7 +480,7 @@ requestAnimationFrame(() => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
       timeoutRef.current = setTimeout(() => {
-        if (!controls.length) {
+        if (!controls.length && !isHolding.current) {
           if (!showVolumePanel) {
             setControlOpacity(0);
             setTitleOpacity(0);
@@ -511,7 +510,7 @@ requestAnimationFrame(() => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
       timeoutRef.current = setTimeout(() => {
-        if (isPlaying && !controls.length && !isReplay) {
+        if (isPlaying && !controls.length && !isReplay && !isHolding.current) {
           if (!showVolumePanel) {
             setControlOpacity(0);
             setTitleOpacity(0);
@@ -1074,7 +1073,12 @@ requestAnimationFrame(() => {
   }, [volume, data?.data?._id, isMuted]);
 
   useEffect(() => {
+    const video = videoRef.current;
+    const container = containerRef.current;
+    if (!video || !container) return;
     const handleKeyPress = (e) => {
+      const overlay = container.querySelector(".video-overlay");
+      const controls = container.querySelector(".controls");
       const activeElement = document.activeElement;
       const isInputFocused =
         activeElement &&
@@ -1088,14 +1092,28 @@ requestAnimationFrame(() => {
         handleForwardSeek();
       } else if (e.key === "ArrowLeft") {
         handleBackwardSeek();
-      } else if (e.code === "Space" || e.key.toLowerCase() === "k") {
+      } else if (e.key.toLowerCase() === "k") {
         e.preventDefault();
         flushSync(() => {
           setShowIcon(true);
           setShowVolumeIcon(false);
         });
-
         togglePlayPause();
+      } else if (e.code === "Space") {
+        e.preventDefault();
+        if (isHolding.current) return;
+        setControlOpacity(1);
+        if (overlay.classList.contains("hide-cursor")) {
+          overlay.classList.remove("hide-cursor");
+        }
+        if (controls.classList.contains("hide-cursor")) {
+          controls.classList.remove("hide-cursor");
+        }
+        holdTimer.current = setTimeout(() => {
+          DoubleSpeed(e);
+          isHolding.current = true;
+          holdTimer.current = null;
+        }, 200);
       } else if (e.shiftKey && e.key.toLowerCase() === "n") {
         handleNextVideo();
       } else if (e.key.toLowerCase() === "f") {
@@ -1139,9 +1157,30 @@ requestAnimationFrame(() => {
         }
       }
     };
-    document.addEventListener("keydown", handleKeyPress);
+
+    const handleKeyUp = (e) => {
+      const overlay = container.querySelector(".video-overlay");
+      const controls = container.querySelector(".controls");
+      e.preventDefault();
+      if (e.code === "Space") {
+        if (isHolding.current) {
+          isHolding.current = false;
+          clearTimeout(holdTimer.current);
+          holdTimer.current = null;
+          exitDoubleSpeed(e);
+        } else {
+          clearTimeout(holdTimer.current);
+          holdTimer.current = null;
+          togglePlayPause();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyPress);
+    window.addEventListener("keyup", handleKeyUp);
     return () => {
-      document.removeEventListener("keydown", handleKeyPress);
+      window.removeEventListener("keydown", handleKeyPress);
+      window.removeEventListener("keyup", handleKeyUp);
     };
   }, [handleForwardSeek, handleBackwardSeek, togglePlayPause, handleNextVideo]);
 
