@@ -9,6 +9,7 @@ import React, {
   useMemo,
 } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
+
 import { PlayPauseSvg } from "../Utils/PlayPauseSvg";
 import {
   Box,
@@ -31,8 +32,7 @@ import { UserInteractionContext } from "../../routes/__root";
 import { PiPSvg } from "../Utils/PiPSvg";
 import { useTheme } from "@emotion/react";
 import { ReplaySvg } from "../Utils/ReplaySvg";
-
-
+import { WebVTT } from "vtt.js";
 
 const VideoControls = forwardRef(
   (
@@ -65,6 +65,7 @@ const VideoControls = forwardRef(
       showVolumePanel,
       setShowVolumePanel,
       handleTogglePiP,
+      vttUrl,
     },
     videoRef
   ) => {
@@ -72,55 +73,64 @@ const VideoControls = forwardRef(
     const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
     const context = useContext(UserInteractionContext);
     const pipSupported = !!document.pictureInPictureEnabled;
+    const parser = new WebVTT.Parser(window, WebVTT.StringDecoder());
 
-const tooltipStyles = useMemo(() => ({
-  whiteSpace: "nowrap",
-  backgroundColor: "rgb(27,26,27)",
-  color: "#f1f1f1",
-  fontSize: "0.75rem",
-  fontWeight: "600",
-  borderRadius: "4px",
-  py: "4px",
-  px: "6px",
-}), []);
+    const tooltipStyles = useMemo(
+      () => ({
+        whiteSpace: "nowrap",
+        backgroundColor: "rgb(27,26,27)",
+        color: "#f1f1f1",
+        fontSize: "0.75rem",
+        fontWeight: "600",
+        borderRadius: "4px",
+        py: "4px",
+        px: "6px",
+      }),
+      []
+    );
 
-const nextVideoStyles = useMemo(() => ({
-  whiteSpace: "nowrap",
-  backgroundColor: "rgb(27,26,27)",
-  fontSize: "0.75rem",
-  borderRadius: "16px",
-  padding: "0",
-}), []);
+    const nextVideoStyles = useMemo(
+      () => ({
+        whiteSpace: "nowrap",
+        backgroundColor: "rgb(27,26,27)",
+        fontSize: "0.75rem",
+        borderRadius: "16px",
+        padding: "0",
+      }),
+      []
+    );
 
-
-const popperModifiers = [
-  {
-    name: "offset",
-    options: {
-      offset: [0, 5],
-    },
-  },
-];
-const nextVideoModifiers = useMemo(()=>([
-  {
-    name: "offset",
-    options: {
-      offset: [60, 0],
-    },
-  },
-  {
-    name: "flip",
-    enabled: false,
-  },
-  {
-    name: "preventOverflow",
-    enabled: false,
-  },
-  {
-    name: "hide",
-    enabled: false,
-  },
-]), []);
+    const popperModifiers = [
+      {
+        name: "offset",
+        options: {
+          offset: [0, 5],
+        },
+      },
+    ];
+    const nextVideoModifiers = useMemo(
+      () => [
+        {
+          name: "offset",
+          options: {
+            offset: [60, 0],
+          },
+        },
+        {
+          name: "flip",
+          enabled: false,
+        },
+        {
+          name: "preventOverflow",
+          enabled: false,
+        },
+        {
+          name: "hide",
+          enabled: false,
+        },
+      ],
+      []
+    );
     const controlStyles = useMemo(
       () => ({
         width: isMobile ? "40px" : "48px",
@@ -131,20 +141,22 @@ const nextVideoModifiers = useMemo(()=>([
       [isMobile]
     );
 
-  const ContainerStyles = useMemo(() => ({
-  position: "absolute",
-  opacity: controlOpacity,
-  width: isMini ? "480px" : videoContainerWidth - 24,
-  transition: "opacity .25s cubic-bezier(0,0,.2,1)",
-  bottom: 0,
-  height: isMobile ? "36px" : "48px",
-  paddingTop: "3px",
-  textAlign: "left",
-  left: "12px",
-  borderRadius: "3px",
-  zIndex: 59,
-}), [controlOpacity, isMini, videoContainerWidth, isMobile]);
-
+    const ContainerStyles = useMemo(
+      () => ({
+        position: "absolute",
+        opacity: controlOpacity,
+        width: isMini ? "480px" : videoContainerWidth - 24,
+        transition: "opacity .25s cubic-bezier(0,0,.2,1)",
+        bottom: 0,
+        height: isMobile ? "36px" : "48px",
+        paddingTop: "3px",
+        textAlign: "left",
+        left: "12px",
+        borderRadius: "3px",
+        zIndex: 59,
+      }),
+      [controlOpacity, isMini, videoContainerWidth, isMobile]
+    );
 
     const isFullscreen = !!document.fullscreenElement;
     const ariaValueNow = videoRef.current
@@ -154,7 +166,9 @@ const nextVideoModifiers = useMemo(()=>([
       ? Math.round(videoRef.current.duration)
       : 0;
     const theatreTitle = isTheatre ? "Default view (t)" : "Theatre mode (t)";
-    const pipTitle = isPiActive ? "Exit picture-in-picture" : "Picture-in-picture";
+    const pipTitle = isPiActive
+      ? "Exit picture-in-picture"
+      : "Picture-in-picture";
     const fullScreenTitle = isFullscreen
       ? "Exit full screen (f)"
       : "Full screen (f)";
@@ -164,6 +178,60 @@ const nextVideoModifiers = useMemo(()=>([
     const volumeSliderRef = useRef(null);
     const { isUserInteracted, setIsUserInteracted } = context ?? {};
     const [BarWidth, setBarWidth] = useState(0);
+    const [hoverTime, setHoverTime] = useState(0);
+    const [cueMap, setCueMap] = useState([]);
+    const [hoveredCue, setHoveredCue] = useState(null);
+    const [hoverX, setHoverX] = useState(0);
+    const [isProgressEntered, setIsProgressEnter] = useState(false);
+    const [hoveredProgress, setHoveredProgress] = useState(0);
+
+    useEffect(() => {
+      if (!vttUrl) return;
+
+
+      fetch(vttUrl)
+        .then((res) => res.text())
+        .then((vttText) => {
+          const cleanedVtt = vttText.replace(/align:middle/g, "align:center");
+
+          const parser = new WebVTT.Parser(window, WebVTT.StringDecoder());
+          const cues = [];
+
+          parser.oncue = (cue) => {
+            cues.push(cue);
+          };
+
+          parser.parse(cleanedVtt);
+          parser.flush();
+
+          setCueMap(cues);
+        })
+        .catch((err) => {
+          console.error("Error loading or parsing VTT:", err);
+        });
+    }, [vttUrl]);
+
+    const handleMouseMove = (e) => {
+      const rect = sliderRef.current.getBoundingClientRect();
+      const offsetX = e.clientX - rect.left;
+      setHoverX(offsetX);
+
+      const progress = Math.min(Math.max((offsetX / rect.width) * 100, 0), 100);
+      setHoveredProgress(progress);
+
+      const timeOnHover = (offsetX / rect.width) * videoRef.current.duration;
+      setHoverTime(timeOnHover);
+      const foundCue = cueMap.find(
+        (cue) => hoverTime >= cue.startTime && hoverTime <= cue.endTime
+      );
+      setHoveredCue(foundCue || null);
+
+      console.log("hoveredCue.text:", hoveredCue?.text);
+    };
+
+    const handleMouseLeave = () => {
+      setHoveredCue(null);
+    };
 
     const handleSeekMove = (e) => {
       if (!sliderRef.current || !videoRef.current) return;
@@ -392,6 +460,40 @@ const nextVideoModifiers = useMemo(()=>([
         setIsTheatre((prev) => !prev);
       });
     };
+    const previewStyle = getBackgroundPosition(hoveredCue?.text);
+
+    const previewWidth = parseInt(previewStyle.width, 10) || 0;
+    const half = previewWidth / 2;
+    const clampedLeft = Math.max(
+      0,
+      Math.min(hoverX - half, BarWidth - previewWidth)
+    );
+    function getBackgroundPosition(cueText) {
+      if (typeof cueText !== "string") return {};
+
+      const [urlPart = "", frag = ""] = cueText.split("#");
+      if (!frag.startsWith("xywh=")) return {};
+
+      const nums = frag
+        .slice(5) // strip off "xywh="
+        .split(",") // ["x","y","w","h"]
+        .map(Number);
+
+      if (nums.length !== 4 || nums.some(Number.isNaN)) return {};
+
+      const [x, y, w, h] = nums;
+
+      return {
+        width: `${w}px`,
+        height: `${h}px`,
+        backgroundImage: `url(${urlPart})`,
+        backgroundPosition: `-${x}px -${y}px`,
+        backgroundRepeat: "no-repeat",
+        backgroundSize: `${10 * w}px auto`,
+        border: "2px solid #fff",
+        borderRadius: "8px",
+      };
+    }
 
     return (
       <>
@@ -617,8 +719,13 @@ const nextVideoModifiers = useMemo(()=>([
 
               <IconButton disableRipple sx={{ cursor: "default" }}>
                 <Typography sx={{ color: "#f1f1f1" }} fontSize={"0.85rem"}>
-                  {formatDuration(progress || 0)} /{" "}
-                  {formatDuration(videoRef?.current?.duration || 0)}
+                  {formatDuration(
+                    Math.min(
+                      videoRef?.current?.currentTime || 0,
+                      videoRef?.current?.duration || 0
+                    )
+                  )}{" "}
+                  / {formatDuration(videoRef?.current?.duration || 0)}
                 </Typography>
               </IconButton>
             </Box>
@@ -714,6 +821,8 @@ const nextVideoModifiers = useMemo(()=>([
             }}
           >
             <Box
+              onMouseMove={handleMouseMove}
+              onMouseLeave={handleMouseLeave}
               onClick={handleClickSeek}
               ref={sliderRef}
               component={"div"}
@@ -731,22 +840,53 @@ const nextVideoModifiers = useMemo(()=>([
               }}
             >
               <Box
+                sx={{
+                  position: "absolute",
+                  bottom: "40px",
+                  left: `${clampedLeft}px`,
+                  pointerEvents: "none",
+                  ...previewStyle,
+                }}
+              >
+                {" "}
+                <Box
+                  sx={{
+                    display: "block",
+                    opacity: hoveredCue ? 1 : 0,
+                    position: "absolute",
+                    bottom: "-40px",
+                    left: "50%",
+                    pointerEvents: "none",
+                    transform: "translate(-50%, -50%)",
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      color: "#fff",
+                      textAlign: "center",
+                      fontWeight: "600",
+                      textShadow: "1px 0px 16px rgba(0, 0, 0, 0.5)",
+                    }}
+                    fontSize={"0.85rem"}
+                  >
+                    {formatDuration(hoverTime)}
+                  </Typography>
+                </Box>
+              </Box>
+              <Box
                 className="progress-list"
                 sx={{
                   position: "relative",
+                  transform: isProgressEntered ? "scaleY(1.2)" : "scaleY(.6)",
                   height: "100%",
-                  transform: "scaleY(.6)",
                   background: isMini
                     ? "rgb(51,51,51)"
                     : "rgba(255,255,255,0.2)",
                   transition: "transform .1s cubic-bezier(0.4, 0, 1, 1)",
-                  "&:hover": {
-                    transform: "scaleY(1.2)",
-                  },
                 }}
               >
                 <div
-                  className="load-progress"
+                  className="play-progress"
                   style={{
                     position: "absolute",
                     bottom: 0,
@@ -755,18 +895,33 @@ const nextVideoModifiers = useMemo(()=>([
                     height: "100%",
                     transform: `scaleX(${progress / 100})`,
                     transformOrigin: "0 0",
+                    zIndex: 3,
+                  }}
+                ></div>
+                <div
+                  className="hover-progress"
+                  style={{
+                    position: "absolute",
+                    bottom: 0,
+                    left: 0,
+                    opacity: hoveredCue ? 1 : 0,
+                    width: "100%",
+                    height: "100%",
+                    transform: `scaleX(${hoveredProgress / 100})`,
+                    transformOrigin: "0 0",
                     zIndex: 2,
                   }}
                 ></div>
                 <div
-                  className={`buffered-bar ${isMini ? "hide" : ""}`}
+                  className={`load-progress ${isMini ? "hide" : ""}`}
                   style={{
                     position: "absolute",
                     top: 0,
                     left: 0,
                     height: "100%",
-                    width: `${bufferedVal * BarWidth}px`,
-                    backgroundColor: "#888",
+                    width: "100%",
+                    transform: `scaleX(${bufferedVal})`,
+                    transformOrigin: "0 0",
                     borderRadius: "3px",
                     zIndex: 1,
                     transition: "width 0.1s",
@@ -781,6 +936,7 @@ const nextVideoModifiers = useMemo(()=>([
                   left: `-${thumbWidth / 2}px`,
                   top: "-4px",
                   transform: `translateX(${(progress / 100) * BarWidth}px)`,
+                  zIndex: 260,
                 }}
               >
                 <div
@@ -795,6 +951,20 @@ const nextVideoModifiers = useMemo(()=>([
                   }}
                 ></div>
               </Box>
+              <Box
+                onMouseDown={handleSeekStart}
+                onMouseMove={() => setIsProgressEnter(true)}
+                onMouseLeave={() => setIsProgressEnter(false)}
+                className="progress-offset"
+                sx={{
+                  position: "absolute",
+                  width: "100%",
+                  height: "16px",
+                  bottom: 0,
+                  userSelect: "none",
+                  zIndex: 250,
+                }}
+              ></Box>
             </Box>
           </Box>
         </Box>

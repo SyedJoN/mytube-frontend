@@ -47,6 +47,7 @@
     "react-window": "^1.8.11",
     "tsparticles": "^3.8.1",
     "tsparticles-engine": "^2.12.0",
+    "vtt.js": "^0.13.0",
     "yup": "^1.6.1"
   },
   "devDependencies": {

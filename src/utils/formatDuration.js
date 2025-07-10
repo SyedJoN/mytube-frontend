@@ -1,10 +1,8 @@
-const formatDuration = (duration) => {
-    const totalSeconds = Math.floor(duration); // Remove decimals
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-  
-    return `${minutes}:${seconds.toString().padStart(2, "0")}`; // Ensures 2-digit seconds
-  };
-  
+const formatDuration = (duration = 0) => {
+  const clamped = Math.max(0, Math.floor(duration));
+  const minutes = Math.floor(clamped / 60);
+  const seconds = clamped % 60;
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+};
 
-  export default formatDuration
+export default formatDuration;

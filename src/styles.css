@@ -252,10 +252,16 @@ video {
   outline: none;
   cursor: pointer;
 }
-.load-progress {
+.play-progress {
   background: var(--progress-color);
-
 }
+.load-progress {
+  background: rgba(255,255,255,.4);
+}
+.hover-progress {
+  background: rgba(255,255,255,.5);
+}
+
 /* .volume-container:hover .volume-panel {
   width: 52px;
   margin-right: 3px;

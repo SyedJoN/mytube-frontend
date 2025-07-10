@@ -1113,7 +1113,7 @@ function VideoPlayer({
           DoubleSpeed(e);
           isHolding.current = true;
           holdTimer.current = null;
-        }, 100);
+        }, 200);
       } else if (e.shiftKey && e.key.toLowerCase() === "n") {
         handleNextVideo();
       } else if (e.key.toLowerCase() === "f") {
@@ -1403,6 +1403,8 @@ function VideoPlayer({
                 controlOpacity={controlOpacity}
                 showVolumePanel={showVolumePanel}
                 setShowVolumePanel={setShowVolumePanel}
+                spriteUrl={data?.data?.sprite?.url}
+                vttUrl={data?.data?.sprite?.vtt}
               />
 
               <Box className="title-background-overlay"></Box>
