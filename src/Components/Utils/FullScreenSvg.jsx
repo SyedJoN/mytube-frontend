@@ -63,7 +63,7 @@ export const FullScreenSvg = React.memo(({ isFullscreen }) => {
         ></path>
       </g>
       <g className="fullscreen-btn-corner-3">
-        <use className="svg-shadow" href="id-9"></use>
+        <use className="svg-shadow" href="#id-9"></use>
         <path
           className="control-svg-fill"
           d="M 12,20 10,20 10,26 l 6,0 0,-2 -4,0 0,-4 0,0 z"

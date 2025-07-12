@@ -14,6 +14,7 @@ import { shuffleArray } from "../helper/shuffle";
 import { fetchPlaylistById } from "../apis/playlistFn";
 import { getUserChannelProfile } from "../apis/userFn";
 import { filter } from "lodash";
+import { usePlayerSetting } from "../helper/usePlayerSettings";
 
 function WatchVideo({ videoId, playlistId }) {
   const navigate = useNavigate();
@@ -26,7 +27,7 @@ function WatchVideo({ videoId, playlistId }) {
   const [activeAlertId, setActiveAlertId] = useState(null);
   const [shuffledVideos, setShuffledVideos] = useState([]);
 
-  const [isTheatre, setIsTheatre] = useState(false);
+  const [isTheatre, setIsTheatre] = usePlayerSetting('theatreMode', false);
   const queryClient = useQueryClient();
   const isCustomWidth = useMediaQuery("(max-width:1014px)");
   const { data, isLoading, isError, error } = useQuery({

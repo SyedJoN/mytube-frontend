@@ -206,9 +206,7 @@ video {
     flex-direction: row;
     background: #000;
 }
-.video-controls {
-  transition: opacity 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
+
 .controls-background-overlay {
     position: absolute;
     height: 56px;
@@ -376,9 +374,47 @@ vt-interaction.animate:not(.down) .stroke {
 .ctrl-mini {
   width: 36px
 }
+.settings-svg-fill {
+  fill: #fff;
+}
+.settings-item {
+  position: relative;
+  padding: 0 16px;
+  min-height: 43px;
+  cursor: pointer;
+  color: #eee;
+}
+.settings-item:hover {
+  background: rgba(255,255,255,.2)
+}
+.settings-inner {
+  padding: 6px 0;
+}
+.item-icon {
+  margin-right: 12px;
+  width: 27px;
+  height: 27px
+}
+
+.label-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.item-content, .item-text {
+  height: 27px;
+  color: #eee;
+}
 .control-svg-fill {
   fill: #fff;
   opacity: .9;
+  transition: opacity .1s cubic-bezier(.4,0,1,1);
+}
+.gear-icon {
+  transition: transform 0.1s cubic-bezier(.4,0,1,1);
+}
+.gear-icon[aria-expanded="true"] {
+  transform: rotateZ(30deg);
 }
 
 .control-svg-fill:hover {

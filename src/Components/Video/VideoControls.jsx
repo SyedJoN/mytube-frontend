@@ -9,7 +9,9 @@ import React, {
   useMemo,
 } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-
+import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
+import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
+import CheckIcon from "@mui/icons-material/Check";
 import { PlayPauseSvg } from "../Utils/PlayPauseSvg";
 import {
   Box,
@@ -18,6 +20,8 @@ import {
   Typography,
   CardMedia,
   useMediaQuery,
+  Switch,
+  Divider,
 } from "@mui/material";
 import { SkipPreviousSvg } from "../Utils/SkipPreviousSvg";
 import { SkipNextSvg } from "../Utils/SkipNextSvg";
@@ -33,6 +37,9 @@ import { PiPSvg } from "../Utils/PiPSvg";
 import { useTheme } from "@emotion/react";
 import { ReplaySvg } from "../Utils/ReplaySvg";
 import { WebVTT } from "vtt.js";
+import { GearSvg } from "../Utils/GearSvg";
+import AmbientSvg from "../Utils/AmbientSvg";
+import PlaybackSvg from "../Utils/PlaybackSvg";
 
 const VideoControls = forwardRef(
   (
@@ -62,18 +69,20 @@ const VideoControls = forwardRef(
       isPiActive,
       videoContainerWidth,
       controlOpacity,
-      showVolumePanel,
-      setShowVolumePanel,
       handleTogglePiP,
       vttUrl,
+      showSettings,
+      setShowSettings,
+      playbackSpeed,
+      setPlaybackSpeed,
     },
     videoRef
   ) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+    const isTablet = useMediaQuery(theme.breakpoints.down("md"));
     const context = useContext(UserInteractionContext);
     const pipSupported = !!document.pictureInPictureEnabled;
-    const parser = new WebVTT.Parser(window, WebVTT.StringDecoder());
 
     const tooltipStyles = useMemo(
       () => ({
@@ -146,7 +155,7 @@ const VideoControls = forwardRef(
         position: "absolute",
         opacity: controlOpacity,
         width: isMini ? "480px" : videoContainerWidth - 24,
-        transition: "opacity .25s cubic-bezier(0,0,.2,1)",
+        transition: "opacity 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
         bottom: 0,
         height: isMobile ? "36px" : "48px",
         paddingTop: "3px",
@@ -178,16 +187,24 @@ const VideoControls = forwardRef(
     const volumeSliderRef = useRef(null);
     const { isUserInteracted, setIsUserInteracted } = context ?? {};
     const [BarWidth, setBarWidth] = useState(0);
+    const [showVolumePanel, setShowVolumePanel] = useState(false);
+
     const [hoverTime, setHoverTime] = useState(0);
     const [cueMap, setCueMap] = useState([]);
     const [hoveredCue, setHoveredCue] = useState(null);
     const [hoverX, setHoverX] = useState(0);
     const [isProgressEntered, setIsProgressEnter] = useState(false);
     const [hoveredProgress, setHoveredProgress] = useState(0);
+    const [showPlaybackMenu, setShowPlaybackMenu] = useState(false);
+
+    useEffect(() => {
+      const video = videoRef.current;
+      if (!video) return;
+      video.playbackRate = playbackSpeed
+    }, [playbackSpeed]);
 
     useEffect(() => {
       if (!vttUrl) return;
-
 
       fetch(vttUrl)
         .then((res) => res.text())
@@ -225,8 +242,6 @@ const VideoControls = forwardRef(
         (cue) => hoverTime >= cue.startTime && hoverTime <= cue.endTime
       );
       setHoveredCue(foundCue || null);
-
-      console.log("hoveredCue.text:", hoveredCue?.text);
     };
 
     const handleMouseLeave = () => {
@@ -495,6 +510,9 @@ const VideoControls = forwardRef(
       };
     }
 
+    const handlePlaybackspeed = (speed) => {
+      setPlaybackSpeed(speed);
+    };
     return (
       <>
         <Box
@@ -669,52 +687,70 @@ const VideoControls = forwardRef(
                     />
                   </a>
                 </Tooltip>
-                <Box
-                  ref={volumeSliderRef}
-                  onMouseDown={handleVolumeClick}
-                  className="volume-panel control"
-                  sx={{
-                    width: showVolumePanel ? "52px" : 0,
-                    marginRight: showVolumePanel ? "3px" : 0,
-                    transition:
-                      "width 0.3s ease-in-out, margin 0.3s ease-in-out",
-                    height: "100%",
-                    outline: 0,
+                <Tooltip
+                  disableInteractive
+                  disableFocusListener
+                  disableTouchListener
+                  title={"Volume"}
+                  placement="top"
+                  slotProps={{
+                    popper: {
+                      disablePortal: true,
+                      modifiers: popperModifiers,
+                    },
+                    tooltip: {
+                      sx: tooltipStyles,
+                    },
                   }}
-                  component={"div"}
-                  role="slider"
-                  aria-valuemin="0"
-                  aria-valuemax="1"
-                  aria-valuenow={Math.round(videoRef.current?.volume)}
                 >
                   <Box
-                    className="volume-slider"
+                    ref={volumeSliderRef}
+                    onMouseDown={handleVolumeClick}
+                    className="volume-panel control"
                     sx={{
-                      position: "relative",
-                      width: "100%",
+                      width: showVolumePanel ? "52px" : 0,
+                      marginRight: showVolumePanel ? "3px" : 0,
+                      transition:
+                        "width 0.3s ease-in-out, margin 0.3s ease-in-out",
                       height: "100%",
-                      minHeight: "29px",
-                      overflow: "hidden",
+                      outline: 0,
+                      cursor: "pointer",
                     }}
+                    component={"div"}
+                    role="slider"
+                    aria-valuemin="0"
+                    aria-valuemax="1"
+                    aria-valuenow={Math.round(videoRef.current?.volume)}
                   >
                     <Box
-                      onMouseDown={handleVolumeStart}
-                      className="volume-slider-thumb"
+                      className="volume-slider"
                       sx={{
-                        position: "absolute",
-                        top: "50%",
-                        left: `${volume}px`,
-                        marginTop: "-6px",
-                        color: "#fff",
-                        width: "12px",
-                        height: "12px",
-                        background: "#fff",
-                        borderRadius: "50px",
-                        cursor: "pointer",
+                        position: "relative",
+                        width: "100%",
+                        height: "100%",
+                        minHeight: "29px",
+                        overflow: "hidden",
                       }}
-                    ></Box>
+                    >
+                      <Box
+                        onMouseDown={handleVolumeStart}
+                        className="volume-slider-thumb"
+                        sx={{
+                          position: "absolute",
+                          top: "50%",
+                          left: `${volume}px`,
+                          marginTop: "-6px",
+                          color: "#fff",
+                          width: "12px",
+                          height: "12px",
+                          background: "#fff",
+                          borderRadius: "50px",
+                          cursor: "pointer",
+                        }}
+                      ></Box>
+                    </Box>
                   </Box>
-                </Box>
+                </Tooltip>
               </Box>
 
               <IconButton disableRipple sx={{ cursor: "default" }}>
@@ -730,6 +766,417 @@ const VideoControls = forwardRef(
               </IconButton>
             </Box>
             <Box className={`right-controls ${isMini ? "hidden" : ""}`}>
+              <Box
+                className={`${showSettings ? "" : "hide"}`}
+                sx={{
+                  position: "absolute",
+                  right: "12px",
+                  bottom: isTablet ? "47px" : "60px",
+                  width: showPlaybackMenu ? "251px" : "260px",
+                  height: showPlaybackMenu ? "414px" : "100px",
+                  display: "block",
+                  background: "rgba(28,28,28,.9)",
+                  borderRadius: "12px",
+                  transition: "all 0.25s cubic-bezier(.4,0,1,1)",
+                  overflow: "hidden",
+                  willChange: "width, height",
+                }}
+              >
+                <Box
+                  sx={{
+                    position: "absolute",
+                    inset: "0",
+                    width: "100%",
+                    height: "100%",
+                    transform: showPlaybackMenu
+                      ? "translateX(0%)"
+                      : "translateX(100%)",
+                    transition: "transform 0.25s cubic-bezier(.4,0,1,1)",
+                    overflowY: "auto",
+                    overflowX: "hidden",
+                  }}
+                  className="settings-inner"
+                >
+                  <Box sx={{ display: "flex", flexDirection: "column" }}>
+                    <Box
+                      onClick={() => setShowPlaybackMenu(false)}
+                      className="exit-playback"
+                      sx={{
+                        paddingX: "6px",
+                        borderBottom: "1px solid rgba(255,255,255,0.3)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", py: 3 }}
+                        className="item-text"
+                      >
+                        <KeyboardArrowLeftIcon sx={{ mb: "1px", mr: "12px" }} />
+                        <Typography
+                          variant="caption"
+                          sx={{ display: "inline-block" }}
+                        >
+                          Playback speed
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Box sx={{ display: "flex", flexDirection: "column" }}>
+                      <Box
+                        sx={{
+                          position: "relative",
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                        className="settings-item"
+                      >
+                        <Box sx={{
+                          display: "flex",
+                          flexDirection: "column"
+                        }}>
+                          
+                        <Typography
+                          sx={{ fontWeight: "600" }}
+                          variant="caption"
+                          >
+                          Custom (1)
+                        </Typography>
+
+
+                  
+                          </Box>
+                 
+                      </Box>
+                      
+                      <Box
+                        onClick={() => handlePlaybackspeed(0.25)}
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                        className="settings-item"
+                      >
+                        <CheckIcon
+                          sx={{
+                            width: "20px",
+                            height: "20px",
+                            position: "absolute",
+                            left: "8px",
+                            top: "10px",
+                            opacity: playbackSpeed === 0.25 ? 1 : 0,
+                          }}
+                        />
+                        <Typography
+                          sx={{ fontWeight: "600", px: 2 }}
+                          variant="caption"
+                        >
+                          0.25
+                        </Typography>
+                      </Box>
+                      <Box
+                        onClick={() => handlePlaybackspeed(0.5)}
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                        className="settings-item"
+                      >
+                           <CheckIcon
+                          sx={{
+                            width: "20px",
+                            height: "20px",
+                            position: "absolute",
+                            left: "8px",
+                            top: "10px",
+                            opacity: playbackSpeed === 0.5 ? 1 : 0,
+                          }}
+                        />
+                        <Typography
+                          sx={{ fontWeight: "600", px: 2 }}
+                          variant="caption"
+                        >
+                          0.5
+                        </Typography>
+                      </Box>
+                      <Box
+                        onClick={() => handlePlaybackspeed(0.75)}
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                        className="settings-item"
+                      >
+                           <CheckIcon
+                          sx={{
+                            width: "20px",
+                            height: "20px",
+                            position: "absolute",
+                            left: "8px",
+                            top: "10px",
+                            opacity: playbackSpeed === 0.75 ? 1 : 0,
+                          }}
+                        />
+                        <Typography
+                          sx={{ fontWeight: "600", px: 2 }}
+                          variant="caption"
+                        >
+                          0.75
+                        </Typography>
+                      </Box>
+                      <Box
+                        onClick={() => handlePlaybackspeed(1)}
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                        className="settings-item"
+                      >
+                           <CheckIcon
+                          sx={{
+                            width: "20px",
+                            height: "20px",
+                            position: "absolute",
+                            left: "8px",
+                            top: "10px",
+                            opacity: playbackSpeed === 1 ? 1 : 0,
+                          }}
+                        />
+                        <Typography
+                          sx={{ fontWeight: "600", px: 2 }}
+                          variant="caption"
+                        >
+                          Normal (1)
+                        </Typography>
+                      </Box>
+                      <Box
+                        onClick={() => handlePlaybackspeed(1.25)}
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                        className="settings-item"
+                      >
+                           <CheckIcon
+                          sx={{
+                            width: "20px",
+                            height: "20px",
+                            position: "absolute",
+                            left: "8px",
+                            top: "10px",
+                            opacity: playbackSpeed === 1.25 ? 1 : 0,
+                          }}
+                        />
+                        <Typography
+                          sx={{ fontWeight: "600", px: 2 }}
+                          variant="caption"
+                        >
+                          1.25
+                        </Typography>
+                      </Box>
+                      <Box
+                        onClick={() => handlePlaybackspeed(1.5)}
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                        className="settings-item"
+                      >
+                           <CheckIcon
+                          sx={{
+                            width: "20px",
+                            height: "20px",
+                            position: "absolute",
+                            left: "8px",
+                            top: "10px",
+                            opacity: playbackSpeed === 1.5 ? 1 : 0,
+                          }}
+                        />
+                        <Typography
+                          sx={{ fontWeight: "600", px: 2 }}
+                          variant="caption"
+                        >
+                          1.5
+                        </Typography>
+                      </Box>
+                      <Box
+                        onClick={() => handlePlaybackspeed(1.75)}
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                        className="settings-item"
+                      >
+                           <CheckIcon
+                          sx={{
+                            width: "20px",
+                            height: "20px",
+                            position: "absolute",
+                            left: "8px",
+                            top: "10px",
+                            opacity: playbackSpeed === 1.75 ? 1 : 0,
+                          }}
+                        />
+                        <Typography
+                          sx={{ fontWeight: "600", px: 2 }}
+                          variant="caption"
+                        >
+                          1.75
+                        </Typography>
+                      </Box>
+                      <Box
+                        onClick={() => handlePlaybackspeed(2)}
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                        className="settings-item"
+                      >
+                           <CheckIcon
+                          sx={{
+                            width: "20px",
+                            height: "20px",
+                            position: "absolute",
+                            left: "8px",
+                            top: "10px",
+                            opacity: playbackSpeed === 2 ? 1 : 0,
+                          }}
+                        />
+                        <Typography
+                          sx={{ fontWeight: "600", px: 2 }}
+                          variant="caption"
+                        >
+                          2
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Box>
+                </Box>
+
+                <Box
+                  sx={{
+                    position: "absolute",
+                    inset: "0",
+                    width: "100%",
+                    height: "100%",
+                    transform: showPlaybackMenu
+                      ? "translateX(-100%)"
+                      : "translateX(0%)",
+                    transition: "transform 0.25s cubic-bezier(.4,0,1,1)",
+                  }}
+                  className="settings-inner"
+                >
+                  <Box sx={{ display: "flex", flexDirection: "column" }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                      className="settings-item"
+                    >
+                      <Box className="label-icon">
+                        <Box className="item-icon">
+                          <AmbientSvg />
+                        </Box>
+                        <Box className="item-content">
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              display: "inline-block",
+                              fontWeight: "600",
+                            }}
+                          >
+                            Ambient Mode
+                          </Typography>
+                        </Box>
+                      </Box>
+                      <Box className="item-switch">
+                        <Switch
+                          sx={{
+                            "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track":
+                              {
+                                background: "#e1002d",
+                                opacity: 1,
+                              },
+                            "& .MuiSwitch-track": {
+                              background: "rgba(255,255,255)", // or your custom color
+                            },
+                          }}
+                          defaultChecked
+                          color="default"
+                        />
+                      </Box>
+                    </Box>
+                    <Box
+                      onClick={() => {
+                        setShowPlaybackMenu(true);
+                      }}
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                      className="settings-item"
+                    >
+                      <Box className="label-icon">
+                        <Box className="item-icon">
+                          <PlaybackSvg />
+                        </Box>
+                        <Box className="item-content">
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              display: "inline-block",
+                              fontWeight: "600",
+                            }}
+                          >
+                            Playback speed
+                          </Typography>
+                        </Box>
+                      </Box>
+                      <Box
+                        sx={{ display: "flex", alignItems: "center" }}
+                        className="item-text"
+                      >
+                        <Typography
+                          variant="caption"
+                          sx={{ display: "inline-block" }}
+                        >
+                          Normal
+                        </Typography>
+                        <KeyboardArrowRightIcon sx={{ mb: "1px" }} />
+                      </Box>
+                    </Box>
+                  </Box>
+                </Box>
+              </Box>
+
+              <Tooltip
+                disableInteractive
+                disableFocusListener
+                disableTouchListener
+                disableHoverListener={showSettings}
+                title={`${showSettings ? "" : "Settings"}`}
+                placement="top"
+                slotProps={{
+                  popper: {
+                    disablePortal: true,
+                    modifiers: popperModifiers,
+                  },
+                  tooltip: {
+                    sx: tooltipStyles,
+                  },
+                }}
+              >
+                <a
+                  className="control"
+                  style={{ ...controlStyles }}
+                  onClick={() => {
+                    setShowSettings((prev) => !prev);
+                  }}
+                >
+                  <GearSvg showSettings={showSettings} />
+                </a>
+              </Tooltip>
               {!isFullscreen && pipSupported && (
                 <Tooltip
                   disableInteractive
@@ -840,6 +1287,7 @@ const VideoControls = forwardRef(
               }}
             >
               <Box
+                className={`${!hoveredCue || showSettings ? "hide" : "MuiPopper-root "}`}
                 sx={{
                   position: "absolute",
                   bottom: "40px",
