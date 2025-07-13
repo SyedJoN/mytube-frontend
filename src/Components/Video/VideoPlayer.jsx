@@ -99,8 +99,15 @@ function VideoPlayer({
   const [showSettings, setShowSettings] = useState(false);
   const [isPiActive, setIsPiPActive] = useState(false);
   const [canPlay, setCanPlay] = useState(true);
-  const [isAmbient, setIsAmbient] = usePlayerSetting('ambientMode', false);
-  const [playbackSpeed, setPlaybackSpeed] = usePlayerSetting('playbackSpeed', 1.0);
+  const [isAmbient, setIsAmbient] = usePlayerSetting("ambientMode", false);
+  const [playbackSpeed, setPlaybackSpeed] = usePlayerSetting(
+    "playbackSpeed",
+    1.0
+  );
+  const [playbackSliderSpeed, setPlaybackSliderSpeed] = usePlayerSetting(
+    "playbackSpeed",
+    0.25
+  );
   const isInside = useRef(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -112,6 +119,7 @@ function VideoPlayer({
   const [isPlaying, setIsPlaying] = useState(false);
   const [viewCounted, setViewCounted] = useState(false);
   const [isLongPress, setIsLongPress] = useState(false);
+  const [isClicked, setIsClicked] = useState(false);
   const [showIcon, setShowIcon] = useState(false);
   const [showVolumeIcon, setShowVolumeIcon] = useState(false);
   const [volumeUp, setVolumeUp] = useState(false);
@@ -138,15 +146,18 @@ function VideoPlayer({
 
   const [isReplay, setIsReplay] = useState(false);
   const [videoContainerWidth, setVideoContainerWidth] = useState("0px");
-  const isFastPlayback = videoRef?.current?.playbackRate === 2.0;
+  const [isFastPlayback, setIsFastPlayback] = useState(false);
   const animateTimeoutRef = useRef(null);
   const captureCanvasRef = useRef(null);
   const prevHoverStateRef = useRef(null);
   const holdTimer = useRef(null);
   const isHolding = useRef(null);
   const glowCanvasRef = useRef(null);
+  const prevSpeedRef = useRef(null);
+  const prevSliderSpeedRef = useRef(null);
   const [isMini, setIsMini] = useState(false);
   const [hideMini, setHideMini] = useState(false);
+  const [customPlayback, setCustomPlayback] = useState(false);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["video", videoId],
@@ -245,7 +256,13 @@ function VideoPlayer({
       const captureCanvas = captureCanvasRef.current;
       const glowCanvas = glowCanvasRef.current;
 
-      if (!video || !captureCanvas || !glowCanvas || !isAmbient || video.readyState < 2) {
+      if (
+        !video ||
+        !captureCanvas ||
+        !glowCanvas ||
+        !isAmbient ||
+        video.readyState < 2
+      ) {
         return;
       }
 
@@ -365,7 +382,9 @@ function VideoPlayer({
       exitingPiPViaOurUIButtonRef.current = false;
     }
   }, []);
-
+  useEffect(() => {
+    console.log(isClicked);
+  }, [isClicked]);
   const handleClick = (e) => {
     if (e.button === 2) return;
     if (isReplay) return;
@@ -383,6 +402,7 @@ function VideoPlayer({
         clickCount.current = 0;
         clearTimeout(clickTimeout.current);
         clickTimeout.current = null;
+        setIsClicked(true);
       }, 150);
     } else if (clickCount.current === 2) {
       clearTimeout(clickTimeout.current);
@@ -393,15 +413,24 @@ function VideoPlayer({
   };
   const handleMouseUp = (e) => {
     exitDoubleSpeed(e);
+    window.removeEventListener("mouseup", handleMouseUp);
+    window.removeEventListener("touchend", handleMouseUp);
+    window.removeEventListener("touchcancel", handleMouseUp);
   };
   const DoubleSpeed = (e) => {
     if (e.type === "mousedown" && e.button === 2) return;
-
     const video = videoRef.current;
     if (!video) return;
+
+    prevSliderSpeedRef.current = playbackSliderSpeed;
+
+    prevSpeedRef.current = playbackSpeed;
+
+    console.log("prevspeed", prevSpeedRef.current);
     clearTimeout(clickTimeout.current);
     clickTimeout.current = null;
     prevHoverStateRef.current = controlOpacity;
+
     pressTimer.current = setTimeout(() => {
       console.log("down");
       setIsLongPress(true);
@@ -416,9 +445,10 @@ function VideoPlayer({
 
       video.playbackRate = 2.0;
       setPlaybackSpeed(2.0);
+      setPlaybackSliderSpeed(playbackSpeed);
+      setIsFastPlayback(true);
       pressTimer.current = null;
     }, 600);
-
     window.addEventListener("mouseup", handleMouseUp);
     window.addEventListener("touchend", handleMouseUp);
     window.addEventListener("touchcancel", handleMouseUp);
@@ -451,18 +481,16 @@ function VideoPlayer({
           : 0
       );
     });
-
     clearTimeout(pressTimer.current);
     pressTimer.current = setTimeout(() => {
       setIsLongPress(false);
-
       pressTimer.current = null;
+      console.log("up");
     }, 200);
-    video.playbackRate = 1.0;
-    setPlaybackSpeed(1.0);
-    window.removeEventListener("mouseup", handleMouseUp);
-    window.removeEventListener("touchend", handleMouseUp);
-    window.removeEventListener("touchcancel", handleMouseUp);
+    setIsFastPlayback(false);
+    video.playbackRate = prevSpeedRef.current;
+    setPlaybackSpeed(prevSpeedRef.current);
+    setPlaybackSliderSpeed(prevSliderSpeedRef.current);
   };
 
   const handleMouseMove = (e) => {
@@ -1424,6 +1452,10 @@ function VideoPlayer({
                 setPlaybackSpeed={setPlaybackSpeed}
                 spriteUrl={data?.data?.sprite?.url}
                 vttUrl={data?.data?.sprite?.vtt}
+                playbackSliderSpeed={playbackSliderSpeed}
+                setPlaybackSliderSpeed={setPlaybackSliderSpeed}
+                customPlayback={customPlayback}
+                setCustomPlayback={setCustomPlayback}
               />
 
               <Box className="title-background-overlay"></Box>

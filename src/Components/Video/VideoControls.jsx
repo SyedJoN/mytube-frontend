@@ -22,6 +22,9 @@ import {
   useMediaQuery,
   Switch,
   Divider,
+  Input,
+  Slider,
+  Stack,
 } from "@mui/material";
 import { SkipPreviousSvg } from "../Utils/SkipPreviousSvg";
 import { SkipNextSvg } from "../Utils/SkipNextSvg";
@@ -75,6 +78,10 @@ const VideoControls = forwardRef(
       setShowSettings,
       playbackSpeed,
       setPlaybackSpeed,
+      playbackSliderSpeed,
+      setPlaybackSliderSpeed,
+      customPlayback,
+      setCustomPlayback,
     },
     videoRef
   ) => {
@@ -185,6 +192,7 @@ const VideoControls = forwardRef(
     var thumbWidth = 13;
     const sliderRef = useRef(null);
     const volumeSliderRef = useRef(null);
+    const playbackSliderRef = useRef(null);
     const { isUserInteracted, setIsUserInteracted } = context ?? {};
     const [BarWidth, setBarWidth] = useState(0);
     const [showVolumePanel, setShowVolumePanel] = useState(false);
@@ -200,7 +208,7 @@ const VideoControls = forwardRef(
     useEffect(() => {
       const video = videoRef.current;
       if (!video) return;
-      video.playbackRate = playbackSpeed
+      video.playbackRate = playbackSpeed;
     }, [playbackSpeed]);
 
     useEffect(() => {
@@ -424,6 +432,26 @@ const VideoControls = forwardRef(
         window.removeEventListener("resize", updateSizes);
       };
     }, [isTheatre]);
+    // playback
+    const handlePlayBackClick = (e) => {
+      if (!playbackSliderRef.current || !videoRef.current) return;
+
+      const rect = playbackSliderRef.current.getBoundingClientRect();
+      const offsetX = e.clientX - rect.left;
+      const newPlayback = Math.min(Math.max(offsetX / rect.width, 0), 2);
+
+      videoRef.playbackRate = newPlayback;
+      setPlaybackSpeed(newPlayback <= 0 ? 0 : Number(newPlayback).toFixed(1));
+    };
+
+    const handleChange = (_, speed) => {
+      console.log("hello");
+      setPlaybackSpeed(speed);
+      setPlaybackSliderSpeed(speed);
+      if (customPlayback !== true) {
+        setCustomPlayback(true);
+      }
+    };
 
     // Volume
 
@@ -822,33 +850,89 @@ const VideoControls = forwardRef(
                     </Box>
                     <Box sx={{ display: "flex", flexDirection: "column" }}>
                       <Box
+                        onClick={() => {
+                          handlePlaybackspeed(playbackSliderSpeed);
+                          setCustomPlayback(true);
+                        }}
                         sx={{
                           position: "relative",
                           display: "flex",
-                          alignItems: "center",
+                          flexDirection: "column",
                         }}
                         className="settings-item"
                       >
-                        <Box sx={{
-                          display: "flex",
-                          flexDirection: "column"
-                        }}>
-                          
+                        <CheckIcon
+                          sx={{
+                            width: "20px",
+                            height: "20px",
+                            position: "absolute",
+                            left: "8px",
+                            top: "15px",
+                            opacity:
+                              customPlayback ||
+                              playbackSpeed === playbackSliderSpeed
+                                ? 1
+                                : 0,
+                          }}
+                        />
                         <Typography
-                          sx={{ fontWeight: "600" }}
+                          sx={{ fontWeight: "600", p: 2 }}
                           variant="caption"
-                          >
-                          Custom (1)
+                        >
+                          Custom ({playbackSliderSpeed})
                         </Typography>
-
-
-                  
-                          </Box>
-                 
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                          }}
+                          className="item"
+                        >
+                          <Stack sx={{ flex: 1, mx: 4 }}>
+                            <Typography
+                              sx={{ px: 2, mx: "auto" }}
+                              variant="body1"
+                            >
+                              {playbackSliderSpeed}x
+                            </Typography>
+                            <Slider
+                              value={playbackSliderSpeed}
+                              onChange={handleChange}
+                              aria-label="Volume"
+                              step={0.05}
+                              min={0.25}
+                              max={2}
+                              sx={{
+                                color: "#eee",
+                                "& .MuiSlider-track": {
+                                  backgroundColor: "#eee",
+                                },
+                                "& .MuiSlider-rail": {
+                                  backgroundColor: "#eee",
+                                },
+                                "& .MuiSlider-valueLabel": {
+                                  backgroundColor: "transparent",
+                                  color: "transparent",
+                                },
+                                "& .MuiSlider-thumb": {
+                                  boxShadow: "none",
+                                  "&:hover, &:focus, &.Mui-active, &.Mui-focusVisible":
+                                    {
+                                      boxShadow: "none",
+                                    },
+                                },
+                              }}
+                            />
+                          </Stack>
+                        </Box>
                       </Box>
-                      
+
                       <Box
-                        onClick={() => handlePlaybackspeed(0.25)}
+                        onClick={() => {
+                          handlePlaybackspeed(0.25);
+                          setCustomPlayback(false);
+                          setShowPlaybackMenu(false);
+                        }}
                         sx={{
                           display: "flex",
                           alignItems: "center",
@@ -862,7 +946,11 @@ const VideoControls = forwardRef(
                             position: "absolute",
                             left: "8px",
                             top: "10px",
-                            opacity: playbackSpeed === 0.25 ? 1 : 0,
+                            opacity:
+                              playbackSpeed === 0.25 &&
+                              playbackSpeed != playbackSliderSpeed
+                                ? 1
+                                : 0,
                           }}
                         />
                         <Typography
@@ -873,21 +961,30 @@ const VideoControls = forwardRef(
                         </Typography>
                       </Box>
                       <Box
-                        onClick={() => handlePlaybackspeed(0.5)}
+                        onClick={() => {
+                          handlePlaybackspeed(0.5);
+                          setCustomPlayback(false);
+                          setShowPlaybackMenu(false);
+                        }}
                         sx={{
                           display: "flex",
                           alignItems: "center",
                         }}
                         className="settings-item"
                       >
-                           <CheckIcon
+                        <CheckIcon
                           sx={{
                             width: "20px",
                             height: "20px",
                             position: "absolute",
                             left: "8px",
                             top: "10px",
-                            opacity: playbackSpeed === 0.5 ? 1 : 0,
+                            opacity:
+                              !customPlayback &&
+                              playbackSpeed === 0.5 &&
+                              playbackSpeed != playbackSliderSpeed
+                                ? 1
+                                : 0,
                           }}
                         />
                         <Typography
@@ -898,21 +995,30 @@ const VideoControls = forwardRef(
                         </Typography>
                       </Box>
                       <Box
-                        onClick={() => handlePlaybackspeed(0.75)}
+                        onClick={() => {
+                          handlePlaybackspeed(0.75);
+                          setCustomPlayback(false);
+                          setShowPlaybackMenu(false);
+                        }}
                         sx={{
                           display: "flex",
                           alignItems: "center",
                         }}
                         className="settings-item"
                       >
-                           <CheckIcon
+                        <CheckIcon
                           sx={{
                             width: "20px",
                             height: "20px",
                             position: "absolute",
                             left: "8px",
                             top: "10px",
-                            opacity: playbackSpeed === 0.75 ? 1 : 0,
+                            opacity:
+                              !customPlayback &&
+                              playbackSpeed === 0.75 &&
+                              playbackSpeed != playbackSliderSpeed
+                                ? 1
+                                : 0,
                           }}
                         />
                         <Typography
@@ -923,21 +1029,30 @@ const VideoControls = forwardRef(
                         </Typography>
                       </Box>
                       <Box
-                        onClick={() => handlePlaybackspeed(1)}
+                        onClick={() => {
+                          handlePlaybackspeed(1.0);
+                          setCustomPlayback(false);
+                          setShowPlaybackMenu(false);
+                        }}
                         sx={{
                           display: "flex",
                           alignItems: "center",
                         }}
                         className="settings-item"
                       >
-                           <CheckIcon
+                        <CheckIcon
                           sx={{
                             width: "20px",
                             height: "20px",
                             position: "absolute",
                             left: "8px",
                             top: "10px",
-                            opacity: playbackSpeed === 1 ? 1 : 0,
+                            opacity:
+                              !customPlayback &&
+                              playbackSpeed === 1 &&
+                              playbackSpeed != playbackSliderSpeed
+                                ? 1
+                                : 0,
                           }}
                         />
                         <Typography
@@ -948,21 +1063,30 @@ const VideoControls = forwardRef(
                         </Typography>
                       </Box>
                       <Box
-                        onClick={() => handlePlaybackspeed(1.25)}
+                        onClick={() => {
+                          handlePlaybackspeed(1.25);
+                          setCustomPlayback(false);
+                          setShowPlaybackMenu(false);
+                        }}
                         sx={{
                           display: "flex",
                           alignItems: "center",
                         }}
                         className="settings-item"
                       >
-                           <CheckIcon
+                        <CheckIcon
                           sx={{
                             width: "20px",
                             height: "20px",
                             position: "absolute",
                             left: "8px",
                             top: "10px",
-                            opacity: playbackSpeed === 1.25 ? 1 : 0,
+                            opacity:
+                              !customPlayback &&
+                              playbackSpeed === 1.25 &&
+                              playbackSpeed != playbackSliderSpeed
+                                ? 1
+                                : 0,
                           }}
                         />
                         <Typography
@@ -973,21 +1097,30 @@ const VideoControls = forwardRef(
                         </Typography>
                       </Box>
                       <Box
-                        onClick={() => handlePlaybackspeed(1.5)}
+                        onClick={() => {
+                          handlePlaybackspeed(1.5);
+                          setCustomPlayback(false);
+                          setShowPlaybackMenu(false);
+                        }}
                         sx={{
                           display: "flex",
                           alignItems: "center",
                         }}
                         className="settings-item"
                       >
-                           <CheckIcon
+                        <CheckIcon
                           sx={{
                             width: "20px",
                             height: "20px",
                             position: "absolute",
                             left: "8px",
                             top: "10px",
-                            opacity: playbackSpeed === 1.5 ? 1 : 0,
+                            opacity:
+                              !customPlayback &&
+                              playbackSpeed === 1.5 &&
+                              playbackSpeed != playbackSliderSpeed
+                                ? 1
+                                : 0,
                           }}
                         />
                         <Typography
@@ -998,21 +1131,30 @@ const VideoControls = forwardRef(
                         </Typography>
                       </Box>
                       <Box
-                        onClick={() => handlePlaybackspeed(1.75)}
+                        onClick={() => {
+                          handlePlaybackspeed(1.75);
+                          setCustomPlayback(false);
+                          setShowPlaybackMenu(false);
+                        }}
                         sx={{
                           display: "flex",
                           alignItems: "center",
                         }}
                         className="settings-item"
                       >
-                           <CheckIcon
+                        <CheckIcon
                           sx={{
                             width: "20px",
                             height: "20px",
                             position: "absolute",
                             left: "8px",
                             top: "10px",
-                            opacity: playbackSpeed === 1.75 ? 1 : 0,
+                            opacity:
+                              !customPlayback &&
+                              playbackSpeed === 1.75 &&
+                              playbackSpeed != playbackSliderSpeed
+                                ? 1
+                                : 0,
                           }}
                         />
                         <Typography
@@ -1023,21 +1165,30 @@ const VideoControls = forwardRef(
                         </Typography>
                       </Box>
                       <Box
-                        onClick={() => handlePlaybackspeed(2)}
+                        onClick={() => {
+                          handlePlaybackspeed(2);
+                          setCustomPlayback(false);
+                          setShowPlaybackMenu(false);
+                        }}
                         sx={{
                           display: "flex",
                           alignItems: "center",
                         }}
                         className="settings-item"
                       >
-                           <CheckIcon
+                        <CheckIcon
                           sx={{
                             width: "20px",
                             height: "20px",
                             position: "absolute",
                             left: "8px",
                             top: "10px",
-                            opacity: playbackSpeed === 2 ? 1 : 0,
+                            opacity:
+                              !customPlayback &&
+                              playbackSpeed === 2 &&
+                              playbackSpeed != playbackSliderSpeed
+                                ? 1
+                                : 0,
                           }}
                         />
                         <Typography
@@ -1141,7 +1292,7 @@ const VideoControls = forwardRef(
                           variant="caption"
                           sx={{ display: "inline-block" }}
                         >
-                          Normal
+                          {playbackSpeed === 1 ? "Normal" : playbackSpeed}
                         </Typography>
                         <KeyboardArrowRightIcon sx={{ mb: "1px" }} />
                       </Box>
@@ -1172,6 +1323,7 @@ const VideoControls = forwardRef(
                   style={{ ...controlStyles }}
                   onClick={() => {
                     setShowSettings((prev) => !prev);
+                    setShowPlaybackMenu(false);
                   }}
                 >
                   <GearSvg showSettings={showSettings} />
