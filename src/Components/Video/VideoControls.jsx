@@ -82,12 +82,15 @@ const VideoControls = forwardRef(
       setPlaybackSliderSpeed,
       customPlayback,
       setCustomPlayback,
+      isAmbient,
+      setIsAmbient,
     },
     videoRef
   ) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
     const isTablet = useMediaQuery(theme.breakpoints.down("md"));
+    const isDesktop = useMediaQuery(theme.breakpoints.down("xl"));
     const context = useContext(UserInteractionContext);
     const pipSupported = !!document.pictureInPictureEnabled;
 
@@ -156,6 +159,15 @@ const VideoControls = forwardRef(
       }),
       [isMobile]
     );
+    const playbackHeight = useMemo(() => {
+      return isMobile
+        ? "170px"
+        : isTablet
+          ? "240px"
+          : isDesktop
+            ? "285px"
+            : "414px";
+    }, [isMobile, isTablet, isDesktop]);
 
     const ContainerStyles = useMemo(
       () => ({
@@ -192,7 +204,6 @@ const VideoControls = forwardRef(
     var thumbWidth = 13;
     const sliderRef = useRef(null);
     const volumeSliderRef = useRef(null);
-    const playbackSliderRef = useRef(null);
     const { isUserInteracted, setIsUserInteracted } = context ?? {};
     const [BarWidth, setBarWidth] = useState(0);
     const [showVolumePanel, setShowVolumePanel] = useState(false);
@@ -432,17 +443,8 @@ const VideoControls = forwardRef(
         window.removeEventListener("resize", updateSizes);
       };
     }, [isTheatre]);
+
     // playback
-    const handlePlayBackClick = (e) => {
-      if (!playbackSliderRef.current || !videoRef.current) return;
-
-      const rect = playbackSliderRef.current.getBoundingClientRect();
-      const offsetX = e.clientX - rect.left;
-      const newPlayback = Math.min(Math.max(offsetX / rect.width, 0), 2);
-
-      videoRef.playbackRate = newPlayback;
-      setPlaybackSpeed(newPlayback <= 0 ? 0 : Number(newPlayback).toFixed(1));
-    };
 
     const handleChange = (_, speed) => {
       console.log("hello");
@@ -451,6 +453,12 @@ const VideoControls = forwardRef(
       if (customPlayback !== true) {
         setCustomPlayback(true);
       }
+    };
+
+    // Ambient
+
+    const handleAmbientChange = () => {
+      setIsAmbient((prev) => !prev);
     };
 
     // Volume
@@ -799,13 +807,13 @@ const VideoControls = forwardRef(
                 sx={{
                   position: "absolute",
                   right: "12px",
-                  bottom: isTablet ? "47px" : "60px",
+                  bottom: isTablet && !showPlaybackMenu ? "47px" : "60px",
                   width: showPlaybackMenu ? "251px" : "260px",
-                  height: showPlaybackMenu ? "414px" : "100px",
+                  height: showPlaybackMenu ? playbackHeight : "100px",
                   display: "block",
                   background: "rgba(28,28,28,.9)",
                   borderRadius: "12px",
-                  transition: "all 0.25s cubic-bezier(.4,0,1,1)",
+                  transition: "all 0.25s cubic-bezier(.2,0,1,1)",
                   overflow: "hidden",
                   willChange: "width, height",
                 }}
@@ -819,7 +827,7 @@ const VideoControls = forwardRef(
                     transform: showPlaybackMenu
                       ? "translateX(0%)"
                       : "translateX(100%)",
-                    transition: "transform 0.25s cubic-bezier(.4,0,1,1)",
+                    transition: "transform 0.25s cubic-bezier(.2,0,1,1)",
                     overflowY: "auto",
                     overflowX: "hidden",
                   }}
@@ -1211,12 +1219,13 @@ const VideoControls = forwardRef(
                     transform: showPlaybackMenu
                       ? "translateX(-100%)"
                       : "translateX(0%)",
-                    transition: "transform 0.25s cubic-bezier(.4,0,1,1)",
+                    transition: "transform 0.25s cubic-bezier(.2,0,1,1)",
                   }}
                   className="settings-inner"
                 >
                   <Box sx={{ display: "flex", flexDirection: "column" }}>
                     <Box
+                      onClick={handleAmbientChange}
                       sx={{
                         display: "flex",
                         justifyContent: "space-between",
@@ -1242,6 +1251,12 @@ const VideoControls = forwardRef(
                       </Box>
                       <Box className="item-switch">
                         <Switch
+                          checked={isAmbient}
+                          slotProps={{
+                            input: {
+                              "aria-label": "controlled",
+                            },
+                          }}
                           sx={{
                             "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track":
                               {
@@ -1252,7 +1267,6 @@ const VideoControls = forwardRef(
                               background: "rgba(255,255,255)", // or your custom color
                             },
                           }}
-                          defaultChecked
                           color="default"
                         />
                       </Box>

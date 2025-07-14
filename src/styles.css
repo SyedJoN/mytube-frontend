@@ -11,13 +11,17 @@
   --progress-color: linear-gradient(to right,#f03 80%,#ff2791 100%);
 }
 
+html {
+      scrollbar-width: auto;
+      scrollbar-color: #aaa transparent;
+}
 body {
     background: #0f0f0f!important;
     margin: 0!important;
     overflow-y: scroll!important;
     overflow-x: hidden;
     height: 100%;
-  
+
 }
 
 .video-wrapper {

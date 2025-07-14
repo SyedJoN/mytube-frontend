@@ -119,7 +119,6 @@ function VideoPlayer({
   const [isPlaying, setIsPlaying] = useState(false);
   const [viewCounted, setViewCounted] = useState(false);
   const [isLongPress, setIsLongPress] = useState(false);
-  const [isClicked, setIsClicked] = useState(false);
   const [showIcon, setShowIcon] = useState(false);
   const [showVolumeIcon, setShowVolumeIcon] = useState(false);
   const [volumeUp, setVolumeUp] = useState(false);
@@ -320,7 +319,7 @@ function VideoPlayer({
     }, 500);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isAmbient]);
 
   const showControls = () => {
     if (controlOpacity !== 1) setControlOpacity(1);
@@ -382,9 +381,7 @@ function VideoPlayer({
       exitingPiPViaOurUIButtonRef.current = false;
     }
   }, []);
-  useEffect(() => {
-    console.log(isClicked);
-  }, [isClicked]);
+
   const handleClick = (e) => {
     if (e.button === 2) return;
     if (isReplay) return;
@@ -402,7 +399,6 @@ function VideoPlayer({
         clickCount.current = 0;
         clearTimeout(clickTimeout.current);
         clickTimeout.current = null;
-        setIsClicked(true);
       }, 150);
     } else if (clickCount.current === 2) {
       clearTimeout(clickTimeout.current);
@@ -413,6 +409,7 @@ function VideoPlayer({
   };
   const handleMouseUp = (e) => {
     exitDoubleSpeed(e);
+    window.removeEventListener("mousemove", handleMouseMove);
     window.removeEventListener("mouseup", handleMouseUp);
     window.removeEventListener("touchend", handleMouseUp);
     window.removeEventListener("touchcancel", handleMouseUp);
@@ -426,7 +423,9 @@ function VideoPlayer({
 
     prevSpeedRef.current = playbackSpeed;
 
+    console.log("prevsliderspeed", prevSliderSpeedRef.current);
     console.log("prevspeed", prevSpeedRef.current);
+
     clearTimeout(clickTimeout.current);
     clickTimeout.current = null;
     prevHoverStateRef.current = controlOpacity;
@@ -449,6 +448,8 @@ function VideoPlayer({
       setIsFastPlayback(true);
       pressTimer.current = null;
     }, 600);
+
+    window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
     window.addEventListener("touchend", handleMouseUp);
     window.addEventListener("touchcancel", handleMouseUp);
@@ -488,11 +489,29 @@ function VideoPlayer({
       console.log("up");
     }, 200);
     setIsFastPlayback(false);
-    video.playbackRate = prevSpeedRef.current;
+    if (customPlayback) {
+      video.playbackRate = prevSliderSpeedRef.current;
+    } else {
+      video.playbackRate = prevSpeedRef.current;
+    }
     setPlaybackSpeed(prevSpeedRef.current);
     setPlaybackSliderSpeed(prevSliderSpeedRef.current);
   };
+  const handleContainerMouseMove = () => {
+    const container = containerRef.current;
+    if (!container) return;
+    if (!isLongPress) {
+      console.log("move");
 
+      container
+        .querySelector(".video-overlay")
+        ?.classList.remove("hide-cursor");
+      container.querySelector(".controls")?.classList.remove("hide-cursor");
+      isInside.current = true;
+      showControls();
+      setTitleOpacity(1);
+    }
+  };
   const handleMouseMove = (e) => {
     const container = containerRef.current;
     const video = videoRef.current;
@@ -504,6 +523,7 @@ function VideoPlayer({
     const inside =
       x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
 
+    console.log(inside);
     if (videoPauseStatus.current) return;
     isInside.current = inside;
 
@@ -557,12 +577,7 @@ function VideoPlayer({
         }
       }, 2000);
     }
-
-    window.addEventListener("mousemove", handleMouseMove);
-
     return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, [isPlaying, controlOpacity, isLongPress, isInside]);
@@ -653,6 +668,8 @@ function VideoPlayer({
   const handleVolume = (key) => {
     const video = videoRef.current;
     if (!video) return;
+    if (pressTimer.current) clearTimeout(pressTimer.current);
+    setIsFastPlayback(false);
     setShowIcon(false);
 
     const icon = volumeIconRef.current;
@@ -670,8 +687,6 @@ function VideoPlayer({
       console.warn("volumeIconRef is null");
     }
 
-    video.playbackRate = 1.0;
-    setPlaybackSpeed(1.0);
     const step = 0.05;
     if (key === "Up") {
       setVolumeDown(false);
@@ -690,6 +705,12 @@ function VideoPlayer({
         setVolumeDown(false);
       }
       setVolume(newVol * 40);
+    }
+
+    if (customPlayback) {
+      video.playbackRate = prevSliderSpeedRef.current;
+    } else {
+      video.playbackRate = prevSpeedRef.current;
     }
 
     setTimeout(() => {
@@ -998,15 +1019,20 @@ function VideoPlayer({
   const handleForwardSeek = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
+    if (pressTimer.current) clearTimeout(pressTimer.current);
     setIsForwardSeek(true);
+    setIsFastPlayback(false);
 
     videoRef.current.currentTime += 5;
     if (!video.paused) {
       videoRef.current.play();
       setIsPlaying(true);
     }
-    video.playbackRate = 1.0;
-    setPlaybackSpeed(1.0);
+    if (customPlayback) {
+      video.playbackRate = prevSliderSpeedRef.current;
+    } else {
+      video.playbackRate = prevSpeedRef.current;
+    }
 
     setTimeout(() => setIsForwardSeek(false), 300);
   }, []);
@@ -1014,6 +1040,8 @@ function VideoPlayer({
   const handleBackwardSeek = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
+    if (pressTimer.current) clearTimeout(pressTimer.current);
+    setIsFastPlayback(false);
 
     const wasEnded = video.ended;
 
@@ -1024,10 +1052,13 @@ function VideoPlayer({
       setIsPlaying(true);
       return;
     }
-
     setIsBackwardSeek(true);
-    video.playbackRate = 1.0;
-    setPlaybackSpeed(1.0);
+
+    if (customPlayback) {
+      video.playbackRate = prevSliderSpeedRef.current;
+    } else {
+      video.playbackRate = prevSpeedRef.current;
+    }
     video.currentTime = Math.max(video.currentTime - 5, 0);
 
     if (!video.paused) {
@@ -1230,7 +1261,14 @@ function VideoPlayer({
       window.removeEventListener("keydown", handleKeyPress);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [handleForwardSeek, handleBackwardSeek, togglePlayPause, handleNextVideo]);
+  }, [
+    handleForwardSeek,
+    handleBackwardSeek,
+    togglePlayPause,
+    handleNextVideo,
+    playbackSliderSpeed,
+    playbackSpeed,
+  ]);
 
   useEffect(() => {
     setPrevTheatre(isTheatre);
@@ -1304,13 +1342,7 @@ function VideoPlayer({
           data-theatre={isTheatre}
           ref={containerRef}
           onMouseLeave={handleMouseOut}
-          onMouseMove={() => {
-            if (!isLongPress) {
-              isInside.current = true;
-              showControls();
-              setTitleOpacity(1);
-            }
-          }}
+          onMouseMove={handleContainerMouseMove}
           onMouseEnter={() => {
             if (!isLongPress) {
               isInside.current = true;
@@ -1452,6 +1484,8 @@ function VideoPlayer({
                 setPlaybackSpeed={setPlaybackSpeed}
                 spriteUrl={data?.data?.sprite?.url}
                 vttUrl={data?.data?.sprite?.vtt}
+                isAmbient={isAmbient}
+                setIsAmbient={setIsAmbient}
                 playbackSliderSpeed={playbackSliderSpeed}
                 setPlaybackSliderSpeed={setPlaybackSliderSpeed}
                 customPlayback={customPlayback}
