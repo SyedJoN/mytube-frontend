@@ -6,7 +6,6 @@ import VideoDetailsPanel from "../Components/Video/VideoDetailsPanel";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchVideoById, fetchVideos } from "../apis/videoFn";
 import { Box } from "@mui/material";
-import { UserContext, UserInteractionContext } from "../routes/__root";
 import CommentSection from "../Components/Comments/CommentSection";
 import PlaylistContainer from "../Components/Video/PlaylistContainer";
 import VideoSideBar from "../Components/Video/VideoSideBar";
@@ -15,6 +14,7 @@ import { fetchPlaylistById } from "../apis/playlistFn";
 import { getUserChannelProfile } from "../apis/userFn";
 import { filter } from "lodash";
 import { usePlayerSetting } from "../helper/usePlayerSettings";
+import { UserContext, UserInteractionContext } from "../Contexts/RootContexts";
 
 function WatchVideo({ videoId, playlistId }) {
   const navigate = useNavigate();
@@ -30,6 +30,8 @@ function WatchVideo({ videoId, playlistId }) {
   const [isTheatre, setIsTheatre] = usePlayerSetting('theatreMode', false);
   const queryClient = useQueryClient();
   const isCustomWidth = useMediaQuery("(max-width:1014px)");
+
+  // video fetching
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["video", videoId],
     queryFn: () => fetchVideoById(videoId),

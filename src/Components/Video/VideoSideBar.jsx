@@ -47,10 +47,13 @@ function VideoSideBar({
                 <Grid size={gridSize}>
                   <VideoCard
                     owner={video?.owner?.username}
+                    verifyInteraction={true}
                     videoId={video._id}
                     thumbnail={video.thumbnail.url}
+                    previewUrl={video.thumbnail.preview}
                     title={video.title}
                     home={true}
+                    videoMd={true}
                     fullName={video.owner.fullName}
                     views={video.views}
                     duration={video.duration}

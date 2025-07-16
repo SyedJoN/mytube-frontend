@@ -3,8 +3,8 @@ import AddComment from "./AddComment";
 import Comments from "./Comments";
 import { useQuery } from "@tanstack/react-query";
 import { getVideoComments } from "../../apis/commentFn";
-import Box from "@mui/material/Box";
-import { UserContext } from "../../routes/__root";
+import Box from "@mui/material/Box"
+import { UserContext } from "../../Contexts/RootContexts";
 
 function CommentSection({
   videoId,

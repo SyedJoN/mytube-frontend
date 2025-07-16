@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 
-function useHoverPreview(delay = 300) {
+export function useHoverPreview({ delay }) {
   const [isHoverPlay, setIsHoverPlay] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const timeoutRef = useRef(null);
@@ -31,5 +31,3 @@ function useHoverPreview(delay = 300) {
     onMouseLeave,
   };
 }
-
-export default useHoverPreview;

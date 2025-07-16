@@ -14,15 +14,14 @@ import {
   QueryClientProvider,
 } from "@tanstack/react-query";
 import { fetchVideos } from "../apis/videoFn.js";
-import formatDate from "../utils/formatDate.js";
-import { DrawerContext } from "../routes/__root.js";
+import formatDate from "../utils/formatDate.js";;
 import Skeleton from "@mui/material/Skeleton";
 import { Link } from "@tanstack/react-router";
+import { DrawerContext } from "../Contexts/RootContexts.js";
 
 function Home() {
   const context = useContext(DrawerContext);
   let { open } = context ?? {};
-  const theme = useTheme();
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["videos"],
@@ -31,6 +30,7 @@ function Home() {
   });
 
   const videos = data?.data?.docs || [];
+  console.log(videos)
 
   return (
     <Box sx={{ display: "flex" }}>
@@ -132,6 +132,7 @@ function Home() {
                   <VideoCard
                     owner={video.owner?.username}
                     videoId={video._id}
+                    videoUrl={video.videoFile?.url}
                     home={true}
                     thumbnail={video.thumbnail.url}
                     title={video.title}
@@ -139,6 +140,7 @@ function Home() {
                     fullName={video.owner.fullName}
                     views={video.views}
                     duration={video.duration}
+                    vttUrl={video.sprite?.vtt}
                     createdAt={formatDate(video.createdAt)}
                   />
                 </Grid>

@@ -5,7 +5,7 @@ import { SubscribeButton } from "../Subscribe/SubscribeButton";
 import { Avatar, Box, CardHeader, Tooltip, Typography } from "@mui/material";
 import { Link } from "@tanstack/react-router";
 import { getColor } from "../../utils/getColor";
-import { UserContext } from "../../routes/__root";
+import { UserContext } from "../../Contexts/RootContexts";
 
 const VideoDetailsPanel = ({
   videoId,

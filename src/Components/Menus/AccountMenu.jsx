@@ -1,5 +1,4 @@
 import * as React from "react";
-import { UserContext } from "../../routes/__root";
 import { useContext, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
@@ -39,6 +38,7 @@ import {
 
 import Signin from "../Auth/Signin";
 import { logoutUser } from "../../apis/userFn";
+import { UserContext } from "../../Contexts/RootContexts";
 
 export default function AccountMenu() {
   const [anchorEl, setAnchorEl] = React.useState(null);

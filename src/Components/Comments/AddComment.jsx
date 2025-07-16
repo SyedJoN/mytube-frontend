@@ -16,7 +16,6 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Button from "@mui/material/Button";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import Avatar from "@mui/material/Avatar";
-import { UserContext } from "../../routes/__root";
 import Input from "@mui/material/Input";
 import InputLabel from "@mui/material/InputLabel";
 import PersonIcon from "@mui/icons-material/Person";
@@ -37,6 +36,7 @@ import {
   red,
 } from "@mui/material/colors";
 import IconButton from "@mui/material/IconButton";
+import { UserContext } from "../../Contexts/RootContexts";
 
 const preloadEmojiPicker = () => {
   import("emoji-picker-react");

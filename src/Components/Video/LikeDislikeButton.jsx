@@ -17,7 +17,7 @@ import ThumbUpAltIcon from "@mui/icons-material/ThumbUpAlt";
 import ThumbUpOffAltIcon from "@mui/icons-material/ThumbUpOffAlt";
 import ThumbDownAltIcon from "@mui/icons-material/ThumbDownAlt";
 import ThumbDownOffAltIcon from "@mui/icons-material/ThumbDownOffAlt";
-import { UserContext } from "../../routes/__root";
+import { UserContext } from "../../Contexts/RootContexts";
 
 export const LikeDislikeButtons = React.memo(
   ({ isAuthenticated, data, videoId, activeAlertId, setActiveAlertId }) => {

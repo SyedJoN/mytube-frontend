@@ -55,12 +55,8 @@ import VolumeOffIcon from "@mui/icons-material/VolumeOff";
 import VolumeDownIcon from "@mui/icons-material/VolumeDown";
 import { useDebouncedCallback } from "../../helper/debouncedFn";
 import { flushSync } from "react-dom";
-import {
-  DrawerContext,
-  UserContext,
-  UserInteractionContext,
-} from "../../routes/__root";
 import { usePlayerSetting } from "../../helper/usePlayerSettings";
+import { DrawerContext, UserContext, UserInteractionContext } from "../../Contexts/RootContexts";
 
 function VideoPlayer({
   videoId,
@@ -115,7 +111,6 @@ function VideoPlayer({
   const prevVideoRef = useRef(null);
   const playIconRef = useRef(null);
   const volumeIconRef = useRef(null);
-  const [progress, setProgress] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [viewCounted, setViewCounted] = useState(false);
   const [isLongPress, setIsLongPress] = useState(false);
@@ -131,6 +126,7 @@ function VideoPlayer({
   const clickCount = useRef(null);
   const [isBuffering, setIsBuffering] = useState(false);
   const [bufferedVal, setBufferedVal] = useState(0);
+  const [progress, setProgress] = useState(0);
   const [showBufferingIndicator, setShowBufferingIndicator] = useState(false);
   const [loadingVideo, setLoadingVideo] = useState(true);
   const [isForwardSeek, setIsForwardSeek] = useState(false);
@@ -1447,14 +1443,12 @@ function VideoPlayer({
                 </video>
               )}
               <VideoControls
-                ref={videoRef}
+                videoRef={videoRef}
+                videoId={videoId}
                 playlistId={playlistId}
-                bufferedVal={bufferedVal}
                 shuffledVideos={shuffledVideos}
                 isLoading={isLoading}
                 isReplay={isReplay}
-                progress={progress}
-                setProgress={setProgress}
                 togglePlayPause={togglePlayPause}
                 toggleFullScreen={toggleFullScreen}
                 setShowIcon={setShowIcon}
@@ -1490,6 +1484,10 @@ function VideoPlayer({
                 setPlaybackSliderSpeed={setPlaybackSliderSpeed}
                 customPlayback={customPlayback}
                 setCustomPlayback={setCustomPlayback}
+                bufferedVal={bufferedVal}
+                setBufferedVal={setBufferedVal}
+                progress={progress}
+                setProgress={setProgress}
               />
 
               <Box className="title-background-overlay"></Box>

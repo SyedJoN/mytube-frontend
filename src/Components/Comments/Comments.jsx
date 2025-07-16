@@ -7,7 +7,6 @@ import React, {
   useEffect,
   useCallback,
 } from "react";
-import { UserContext } from "../../routes/__root";
 
 import {
   CardHeader,
@@ -51,6 +50,7 @@ import { useClickAway } from "react-use";
 import SimpleSnackbar from "../Utils/Snackbar";
 import AlertDialog from "../Dialogs/Dialog";
 import { useSnackbar } from "../../Contexts/SnackbarContext";
+import { UserContext } from "../../Contexts/RootContexts";
 
 const Comments = ({
   isAuthenticated,

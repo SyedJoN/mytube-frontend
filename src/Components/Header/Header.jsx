@@ -36,9 +36,9 @@ import AccountMenu from "../Menus/AccountMenu";
 import { useLocation } from "@tanstack/react-router";
 import { useNavigate } from "@tanstack/react-router";
 import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
-import { DrawerContext, UserContext } from "../../routes/__root";
 import { throttle } from "lodash";
 import CustomSlide from "./Slide";
+import { DrawerContext, UserContext } from "../../Contexts/RootContexts";
 
 const getListItemButtonStyles = (isExpanded, isUserMenu = false) => {
   return {
@@ -248,7 +248,12 @@ DrawerContent.propTypes = {
   toggleDrawer: PropTypes.func.isRequired,
 };
 
-function Header({ watch, search, home, userProfile, ...props }) {
+function Header({...props }) {
+    const location = useLocation();
+    const home = location.pathname === "/";
+    const search = location.pathname.startsWith("/search");
+    const watch = location.pathname.startsWith("/watch");
+    const userProfile = location.pathname.startsWith("/@");
   const theme = useTheme();
   const context = React.useContext(DrawerContext);
   const userContext = React.useContext(UserContext);
@@ -262,7 +267,6 @@ function Header({ watch, search, home, userProfile, ...props }) {
   const drawerWidth = "var(--drawer-width)";
   const miniDrawerWidth = "var(--mini-drawer-width)";
 
-  const location = useLocation();
   const [searchMenu, setSearchMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { window: windowProp } = props;

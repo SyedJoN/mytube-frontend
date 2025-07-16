@@ -24,11 +24,8 @@ import {
   pink,
 } from "@mui/material/colors";
 import Tooltip from "@mui/material/Tooltip";
-import FavoriteIcon from "@mui/icons-material/Favorite";
-import ShareIcon from "@mui/icons-material/Share";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
-import { Box, useMediaQuery, Paper } from "@mui/material";
+import { Box } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useTheme } from "@mui/material/styles";
 import formatDuration from "../../utils/formatDuration";
@@ -36,10 +33,9 @@ import { useNavigate } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
 import Interaction from "../Utils/Interaction";
 import handleMouseDown from "../../helper/intertactionHelper";
-import { fetchVideoById } from "../../apis/videoFn";
-import { useQuery } from "@tanstack/react-query";
-import useHoverPreview from "../Utils/useHoverPreview";
-import { UserInteractionContext } from "../../routes/__root";
+import { useHoverPreview } from "../../helper/useHoverPreview";
+import ProgressLists from "../Utils/ProgressLists";
+import { UserInteractionContext } from "../../Contexts/RootContexts";
 
 const tooltipStyles = {
   whiteSpace: "nowrap",
@@ -90,6 +86,8 @@ function VideoCard({
   owner,
   thumbnail,
   previewUrl,
+  videoUrl,
+  vttUrl,
   title,
   description,
   avatar,
@@ -107,16 +105,21 @@ function VideoCard({
   playlistId,
   activeOptionsId,
   setActiveOptionsId,
+  videoMd,
   ...props
 }) {
   const navigate = useNavigate();
   const interactionRef = React.useRef(null);
- const context = React.useContext(UserInteractionContext);
- const {setIsUserInteracted} = context ?? {};
-  const videoRef = React.useRef(null);
+  const context = React.useContext(UserInteractionContext);
+  const { setIsUserInteracted } = context ?? {};
+  const hoverVideoRef = React.useRef(null);
+  const previewRef = React.useRef(null);
   const theme = useTheme();
   const imgRef = React.useRef(null);
   const [bgColor, setBgColor] = React.useState("rgba(0,0,0,0.6)");
+  const [bufferedVal, setBufferedVal] = React.useState(0);
+  const [progress, setProgress] = React.useState(0);
+
   const fac = new FastAverageColor();
   const colors = [red, blue, green, purple, orange, deepOrange, pink];
   const playlistVideoId = playlist?.videos?.map((video) => {
@@ -131,11 +134,11 @@ function VideoCard({
     onMouseEnter,
     onMouseLeave,
   } = useHoverPreview({
-    delay: 300,
+    delay: 1000,
   });
 
   React.useEffect(() => {
-    const video = videoRef.current;
+    const video = hoverVideoRef?.current;
     let playTimeout;
 
     if (!video) return;
@@ -149,11 +152,37 @@ function VideoCard({
             }
           });
         }
-      }, 100);
+      }, 0);
     } else {
       clearTimeout(playTimeout);
       if (!video.paused) {
         video.pause();
+      }
+    }
+
+    return () => clearTimeout(playTimeout);
+  }, [isHoverPlay]);
+
+  React.useEffect(() => {
+    const preview = previewRef.current;
+    let playTimeout;
+
+    if (!preview) return;
+
+    if (isHoverPlay) {
+      playTimeout = setTimeout(() => {
+        if (preview.paused) {
+          preview.play().catch((err) => {
+            if (err.name !== "AbortError") {
+              console.error("Video play error:", err);
+            }
+          });
+        }
+      }, 100);
+    } else {
+      clearTimeout(playTimeout);
+      if (!preview.paused) {
+        preview.pause();
       }
     }
 
@@ -186,13 +215,21 @@ function VideoCard({
       to: `/@${owner}`,
     });
   };
-const handleInteraction = () => {
-  setIsUserInteracted(true);
-}
+  const handleInteraction = () => {
+    setIsUserInteracted(true);
+  };
   const handleDragEnd = () => {
     if (interactionRef.current) {
       interactionRef.current.classList.remove("down");
       interactionRef.current.classList.add("animate");
+    }
+  };
+
+  const handleTimeUpdate = (event) => {
+    const video = event.target;
+    if (video?.duration && !isNaN(video.duration)) {
+      const value = (video.currentTime / video.duration) * 100;
+      setProgress(value);
     }
   };
   return (
@@ -200,13 +237,18 @@ const handleInteraction = () => {
       {home ? (
         <Card
           onClick={handleInteraction}
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
+          onMouseDown={(e) => {
+            handleMouseDown(e);
+            e.stopPropagation();
+          }}
           sx={{
             position: "relative",
-            transition: "0.3s ease-in-out",
             padding: 0,
             cursor: "pointer",
             overflow: "hidden",
-            borderRadius: "10px",
+            borderRadius: isHoverPlay ? "0" : "10px",
             boxShadow: "none",
             width: "100%",
             display: "block",
@@ -223,22 +265,95 @@ const handleInteraction = () => {
           >
             <Link to="/watch" search={searchParams}>
               <Box height="100%" position="absolute" top="0" left="0">
-                <CardMedia
-                  sx={{
-                    borderRadius: "10px",
-                    flexGrow: "1!important",
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                    aspectRatio: "16/9",
-                  }}
-                  loading="lazy"
-                  component="img"
-                  image={thumbnail}
-                />
+                {videoMd ? (
+                  <LazyLoad height={200} once offset={100}>
+                    <CardMedia
+                      sx={{
+                        borderRadius: "10px",
+                        flexGrow: "1!important",
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        aspectRatio: "16/9",
+                        opacity: isHoverPlay && isVideoPlaying ? 0 : 1,
+                      }}
+                      loading="lazy"
+                      component="img"
+                      image={thumbnail}
+                    />
+                    <video
+                      loop
+                      playsInline
+                      ref={previewRef}
+                      muted
+                      onPlaying={() => setIsVideoPlaying(true)}
+                      id="video-player"
+                      key={previewUrl}
+                      className={`hover-interaction ${isHoverPlay ? "" : "hide"}`}
+                      crossOrigin="anonymous"
+                      style={{
+                        position: "absolute",
+                        width: "100%",
+                        height: "100%",
+                        left: 0,
+                        top: 0,
+                        objectFit: "cover",
+                        opacity: isHoverPlay ? 1 : 0,
+                        transition: "opacity 0.3s ease",
+                      }}
+                    >
+                      {previewUrl && (
+                        <source src={previewUrl} type="video/mp4" />
+                      )}
+                    </video>
+                  </LazyLoad>
+                ) : (
+                  <LazyLoad once>
+                    <CardMedia
+                      sx={{
+                        flexGrow: "1!important",
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        aspectRatio: "16/9",
+                      }}
+                      loading="lazy"
+                      component="img"
+                      image={thumbnail}
+                    />
+                    {videoUrl && (
+                      <video
+                        loop
+                        playsInline
+                        ref={hoverVideoRef}
+                        muted
+                        onTimeUpdate={handleTimeUpdate}
+                        onPlaying={() => setIsVideoPlaying(true)}
+                        id="video-player"
+                        key={videoId}
+                        className="hover-interaction"
+                        crossOrigin="anonymous"
+                        preload="auto"
+                        style={{
+                          position: "absolute",
+                          width: "100%",
+                          height: "100%",
+                          left: 0,
+                          top: 0,
+                          objectFit: "cover",
+                          opacity: isHoverPlay ? 1 : 0,
+                          transition: "opacity 0.3s ease",
+                        }}
+                      >
+                        <source src={videoUrl} type="video/mp4" />
+                      </video>
+                    )}
+                  </LazyLoad>
+                )}
               </Box>
             </Link>
             <Box
+              className={`${isHoverPlay && isVideoPlaying ? "hidden" : ""}`}
               sx={{
                 display: "flex",
                 justifyContent: "center",
@@ -261,6 +376,47 @@ const handleInteraction = () => {
                 {formatDuration(duration)}
               </Typography>
             </Box>
+            <Box
+              className={`${isHoverPlay && isVideoPlaying ? "" : "hidden"}`}
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                position: "absolute",
+                bottom: "8px",
+                right: "8px",
+                width: "35px",
+                height: "20px",
+                backgroundColor: "rgba(0,0,0,0.6)",
+                borderRadius: "5px",
+              }}
+            >
+              <Typography
+                variant="body2"
+                color="#f1f1f1"
+                fontSize="0.75rem"
+                lineHeight="0"
+              >
+                {formatDuration(
+                  Math.min(
+                    hoverVideoRef?.current?.currentTime || 0,
+                    hoverVideoRef?.current?.duration || 0
+                  )
+                )}
+              </Typography>
+            </Box>
+            {isHoverPlay && isVideoPlaying && (
+              <ProgressLists
+                bufferedVal={bufferedVal}
+                setBufferedVal={setBufferedVal}
+                progress={progress}
+                setProgress={setProgress}
+                videoId={videoId}
+                videoRef={hoverVideoRef}
+                vttUrl={vttUrl}
+                home={true}
+              />
+            )}
           </Box>
 
           <CardContent
@@ -272,17 +428,22 @@ const handleInteraction = () => {
             }}
           >
             <Box sx={{ display: "flex" }}>
-             
-                <Avatar
-                  onClick={handleChannelClick}
-                  src={avatar ? avatar : null}
-                  sx={{ bgcolor: getColor(fullName), marginRight: "16px" }}
-                >
-                  {fullName ? fullName.charAt(0).toUpperCase() : "?"}
-                </Avatar>
-           
+              <Avatar
+                onClick={handleChannelClick}
+                src={avatar ? avatar : null}
+                sx={{ bgcolor: getColor(fullName), marginRight: "16px" }}
+              >
+                {fullName ? fullName.charAt(0).toUpperCase() : "?"}
+              </Avatar>
 
-              <Box sx={{ overflowX: "hidden", paddingRight: "24px", flex: 1, minWidth: 0 }}>
+              <Box
+                sx={{
+                  overflowX: "hidden",
+                  paddingRight: "24px",
+                  flex: 1,
+                  minWidth: 0,
+                }}
+              >
                 <Link to="/watch" search={{ searchParams }}>
                   <Tooltip
                     disableInteractive
@@ -411,7 +572,7 @@ const handleInteraction = () => {
               sx={{
                 position: "relative",
                 display: "block",
-                paddingTop: "56.25%"
+                paddingTop: "56.25%",
               }}
             >
               <Box
@@ -427,7 +588,7 @@ const handleInteraction = () => {
                 <Link
                   to="/watch"
                   search={searchParams}
-                  style={{...linkStyles}}
+                  style={{ ...linkStyles }}
                   onDragEnd={handleDragEnd}
                 >
                   <LazyLoad height={200} once offset={100}>
@@ -449,7 +610,7 @@ const handleInteraction = () => {
                     <video
                       loop
                       playsInline
-                      ref={videoRef}
+                      ref={previewRef}
                       muted
                       onPlaying={() => setIsVideoPlaying(true)}
                       id="video-player"
@@ -900,7 +1061,7 @@ const handleInteraction = () => {
         >
           <Link
             to="/watch"
-            search={ searchParams }
+            search={searchParams}
             style={linkStyles}
             onDragEnd={() => {
               if (interactionRef.current) {
@@ -1231,7 +1392,7 @@ const handleInteraction = () => {
                           fontSize: "0.85rem",
                           WebkitBoxOrient: "vertical",
                           overflow: "hidden",
-                          WebkitLineClamp: 2, 
+                          WebkitLineClamp: 2,
                           textOverflow: "ellipsis",
                           fontWeight: 600,
                         }}

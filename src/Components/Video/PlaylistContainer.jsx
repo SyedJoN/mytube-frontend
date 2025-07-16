@@ -24,9 +24,7 @@ import handleMouseDown from "../../helper/intertactionHelper";
 import Interaction from "../Utils/Interaction";
 import { fetchPlaylistById } from "../../apis/playlistFn";
 import { FastAverageColor } from "fast-average-color";
-import {
-  UserInteractionContext,
-} from "../../routes/__root";
+import { UserInteractionContext } from "../../Contexts/RootContexts";
 
 const PlaylistContainer = ({ playlistId, playlistData, videoId }) => {
   const imgRef = useRef(null);
