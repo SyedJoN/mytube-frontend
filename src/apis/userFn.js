@@ -10,7 +10,7 @@ const getCurrentUser = async () => {
     });
     return res.data;
   } catch (error) {
-    console.error("Axios Error:", error.response?.data); // Log the actual response
+    console.error("Axios Error:", error.response?.data); 
     throw new Error(
       error.response?.data?.message || "Something went wrong. Please try again!"
     );

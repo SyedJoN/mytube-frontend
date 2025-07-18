@@ -65,6 +65,7 @@ import {
 import { useHoverPreview } from "../../helper/useHoverPreview";
 import { TimeStampProvider } from "../../Contexts/TimeStampProvider";
 import { useTrackWatchHistory } from "../Utils/WatchHistory";
+import { getSavedHoverTime } from "../../helper/Telemetry";
 
 function VideoPlayer({
   videoId,
@@ -960,8 +961,9 @@ useEffect(() => {
       showControls();
       setTitleOpacity(1);
     }
-    const startTimeHomeDuration = getTimeStamp(videoId);
-
+    const startTimeHomeDuration = getSavedHoverTime(videoId);
+    
+    console.log(startTimeHomeDuration)
     const isValidStart =
       isFinite(startTimeDuration) &&
       startTimeDuration > 0 &&
@@ -979,14 +981,12 @@ useEffect(() => {
           ? isValidStartFromHome
           : isValidStart
         : true);
-    if (!shouldPlay) return;
 
-  if (isAuthenticated && isValidStart && isUserInteracted && !fromHome) {
+  if (isAuthenticated && isValidStart && isUserInteracted && shouldPlay && !fromHome) {
         video.currentTime = startTimeDuration;
       } else if (
         fromHome &&
-        isValidStartFromHome &&
-        isAuthenticated
+        isValidStartFromHome
       ) {
         video.currentTime = startTimeHomeDuration;
         setFromHome(false);

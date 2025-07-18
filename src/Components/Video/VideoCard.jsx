@@ -44,6 +44,11 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { addToWatchHistory } from "../../apis/userFn";
 import { flushSync } from "react-dom";
 import { TimeStampProvider } from "../../Contexts/TimeStampProvider";
+import {
+  getSavedHoverTime,
+  startTelemetry,
+  stopTelemetry,
+} from "../../helper/Telemetry";
 
 const tooltipStyles = {
   whiteSpace: "nowrap",
@@ -133,7 +138,8 @@ function VideoCard({
   const queryClient = useQueryClient();
 
   const context = React.useContext(UserInteractionContext);
-  const { setTimeStamp, setFromHome, getTimeStamp } = React.useContext(TimeStampContext);
+  const { setTimeStamp, setFromHome, getTimeStamp } =
+    React.useContext(TimeStampContext);
 
   const userContext = React.useContext(UserContext);
   const { data: dataContext } = userContext ?? {};
@@ -176,7 +182,7 @@ function VideoCard({
     if (
       !video ||
       !hasWatchedEnoughRef.current ||
-      isNaN(video.currentTime) ||
+      isNaN(video.currentTime) || !isAuthenticated ||
       isNaN(video.duration)
     )
       return;
@@ -192,17 +198,15 @@ function VideoCard({
 
   const handleLoadedMetadata = () => {
     const video = hoverVideoRef.current;
-    if (!video || !isAuthenticated) return;
+    if (!video) return;
 
     setVideoReady(true);
+    console.log(videoId);
 
-    const startTime = getTimeStamp(videoId);
-
-    if (isFinite(startTime) && startTime > 0 && startTime < video.duration) {
-      video.currentTime = startTime;
-    }
+    const savedTime = getSavedHoverTime(videoId);
+    video.currentTime = savedTime;
+    console.log(savedTime);
   };
-
   React.useEffect(() => {
     if (!videoReady || !home) return;
 
@@ -214,7 +218,7 @@ function VideoCard({
     };
 
     const handlePlay = () => {
-      console.log("handleplay")
+      console.log("handleplay");
       clearAllIntervals();
       hasWatchedEnoughRef.current = false;
       prevTimeRef.current = video.currentTime;
@@ -226,7 +230,7 @@ function VideoCard({
           hasWatchedEnoughRef.current = true;
           clearInterval(check3SecIntervalRef.current);
 
-          // Start sending history
+        
           historyIntervalRef.current = setInterval(sendWatchHistory, 3000);
         }
       }, 1000);
@@ -269,28 +273,27 @@ function VideoCard({
 
   React.useEffect(() => {
     const video = hoverVideoRef?.current;
-    let playTimeout;
-
     if (!video) return;
+
+    let playTimeout;
 
     if (isHoverPlay) {
       playTimeout = setTimeout(() => {
-        if (video.paused) {
-          video.play().catch((err) => {
-            if (err.name !== "AbortError") {
-              console.error("Video play error:", err);
-            }
-          });
-        }
+        video
+          .play()
+          .then(() => startTelemetry(videoId, video))
+          .catch((err) => console.error("Video play error:", err));
       }, 0);
     } else {
       clearTimeout(playTimeout);
-      if (!video.paused) {
-        video.pause();
-      }
+      video.pause();
+      stopTelemetry();
     }
 
-    return () => clearTimeout(playTimeout);
+    return () => {
+      clearTimeout(playTimeout);
+      stopTelemetry();
+    };
   }, [isHoverPlay]);
 
   React.useEffect(() => {
@@ -353,7 +356,7 @@ function VideoCard({
       interactionRef.current.classList.add("animate");
     }
   };
-  // Hover Video
+
 
   React.useEffect(() => {
     const video = hoverVideoRef.current;
@@ -413,7 +416,11 @@ function VideoCard({
               paddingTop: "56.25%",
             }}
           >
-            <Link to="/watch" onClick={()=> hasWatchedEnoughRef.current && setFromHome(true)} search={searchParams}>
+            <Link
+              to="/watch"
+              onClick={() => hasWatchedEnoughRef.current && setFromHome(true)}
+              search={searchParams}
+            >
               <Box height="100%" position="absolute" top="0" left="0">
                 {videoMd ? (
                   <LazyLoad height={200} once offset={100}>
