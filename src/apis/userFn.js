@@ -66,7 +66,7 @@ const getUserChannelProfile = async (username) => {
       });
       return res.data;
     } catch (error) {
-      console.error("Axios Error:", error.response?.data); // Log the actual response
+      console.error("Axios Error:", error.response?.data); 
   
       throw new Error(
         error.response?.data?.message || "Something went wrong. Please try again!"
@@ -93,4 +93,4 @@ const getUserChannelProfile = async (username) => {
 
 
 
-export {getCurrentUser, getUserChannelProfile, registerUser, loginUser, logoutUser, addToWatchHistory}
+export {getCurrentUser, getUserChannelProfile, registerUser, loginUser, logoutUser, addToWatchHistory, BASE_URL}

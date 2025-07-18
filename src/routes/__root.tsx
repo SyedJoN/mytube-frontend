@@ -5,25 +5,20 @@ import React, {
   useRef,
   useCallback,
 } from "react";
-import {
-  createRootRoute,
-  Outlet,
-  useLocation,
-} from "@tanstack/react-router";
+import { createRootRoute, Outlet, useLocation } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Box,
-  CssBaseline,
-  useMediaQuery,
-  useTheme,
-} from "@mui/material";
+import { Box, CssBaseline, useMediaQuery, useTheme } from "@mui/material";
 import { getCurrentUser } from "../apis/userFn";
 import throttle from "lodash/throttle";
 
 import Header from "../Components/Header/Header";
 import { SnackbarProvider } from "../Contexts/SnackbarContext";
 import { ProgressBar } from "../ProgressBar";
-import { DrawerContext, UserContext, UserInteractionContext } from "../Contexts/RootContexts";
+import {
+  DrawerContext,
+  UserContext,
+  UserInteractionContext,
+} from "../Contexts/RootContexts";
 
 const NotFoundComponent = () => (
   <Box sx={{ textAlign: "center", mt: 5 }}>
@@ -52,8 +47,9 @@ function useBodyScrollLock(open: boolean, isLaptop: boolean, watch: boolean) {
   );
 
   useEffect(() => {
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll as EventListener);
+    return () =>
+      window.removeEventListener("scroll", handleScroll as EventListener);
   }, [handleScroll]);
 
   useEffect(() => {
@@ -97,6 +93,7 @@ function RouteComponent() {
   const [open, setOpen] = useState(false);
   const [isUserInteracted, setIsUserInteracted] = useState(false);
 
+
   useEffect(() => {
     requestAnimationFrame(() => setOpen(shouldBeOpen));
   }, [shouldBeOpen]);
@@ -106,7 +103,6 @@ function RouteComponent() {
   const { data } = useQuery({
     queryKey: ["user"],
     queryFn: getCurrentUser,
-    staleTime: 1000 * 60 * 5,
   });
 
   const drawerValue = useMemo(() => ({ open, setOpen }), [open]);
@@ -121,12 +117,12 @@ function RouteComponent() {
       isTablet || watch
         ? "0"
         : (home || search || userProfile) && isLaptop
-        ? "var(--mini-drawer-width)"
-        : open && !isLaptop
-        ? "var(--drawer-width)"
-        : (!open && !isTablet) || userProfile
-        ? "var(--mini-drawer-width)"
-        : "0";
+          ? "var(--mini-drawer-width)"
+          : open && !isLaptop
+            ? "var(--drawer-width)"
+            : (!open && !isTablet) || userProfile
+              ? "var(--mini-drawer-width)"
+              : "0";
 
     return {
       position: "relative",

@@ -25,6 +25,7 @@ export function useHoverPreview({ delay }) {
 
   return {
     isHoverPlay,
+    setIsHoverPlay,
     isVideoPlaying,
     setIsVideoPlaying,
     onMouseEnter,

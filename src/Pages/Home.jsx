@@ -26,11 +26,10 @@ function Home() {
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["videos"],
     queryFn: fetchVideos,
-    staleTime: 1000 * 60 * 5
+    staleTime: 1000 * 60 * 5,
   });
 
   const videos = data?.data?.docs || [];
-  console.log(videos)
 
   return (
     <Box sx={{ display: "flex" }}>

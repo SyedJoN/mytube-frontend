@@ -45,7 +45,7 @@ import {
   useQueryClient,
   queryOptions,
 } from "@tanstack/react-query";
-import { addToWatchHistory } from "../../apis/userFn";
+import { addToWatchHistory, BASE_URL } from "../../apis/userFn";
 import { videoView } from "../../apis/videoFn";
 import { useLocation } from "@tanstack/react-router";
 import { useNavigate } from "@tanstack/react-router";
@@ -56,7 +56,15 @@ import VolumeDownIcon from "@mui/icons-material/VolumeDown";
 import { useDebouncedCallback } from "../../helper/debouncedFn";
 import { flushSync } from "react-dom";
 import { usePlayerSetting } from "../../helper/usePlayerSettings";
-import { DrawerContext, UserContext, UserInteractionContext } from "../../Contexts/RootContexts";
+import {
+  DrawerContext,
+  TimeStampContext,
+  UserContext,
+  UserInteractionContext,
+} from "../../Contexts/RootContexts";
+import { useHoverPreview } from "../../helper/useHoverPreview";
+import { TimeStampProvider } from "../../Contexts/TimeStampProvider";
+import { useTrackWatchHistory } from "../Utils/WatchHistory";
 
 function VideoPlayer({
   videoId,
@@ -68,15 +76,17 @@ function VideoPlayer({
   isTheatre,
   setIsTheatre,
 }) {
+  const theme = useTheme();
   const userContext = useContext(UserContext);
   const drawerContext = useContext(DrawerContext);
   const userInteractionContext = useContext(UserInteractionContext);
-  const theme = useTheme();
+  const { fromHome, setFromHome, getTimeStamp } = useContext(TimeStampContext);
 
   const containerRef = useRef(null);
   const videoRef = useRef(null);
   const timeoutRef = useRef(null);
   const fullScreenTitleRef = useRef(null);
+  const historyIntervalRef = useRef(null);
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const { open: isOpen } = drawerContext ?? {};
@@ -95,6 +105,7 @@ function VideoPlayer({
   const [showSettings, setShowSettings] = useState(false);
   const [isPiActive, setIsPiPActive] = useState(false);
   const [canPlay, setCanPlay] = useState(true);
+  const [timeStamp, setTimeStamp] = useState(0);
   const [isAmbient, setIsAmbient] = usePlayerSetting("ambientMode", false);
   const [playbackSpeed, setPlaybackSpeed] = usePlayerSetting(
     "playbackSpeed",
@@ -102,7 +113,7 @@ function VideoPlayer({
   );
   const [playbackSliderSpeed, setPlaybackSliderSpeed] = usePlayerSetting(
     "playbackSpeed",
-    0.25
+    1.0
   );
   const isInside = useRef(null);
   const queryClient = useQueryClient();
@@ -160,13 +171,23 @@ function VideoPlayer({
     enabled: !!videoId,
   });
 
+  const userPlayingVideo = dataContext?.watchHistory?.find(
+    (video) => video.video === videoId
+  );
+  let startTimeDuration = userPlayingVideo?.duration;
+
+  useTrackWatchHistory({
+    videoId,
+    timeStamp: startTimeDuration,
+    viewCounted,
+  });
+
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    if (isUserInteracted) {
-      videoRef.current?.play();
-    }
-  }, [isUserInteracted]);
+    requestAnimationFrame(() => {
+      setTimeStamp(0);
+      setViewCounted(false);
+    });
+  }, [data?.data?._id]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -175,6 +196,16 @@ function VideoPlayer({
     video.addEventListener("pause", onPause);
     return () => video.removeEventListener("pause", onPause);
   }, [setIsPlaying]);
+
+  const storeTimeStamp = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    const currentTime = Math.floor(video.currentTime);
+    const duration = Math.floor(video.duration);
+    if (currentTime > 0 && currentTime < duration) {
+      setTimeStamp(video.currentTime);
+    }
+  };
 
   const handlePlay = () => {
     setIsReplay(false);
@@ -911,35 +942,57 @@ function VideoPlayer({
     };
   }, [data?.data?._id]);
 
-  const userPlayingVideo = dataContext?.data?.watchHistory?.find(
-    (video) => video.video === videoId
-  );
-  let startTimeDuration = userPlayingVideo?.duration;
+useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (isUserInteracted) {
+      videoRef.current?.play();
+    }
+  }, [isUserInteracted]);
 
   const handleLoadedMetadata = async () => {
     const video = videoRef?.current;
     if (!video) return;
 
+    console.log("watchHistroy:", userPlayingVideo);
+
     if (!isUserInteracted) {
       showControls();
       setTitleOpacity(1);
     }
+    const startTimeHomeDuration = getTimeStamp(videoId);
 
     const isValidStart =
       isFinite(startTimeDuration) &&
       startTimeDuration > 0 &&
       startTimeDuration < video.duration;
 
-    const shouldPlay =
-      isUserInteracted && (isAuthenticated ? isValidStart : true);
+    const isValidStartFromHome =
+      isFinite(startTimeHomeDuration) &&
+      startTimeHomeDuration > 0 &&
+      startTimeHomeDuration < video.duration;
 
+    const shouldPlay =
+      isUserInteracted &&
+      (isAuthenticated
+        ? fromHome
+          ? isValidStartFromHome
+          : isValidStart
+        : true);
     if (!shouldPlay) return;
 
-    try {
-      if (isAuthenticated && isValidStart && isUserInteracted) {
+  if (isAuthenticated && isValidStart && isUserInteracted && !fromHome) {
         video.currentTime = startTimeDuration;
+      } else if (
+        fromHome &&
+        isValidStartFromHome &&
+        isAuthenticated
+      ) {
+        video.currentTime = startTimeHomeDuration;
+        setFromHome(false);
       }
-      console.log("kro play");
+    try {
+    
       await video.play();
       setIsPlaying(true);
     } catch (err) {
@@ -968,31 +1021,12 @@ function VideoPlayer({
     },
   });
 
-  const sendWatchHistory = () => {
-    if (videoRef.current && prevVideoRef.current !== videoId) {
-      const currentTime = Math.floor(videoRef.current.currentTime);
-      const duration = Math.floor(videoRef.current.duration);
-      if (currentTime > 0 && currentTime < duration) {
-        sendHistoryMutation({
-          videoId: prevVideoRef.current,
-          duration: currentTime,
-        });
-      }
-    }
-    prevVideoRef.current = videoId;
-  };
-
   useEffect(() => {
-    sendWatchHistory();
-  }, [data?.data?._id]);
-
+    console.log("timestamp", timeStamp);
+  }, [timeStamp]);
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      sendWatchHistory();
-    };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, []);
+    console.log("viewCounted", viewCounted);
+  }, [viewCounted]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -1175,7 +1209,8 @@ function VideoPlayer({
       } else if (e.code === "Space") {
         e.preventDefault();
         if (isHolding.current) return;
-        showControls();
+        setControlOpacity(1);
+        setTitleOpacity(1);
         if (overlay.classList.contains("hide-cursor")) {
           overlay.classList.remove("hide-cursor");
         }
@@ -1269,43 +1304,40 @@ function VideoPlayer({
   useEffect(() => {
     setPrevTheatre(isTheatre);
   }, [isTheatre]);
-
+  useEffect(() => {
+    if (viewCounted) {
+      historyIntervalRef.current = setInterval(storeTimeStamp, 5000);
+    }
+  }, [viewCounted]);
   const watchTimeRef = useRef(0);
   const { mutate } = useMutation({
     mutationFn: () => videoView(videoId),
+    onMutate: () => {
+      setViewCounted(true);
+    },
   });
   if (isLoading) return <Typography>Loading...</Typography>;
   if (isError) return <Typography>Error: {error.message}</Typography>;
 
   const handleTimeUpdate = (event) => {
     const video = event.target;
-    if (video?.duration && !isNaN(video.duration)) {
-      const value = (video.currentTime / video.duration) * 100;
-      setProgress(value);
-    }
+
+    if (!video || isNaN(video.duration) || video.duration === 0) return;
+
+    const value = (video.currentTime / video.duration) * 100;
+    setProgress(value);
+
     if (viewCounted) return;
 
     const duration = video.duration;
     const watchTime = video.currentTime;
     watchTimeRef.current = watchTime;
 
-    if (!viewCounted) {
-      if ((duration < 30 && watchTime >= duration) || watchTime >= 30) {
-        mutate();
-        setViewCounted(true);
-      }
-    }
+    const hasWatchedEnough =
+      (duration < 30 && watchTime >= duration) || watchTime >= 30;
 
-    if (duration < 30) {
-      if (watchTime >= duration) {
-        mutate();
-        setViewCounted(true);
-      }
-    } else {
-      if (watchTime >= 30) {
-        mutate();
-        setViewCounted(true);
-      }
+    if (hasWatchedEnough) {
+      mutate();
     }
   };
 

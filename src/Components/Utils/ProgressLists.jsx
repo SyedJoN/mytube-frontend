@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useContext } from "react";
 import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
 import { WebVTT } from "vtt.js";
 import formatDuration from "../../utils/formatDuration";
+import { useLocation } from "@tanstack/react-router";
 
 export const ProgressLists = ({
   videoRef,
@@ -12,12 +13,14 @@ export const ProgressLists = ({
   videoId,
   isMini,
   isTheatre,
+  hoverVideoRef,
   showSettings,
   vttUrl,
   home,
 }) => {
   var thumbWidth = 13;
   const theme = useTheme();
+  const location = useLocation();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
   const isDesktop = useMediaQuery(theme.breakpoints.down("xl"));
@@ -59,6 +62,8 @@ export const ProgressLists = ({
       window.removeEventListener("resize", updateSizes);
     };
   }, []);
+
+
 
   useEffect(() => {
     const video = videoRef.current;

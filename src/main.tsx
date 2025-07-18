@@ -6,8 +6,8 @@ import { ThemeProvider } from "@mui/material";
 import theme from "./assets/Theme";
 import { routeTree } from "./routeTree.gen";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
-
 import "./styles.css"; // your global styles
+import { TimeStampProvider } from "./Contexts/TimeStampProvider";
 
 const queryClient = new QueryClient();
 const router = createRouter({ routeTree });
@@ -25,10 +25,12 @@ if (!rootElement.innerHTML) {
   root.render(
     <StrictMode>
       <QueryClientProvider client={queryClient}>
+        <TimeStampProvider>
         <ThemeProvider theme={theme}>
           <RouterProvider router={router}>
           </RouterProvider>
         </ThemeProvider>
+        </TimeStampProvider>
       </QueryClientProvider>
     </StrictMode>
   );

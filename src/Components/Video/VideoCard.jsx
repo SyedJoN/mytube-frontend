@@ -5,8 +5,8 @@ import Card from "@mui/material/Card";
 import CardHeader from "@mui/material/CardHeader";
 import CardMedia from "@mui/material/CardMedia";
 import CardContent from "@mui/material/CardContent";
-import CardActions from "@mui/material/CardActions";
-import Collapse from "@mui/material/Collapse";
+import VolumeUpIcon from "@mui/icons-material/VolumeUp";
+import VolumeOffIcon from "@mui/icons-material/VolumeOff";
 import Avatar from "@mui/material/Avatar";
 import PlaylistPlayOutlinedIcon from "@mui/icons-material/PlaylistPlayOutlined";
 import { MenuItem } from "@mui/material";
@@ -35,7 +35,15 @@ import Interaction from "../Utils/Interaction";
 import handleMouseDown from "../../helper/intertactionHelper";
 import { useHoverPreview } from "../../helper/useHoverPreview";
 import ProgressLists from "../Utils/ProgressLists";
-import { UserInteractionContext } from "../../Contexts/RootContexts";
+import {
+  TimeStampContext,
+  UserContext,
+  UserInteractionContext,
+} from "../../Contexts/RootContexts";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { addToWatchHistory } from "../../apis/userFn";
+import { flushSync } from "react-dom";
+import { TimeStampProvider } from "../../Contexts/TimeStampProvider";
 
 const tooltipStyles = {
   whiteSpace: "nowrap",
@@ -46,6 +54,16 @@ const tooltipStyles = {
   border: "1px solid #f1f1f1",
   borderRadius: "0",
   padding: "4px",
+};
+
+const hoverVideoTooltipStyles = {
+  whiteSpace: "nowrap",
+  backgroundColor: "#0f0f0f",
+  maxWidth: 700,
+  color: "#aaa",
+  fontSize: "0.75rem",
+  border: "1px solid #aaa",
+  borderRadius: "0",
 };
 
 const linkStyles = { display: "inline-block", textDecoration: "none" };
@@ -110,16 +128,30 @@ function VideoCard({
 }) {
   const navigate = useNavigate();
   const interactionRef = React.useRef(null);
+  const prevTimeRef = React.useRef(null);
+  const intervalRef = React.useRef(null);
+  const queryClient = useQueryClient();
+
   const context = React.useContext(UserInteractionContext);
+  const { setTimeStamp, setFromHome, getTimeStamp } = React.useContext(TimeStampContext);
+
+  const userContext = React.useContext(UserContext);
+  const { data: dataContext } = userContext ?? {};
+  const isAuthenticated = dataContext || null;
+
   const { setIsUserInteracted } = context ?? {};
   const hoverVideoRef = React.useRef(null);
   const previewRef = React.useRef(null);
   const theme = useTheme();
   const imgRef = React.useRef(null);
+  const hasWatchedEnoughRef = React.useRef(false);
+  const check3SecIntervalRef = React.useRef(null);
+  const historyIntervalRef = React.useRef(null);
   const [bgColor, setBgColor] = React.useState("rgba(0,0,0,0.6)");
   const [bufferedVal, setBufferedVal] = React.useState(0);
+  const [viewVideo, setViewVideo] = React.useState(false);
   const [progress, setProgress] = React.useState(0);
-
+  const [isVolumeMuted, setIsVolumeMuted] = React.useState(false);
   const fac = new FastAverageColor();
   const colors = [red, blue, green, purple, orange, deepOrange, pink];
   const playlistVideoId = playlist?.videos?.map((video) => {
@@ -129,6 +161,7 @@ function VideoCard({
 
   const {
     isHoverPlay,
+    setIsHoverPlay,
     isVideoPlaying,
     setIsVideoPlaying,
     onMouseEnter,
@@ -136,6 +169,103 @@ function VideoCard({
   } = useHoverPreview({
     delay: 1000,
   });
+  const [videoReady, setVideoReady] = React.useState(false);
+
+  const sendWatchHistory = () => {
+    const video = hoverVideoRef.current;
+    if (
+      !video ||
+      !hasWatchedEnoughRef.current ||
+      isNaN(video.currentTime) ||
+      isNaN(video.duration)
+    )
+      return;
+
+    const currentTime = Math.floor(video.currentTime);
+    const duration = Math.floor(video.duration);
+
+    if (currentTime > 0 && currentTime < duration) {
+      setTimeStamp(videoId, currentTime);
+      console.log("pohanch gai", { videoId, duration: currentTime });
+    }
+  };
+
+  const handleLoadedMetadata = () => {
+    const video = hoverVideoRef.current;
+    if (!video || !isAuthenticated) return;
+
+    setVideoReady(true);
+
+    const startTime = getTimeStamp(videoId);
+
+    if (isFinite(startTime) && startTime > 0 && startTime < video.duration) {
+      video.currentTime = startTime;
+    }
+  };
+
+  React.useEffect(() => {
+    if (!videoReady || !home) return;
+
+    const video = hoverVideoRef.current;
+    if (!video) return;
+    const clearAllIntervals = () => {
+      clearInterval(check3SecIntervalRef.current);
+      clearInterval(historyIntervalRef.current);
+    };
+
+    const handlePlay = () => {
+      console.log("handleplay")
+      clearAllIntervals();
+      hasWatchedEnoughRef.current = false;
+      prevTimeRef.current = video.currentTime;
+
+      check3SecIntervalRef.current = setInterval(() => {
+        const timeWatched = video.currentTime - prevTimeRef.current;
+
+        if (timeWatched >= 3) {
+          hasWatchedEnoughRef.current = true;
+          clearInterval(check3SecIntervalRef.current);
+
+          // Start sending history
+          historyIntervalRef.current = setInterval(sendWatchHistory, 3000);
+        }
+      }, 1000);
+    };
+
+    const handlePause = () => {
+      clearAllIntervals();
+      prevTimeRef.current = video.currentTime;
+      hasWatchedEnoughRef.current = false;
+    };
+
+    const handleResume = () => {
+      clearInterval(historyIntervalRef.current);
+      if (hasWatchedEnoughRef.current) {
+        historyIntervalRef.current = setInterval(sendWatchHistory, 5000);
+      } else {
+        handlePlay(); // re-check from current point
+      }
+    };
+
+    video.addEventListener("loadedmetadata", handleLoadedMetadata);
+    video.addEventListener("play", handlePlay);
+    video.addEventListener("pause", handlePause);
+    video.addEventListener("ended", handlePause);
+    video.addEventListener("waiting", clearAllIntervals);
+    video.addEventListener("playing", handleResume);
+    video.addEventListener("seeked", sendWatchHistory);
+
+    return () => {
+      clearAllIntervals();
+      video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      video.removeEventListener("play", handlePlay);
+      video.removeEventListener("pause", handlePause);
+      video.removeEventListener("ended", handlePause);
+      video.removeEventListener("waiting", clearAllIntervals);
+      video.removeEventListener("playing", handleResume);
+      video.removeEventListener("seeked", sendWatchHistory);
+    };
+  }, [videoReady, home, videoId]);
 
   React.useEffect(() => {
     const video = hoverVideoRef?.current;
@@ -168,7 +298,6 @@ function VideoCard({
     let playTimeout;
 
     if (!preview) return;
-
     if (isHoverPlay) {
       playTimeout = setTimeout(() => {
         if (preview.paused) {
@@ -224,6 +353,27 @@ function VideoCard({
       interactionRef.current.classList.add("animate");
     }
   };
+  // Hover Video
+
+  React.useEffect(() => {
+    const video = hoverVideoRef.current;
+    if (!video) return;
+    if (isVolumeMuted) {
+      video.volume = 0;
+    } else {
+      video.volume = 1;
+    }
+  }, [isVolumeMuted]);
+
+  const handleVideoPlaying = () => {
+    setIsVideoPlaying(true);
+  };
+  const handleVideoEnd = () => {
+    setIsHoverPlay(false);
+    setTimeout(() => {
+      setIsHoverPlay(true);
+    }, 600);
+  };
 
   const handleTimeUpdate = (event) => {
     const video = event.target;
@@ -263,7 +413,7 @@ function VideoCard({
               paddingTop: "56.25%",
             }}
           >
-            <Link to="/watch" search={searchParams}>
+            <Link to="/watch" onClick={()=> hasWatchedEnoughRef.current && setFromHome(true)} search={searchParams}>
               <Box height="100%" position="absolute" top="0" left="0">
                 {videoMd ? (
                   <LazyLoad height={200} once offset={100}>
@@ -323,12 +473,12 @@ function VideoCard({
                     />
                     {videoUrl && (
                       <video
-                        loop
                         playsInline
                         ref={hoverVideoRef}
-                        muted
                         onTimeUpdate={handleTimeUpdate}
-                        onPlaying={() => setIsVideoPlaying(true)}
+                        onPlaying={handleVideoPlaying}
+                        onEnded={handleVideoEnd}
+                        onLoadedMetadata={handleLoadedMetadata}
                         id="video-player"
                         key={videoId}
                         className="hover-interaction"
@@ -352,6 +502,51 @@ function VideoCard({
                 )}
               </Box>
             </Link>
+            <Tooltip
+              disableInteractive
+              disableFocusListener
+              disableTouchListener
+              title={`${isVolumeMuted ? "Unmute" : "Mute"}`}
+              placement="bottom-end"
+              slotProps={{
+                popper: {
+                  modifiers: [
+                    {
+                      name: "offset",
+                      options: {
+                        offset: [30, -14],
+                      },
+                    },
+                  ],
+                },
+                tooltip: {
+                  sx: { ...hoverVideoTooltipStyles },
+                },
+              }}
+            >
+              <Box
+                onClick={() => setIsVolumeMuted((prev) => !prev)}
+                className={`volume-overlay ${isHoverPlay ? "" : "hide"}`}
+                sx={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  position: "absolute",
+                  top: "8px",
+                  right: "8px",
+                  width: "35px",
+                  height: "35px",
+                  backgroundColor: "rgba(0,0,0,0.6)",
+                  borderRadius: "50px",
+                }}
+              >
+                {isVolumeMuted ? (
+                  <VolumeOffIcon sx={{ color: "#f1f1f1" }} />
+                ) : (
+                  <VolumeUpIcon sx={{ color: "#f1f1f1" }} />
+                )}
+              </Box>
+            </Tooltip>
             <Box
               className={`${isHoverPlay && isVideoPlaying ? "hidden" : ""}`}
               sx={{
@@ -408,10 +603,13 @@ function VideoCard({
             {isHoverPlay && isVideoPlaying && (
               <ProgressLists
                 bufferedVal={bufferedVal}
+                hoverVideoRef={hoverVideoRef}
                 setBufferedVal={setBufferedVal}
                 progress={progress}
                 setProgress={setProgress}
                 videoId={videoId}
+                viewVideo={viewVideo}
+                setViewVideo={setViewVideo}
                 videoRef={hoverVideoRef}
                 vttUrl={vttUrl}
                 home={true}
@@ -463,7 +661,7 @@ function VideoCard({
                         ],
                       },
                       tooltip: {
-                        sx: { tooltipStyles },
+                        sx: { ...tooltipStyles },
                       },
                     }}
                   >
@@ -724,7 +922,7 @@ function VideoCard({
                         ],
                       },
                       tooltip: {
-                        sx: { tooltipStyles },
+                        sx: { ...tooltipStyles },
                       },
                     }}
                   >
@@ -1300,7 +1498,6 @@ function VideoCard({
                         ref={imgRef}
                         component="img"
                         image={thumbnail}
-                        onLoad={handleImageLoad}
                         draggable={false}
                       />
                     </Box>
