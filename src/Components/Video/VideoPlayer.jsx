@@ -45,7 +45,6 @@ import {
   useQueryClient,
   queryOptions,
 } from "@tanstack/react-query";
-import { addToWatchHistory, BASE_URL } from "../../apis/userFn";
 import { videoView } from "../../apis/videoFn";
 import { useLocation } from "@tanstack/react-router";
 import { useNavigate } from "@tanstack/react-router";
@@ -62,10 +61,15 @@ import {
   UserContext,
   UserInteractionContext,
 } from "../../Contexts/RootContexts";
-import { useHoverPreview } from "../../helper/useHoverPreview";
-import { TimeStampProvider } from "../../Contexts/TimeStampProvider";
-import { useTrackWatchHistory } from "../Utils/WatchHistory";
-import { getSavedHoverTime } from "../../helper/Telemetry";
+
+import {
+  flushTelemetryQueue,
+  getCurrentVideoTelemetryData,
+  getSavedHoverTime,
+  startTelemetry,
+} from "../../helper/Telemetry";
+import { getWatchHistory } from "../../apis/userFn";
+import { sendTelemetry } from "../../apis/sendTelemetry";
 
 function VideoPlayer({
   videoId,
@@ -81,7 +85,6 @@ function VideoPlayer({
   const userContext = useContext(UserContext);
   const drawerContext = useContext(DrawerContext);
   const userInteractionContext = useContext(UserInteractionContext);
-  const { fromHome, setFromHome, getTimeStamp } = useContext(TimeStampContext);
 
   const containerRef = useRef(null);
   const videoRef = useRef(null);
@@ -92,6 +95,7 @@ function VideoPlayer({
 
   const { open: isOpen } = drawerContext ?? {};
   const { data: dataContext } = userContext ?? {};
+  const userId = dataContext?._id;
   const isAuthenticated = dataContext || null;
   const { isUserInteracted, setIsUserInteracted } =
     userInteractionContext ?? {};
@@ -157,6 +161,7 @@ function VideoPlayer({
   const animateTimeoutRef = useRef(null);
   const captureCanvasRef = useRef(null);
   const prevHoverStateRef = useRef(null);
+  const telemetrySentRef = useRef(null);
   const holdTimer = useRef(null);
   const isHolding = useRef(null);
   const glowCanvasRef = useRef(null);
@@ -172,23 +177,21 @@ function VideoPlayer({
     enabled: !!videoId,
   });
 
-  const userPlayingVideo = dataContext?.watchHistory?.find(
-    (video) => video.video === videoId
-  );
-  let startTimeDuration = userPlayingVideo?.duration;
-
-  useTrackWatchHistory({
-    videoId,
-    timeStamp: startTimeDuration,
-    viewCounted,
+  const {
+    data: userHistory,
+    isHistoryLoading,
+    isHistoryError,
+    historyError,
+  } = useQuery({
+    queryKey: ["userHistory"],
+    queryFn: getWatchHistory,
+    enabled: !!userId,
   });
 
-  useEffect(() => {
-    requestAnimationFrame(() => {
-      setTimeStamp(0);
-      setViewCounted(false);
-    });
-  }, [data?.data?._id]);
+  const userResumeTime = userId
+    ? (userHistory?.data?.find((entry) => entry.video?._id === videoId)
+        ?.currentTime ?? 0)
+    : 0;
 
   useEffect(() => {
     const video = videoRef.current;
@@ -208,7 +211,11 @@ function VideoPlayer({
     }
   };
 
-  const handlePlay = () => {
+  const handlePlay = (event) => {
+    const video = event.target;
+    if (!video) return;
+        console.log("Start tele at time update")
+    startTelemetry((userId, videoId, video));
     setIsReplay(false);
     setCanPlay(true);
     setIsPlaying(true);
@@ -943,9 +950,9 @@ function VideoPlayer({
     };
   }, [data?.data?._id]);
 
-useEffect(() => {
+  useEffect(() => {
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || video.readyState < 3) return;
     if (isUserInteracted) {
       videoRef.current?.play();
     }
@@ -955,44 +962,36 @@ useEffect(() => {
     const video = videoRef?.current;
     if (!video) return;
 
-    console.log("watchHistroy:", userPlayingVideo);
-
     if (!isUserInteracted) {
       showControls();
       setTitleOpacity(1);
     }
-    const startTimeHomeDuration = getSavedHoverTime(videoId);
-    
-    console.log(startTimeHomeDuration)
-    const isValidStart =
-      isFinite(startTimeDuration) &&
-      startTimeDuration > 0 &&
-      startTimeDuration < video.duration;
 
-    const isValidStartFromHome =
-      isFinite(startTimeHomeDuration) &&
-      startTimeHomeDuration > 0 &&
-      startTimeHomeDuration < video.duration;
+    const guestResumeTime = getSavedHoverTime(videoId);
+
+    console.log("guest", guestResumeTime);
+    console.log("user", userResumeTime);
+    const isValidGuestResumeTime =
+      isFinite(guestResumeTime) &&
+      guestResumeTime > 0 &&
+      guestResumeTime < video.duration;
+    const isValidUserResumeTime =
+      isFinite(userResumeTime) &&
+      userResumeTime > 0 &&
+      userResumeTime < video.duration;
 
     const shouldPlay =
       isUserInteracted &&
-      (isAuthenticated
-        ? fromHome
-          ? isValidStartFromHome
-          : isValidStart
-        : true);
+      (isAuthenticated ? isValidUserResumeTime : isValidGuestResumeTime);
 
-  if (isAuthenticated && isValidStart && isUserInteracted && shouldPlay && !fromHome) {
-        video.currentTime = startTimeDuration;
-      } else if (
-        fromHome &&
-        isValidStartFromHome
-      ) {
-        video.currentTime = startTimeHomeDuration;
-        setFromHome(false);
-      }
+    if (!shouldPlay) return;
+
+    if (isAuthenticated && isValidUserResumeTime && isUserInteracted) {
+      video.currentTime = userResumeTime;
+    } else if (!isAuthenticated && isValidGuestResumeTime && isUserInteracted) {
+      video.currentTime = guestResumeTime;
+    }
     try {
-    
       await video.play();
       setIsPlaying(true);
     } catch (err) {
@@ -1011,22 +1010,9 @@ useEffect(() => {
     return () => clearTimeout(timeoutId);
   }, [location.pathname]);
 
-  const { mutate: sendHistoryMutation } = useMutation({
-    mutationFn: (data) => addToWatchHistory(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries(["user"]);
-    },
-    onError: () => {
-      console.error("watchHistory error");
-    },
-  });
-
-  useEffect(() => {
-    console.log("timestamp", timeStamp);
-  }, [timeStamp]);
-  useEffect(() => {
-    console.log("viewCounted", viewCounted);
-  }, [viewCounted]);
+  // useEffect(() => {
+  //   sendWatchHistory();
+  // }, [location.pathname]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -1304,12 +1290,7 @@ useEffect(() => {
   useEffect(() => {
     setPrevTheatre(isTheatre);
   }, [isTheatre]);
-  useEffect(() => {
-    if (viewCounted) {
-      historyIntervalRef.current = setInterval(storeTimeStamp, 5000);
-    }
-  }, [viewCounted]);
-  const watchTimeRef = useRef(0);
+
   const { mutate } = useMutation({
     mutationFn: () => videoView(videoId),
     onMutate: () => {
@@ -1320,22 +1301,26 @@ useEffect(() => {
   if (isError) return <Typography>Error: {error.message}</Typography>;
 
   const handleTimeUpdate = (event) => {
-    const video = event.target;
+    const video = videoRef.current;
 
     if (!video || isNaN(video.duration) || video.duration === 0) return;
 
     const value = (video.currentTime / video.duration) * 100;
     setProgress(value);
-
-    if (viewCounted) return;
-
     const duration = video.duration;
     const watchTime = video.currentTime;
-    watchTimeRef.current = watchTime;
+
+    // if (!telemetrySentRef.current && Math.floor(watchTime) >= 10) {
+    //   telemetrySentRef.current = true;
+    //   console.log("🎯 10 seconds passed, telemetry sending...");
+    //   const data = getCurrentVideoTelemetryData(userId, videoId, video);
+    //   sendTelemetry([data]);
+    //   return;
+    // }
 
     const hasWatchedEnough =
       (duration < 30 && watchTime >= duration) || watchTime >= 30;
-
+    if (viewCounted) return;
     if (hasWatchedEnough) {
       mutate();
     }
@@ -1454,7 +1439,6 @@ useEffect(() => {
                   crossOrigin="anonymous"
                   id="video-player"
                   preload="auto"
-                  key={data?.data?._id}
                   onTimeUpdate={handleTimeUpdate}
                   onEnded={handleVideoEnd}
                   onPlay={handlePlay}

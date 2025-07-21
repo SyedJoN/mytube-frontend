@@ -1,9 +1,15 @@
+import { useEffect } from "react";
 import { sendTelemetry } from "../apis/sendTelemetry";
+
+const BATCH_TIME = 1000;
+const BATCH_LIMIT = 10;
 
 let telemetryInterval = null;
 let hoverStartTime = null;
+let lastRefetchSecond = 0;
 let isTelemetryActive = false;
-// Generate or retrieve a persistent anonymous ID
+let batchQueue = [];
+
 function getOrCreateAnonId() {
   let anonId = localStorage.getItem("anonId");
   if (!anonId) {
@@ -13,7 +19,6 @@ function getOrCreateAnonId() {
   return anonId;
 }
 
-// Generate or retrieve a session-scoped ID
 function getSessionId() {
   let sessionId = sessionStorage.getItem("sessionId");
   if (!sessionId) {
@@ -23,25 +28,28 @@ function getSessionId() {
   return sessionId;
 }
 
-// Optional: Save currentTime in localStorage for hover resume later
+
 function saveLastHoverTime(videoId, currentTime) {
-  localStorage.setItem(`hoverTime_${videoId}`, currentTime.toFixed(2));
+  sessionStorage.setItem(`hoverTime_${videoId}`, currentTime.toFixed(2));
 }
 
-// Optional: Load saved hover time if exists
 export function getSavedHoverTime(videoId) {
-  const time = localStorage.getItem(`hoverTime_${videoId}`);
+  const time = sessionStorage.getItem(`hoverTime_${videoId}`);
   return time ? parseFloat(time) : 0;
 }
 
-
-function getCurrentVideoTelemetryData(videoId, videoElement) {
-  const currentTime = parseFloat(videoElement.currentTime.toFixed(2));
-  const duration = parseFloat(videoElement.duration.toFixed(2));
+// Collect telemetry data from a video element
+export function getCurrentVideoTelemetryData(userId, videoId, videoElement) {
+  const currentTime = parseFloat(videoElement.currentTime.toFixed(0));
+  const duration = parseFloat(videoElement.duration.toFixed(0));
   const lact = Date.now() - hoverStartTime;
+  
+  console.log(duration)
+      if (userId === null) {
+        saveLastHoverTime(videoId, currentTime);
+        return null;
+    }
 
-
-  saveLastHoverTime(videoId, currentTime);
 
   return {
     videoId,
@@ -52,31 +60,61 @@ function getCurrentVideoTelemetryData(videoId, videoElement) {
     fullscreen: !!document.fullscreenElement,
     autoplay: videoElement.autoplay || false,
     sessionId: getSessionId(),
-    anonId: getOrCreateAnonId(),
+    anonId: !userId && getOrCreateAnonId(),
     timestamp: Date.now(),
-    userId: window?.user?._id || null,
+    userId: userId || null,
     lact,
   };
 }
 
+export function startTelemetry(userId, videoId, videoElement, setVideoRestart) {
+  console.log("🚀 Attempt to start telemetry", {
+    telemetryInterval,
+    isTelemetryActive,
+    videoElementExists: !!videoElement,
+  });
 
-export function startTelemetry(videoId, videoElement) {
-  if (telemetryInterval || isTelemetryActive || videoElement) return;
+  if (telemetryInterval || isTelemetryActive || !videoElement) {
+    console.log("⛔ Telemetry not started due to existing state");
+    return;
+  }
+
   isTelemetryActive = true;
   hoverStartTime = Date.now();
+  console.log("✅ Telemetry started");
+  console.log(videoElement.readyState)
+  console.log(videoElement.currentTime)
 
   telemetryInterval = setInterval(() => {
-    const data = getCurrentVideoTelemetryData(videoId, videoElement);
-    sendTelemetry(data);
-  }, 5000);
+    console.log("interval");
+    const data = getCurrentVideoTelemetryData(userId, videoId, videoElement);
+    batchQueue.push(data);
+
+    if (batchQueue.length >= BATCH_LIMIT) {
+      flushTelemetryQueue();
+    }
+  }, BATCH_TIME);
 }
 
-
+// Stop telemetry tracking
 export function stopTelemetry() {
-  if (telemetryInterval) {
-    clearInterval(telemetryInterval);
-    telemetryInterval = null;
-  }
+  clearInterval(telemetryInterval)
+  telemetryInterval = null;
   isTelemetryActive = false;
   hoverStartTime = null;
+  console.log("Stopped telemetry")
+}
+
+export async function flushTelemetryQueue() {
+  if (batchQueue.length === 0) return;
+
+  const dataToSend = [...batchQueue];
+  batchQueue = [];
+  try {
+    await sendTelemetry(dataToSend);
+    console.log("Telemetry flushed successfully:", dataToSend);
+  } catch (err) {
+    console.error("Failed to flush telemetry", err);
+    batchQueue = [...dataToSend, ...batchQueue]; // retry later
+  }
 }

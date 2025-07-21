@@ -3,6 +3,7 @@ import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
 import { WebVTT } from "vtt.js";
 import formatDuration from "../../utils/formatDuration";
 import { useLocation } from "@tanstack/react-router";
+import { transform } from "lodash";
 
 export const ProgressLists = ({
   videoRef,
@@ -16,7 +17,7 @@ export const ProgressLists = ({
   hoverVideoRef,
   showSettings,
   vttUrl,
-  home,
+  playsInline,
 }) => {
   var thumbWidth = 13;
   const theme = useTheme();
@@ -42,18 +43,21 @@ export const ProgressLists = ({
     : 0;
 
   useEffect(() => {
-    if (!sliderRef.current || !videoRef.current) return;
+    const slider = sliderRef.current;
+    const video = videoRef.current;
+    if (!slider || !video) return;
 
     const updateSizes = () => {
-      const rect = sliderRef.current?.getBoundingClientRect();
+      if (!slider) return;
+      const rect = slider.getBoundingClientRect();
       setBarWidth(rect.width);
     };
 
     updateSizes();
 
     const observer = new ResizeObserver(updateSizes);
-    observer.observe(sliderRef.current);
-    observer.observe(videoRef.current);
+    observer.observe(slider);
+    observer.observe(video);
 
     window.addEventListener("resize", updateSizes);
 
@@ -198,29 +202,28 @@ export const ProgressLists = ({
     0,
     Math.min(hoverX - half, BarWidth - previewWidth)
   );
-  function getBackgroundPosition(cueText) {
-    if (typeof cueText !== "string") return {};
+function getBackgroundPosition(cueText, previewWidth = playsInline ? 168 : 240, previewHeight = playsInline ? 93 : 135) {
+  if (typeof cueText !== "string") return {};
+  const [urlPart = "", frag = ""] = cueText.split("#");
+  if (typeof frag !== "string" || !frag.startsWith("xywh=")) return {};
+  const nums = frag.slice(5).split(",").map(Number);
+  if (nums.length !== 4 || nums.some(Number.isNaN)) return {};
+  
+  const [x, y, w, h] = nums; 
+  
 
-    const [urlPart = "", frag = ""] = cueText.split("#");
-    if (typeof frag !== "string" || !frag.startsWith("xywh=")) return {};
-
-    const nums = frag.slice(5).split(",").map(Number);
-
-    if (nums.length !== 4 || nums.some(Number.isNaN)) return {};
-
-    const [x, y, w, h] = nums;
-
-    return {
-      width: `${w}px`,
-      height: `${h}px`,
-      backgroundImage: `url(${urlPart})`,
-      backgroundPosition: `-${x}px -${y}px`,
-      backgroundRepeat: "no-repeat",
-      backgroundSize: `${10 * w}px auto`,
-      border: "2px solid #fff",
-      borderRadius: "8px",
-    };
-  }
+  const scale = previewWidth / w; 
+  return {
+    width: `${previewWidth}px`,
+    height: `${previewHeight}px`,
+    backgroundImage: `url(${urlPart})`,
+    backgroundPosition: `-${x * scale}px -${y * scale}px`,
+    backgroundRepeat: "no-repeat",
+    backgroundSize: `${10 * w * scale}px auto`, 
+    border: "2px solid #fff",
+    borderRadius: "8px",
+  };
+}
   return (
     <Box
       className={`progress-bar-container control`}
@@ -229,15 +232,15 @@ export const ProgressLists = ({
         display: "block",
         left: isMini ? "-12px" : "0",
         bottom:
-          isMobile && !isMini && !home
+          isMobile && !isMini && !playsInline
             ? "36px"
             : isMini
               ? "-2px"
-              : home
+              : playsInline
                 ? "-2px"
                 : "48px",
         width: "100%",
-        height: isMini ? "10px" : home ? "6px" : "5px",
+        height: isMini ? "10px" : playsInline ? "6px" : "5px",
       }}
     >
       <Box
@@ -298,7 +301,7 @@ export const ProgressLists = ({
           className="progress-list"
           sx={{
             position: "relative",
-            transform: isProgressEntered ? "scaleY(1.2)" : "scaleY(.6)",
+            transform: isProgressEntered && !playsInline ? "scaleY(1.2)" : "scaleY(.6)",
             height: "100%",
             background: isMini ? "rgb(51,51,51)" : "rgba(255,255,255,0.2)",
             transition: "transform .1s cubic-bezier(0.4, 0, 1, 1)",
@@ -366,7 +369,7 @@ export const ProgressLists = ({
             style={{
               width: `${thumbWidth}px`,
               height: `${thumbWidth}px`,
-              transform: home
+              transform: playsInline
                 ? isProgressEntered
                   ? "scale(1)"
                   : "scale(0)"

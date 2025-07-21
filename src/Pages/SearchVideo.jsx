@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchVideos } from "../apis/videoFn";
 import { useParams } from "@tanstack/react-router";
 import VideoCard from "../Components/Video/VideoCard";
-import { Box, Typography } from "@mui/material";
+import { Box, Container, Typography } from "@mui/material";
 import formatDate from "../utils/formatDate";
 import Grid from "@mui/material/Grid";
 import { Link } from "@tanstack/react-router";
@@ -20,33 +20,35 @@ function SearchVideo() {
   const videos = data?.data?.docs;
 
   return (
-    <Box sx={{}}>
+    <Box sx={{ width: "100%" }}>
       {isError && <Typography>Error: {error.message}</Typography>}
-
-      {data?.data?.docs.length > 0 ? (
-        <Grid
-          container
-          sx={{
-            marginX: "24px",
-            justifyContent: "center"
-          }}
-        >
-          {data?.data?.docs.map((video) => (
-            <Grid
-              size={{
-                xs: 12,
-                sm: 12,
-                md: 8,
-                lg: 8,
-                xl: 8,
-              }}
-              key={video._id}
-            >
-              <Link
-                to={`/watch/${video._id}`}
-                style={{ textDecoration: "none" }}
+      <Container>
+        {data?.data?.docs.length > 0 ? (
+          <Grid
+            container
+            sx={{
+              marginX: "24px",
+              justifyContent: "center",
+            }}
+          >
+            {data?.data?.docs.map((video) => (
+              <Grid
+                size={{
+                  xs: 12,
+                  sm: 12,
+                  md: 12,
+                  lg: 12,
+                  xl: 12,
+                }}
+                key={video._id}
+                sx={{
+                  marginTop: 2,
+                }}
               >
                 <VideoCard
+                  owner={video.owner?.username}
+                  videoId={video._id}
+                  videoUrl={video.videoFile?.url}
                   fontSize="2rem!important"
                   thumbnail={video.thumbnail.url}
                   title={video.title}
@@ -55,20 +57,21 @@ function SearchVideo() {
                   search={true}
                   fullName={video.owner.fullName}
                   views={video.views}
+                  vttUrl={video.sprite?.vtt}
                   duration={video.duration}
                   createdAt={formatDate(video.createdAt)}
                 />
-              </Link>
-            </Grid>
-          ))}
-        </Grid>
-      ) : (
-        <>
-          <Typography color="#fff" variant="h3">
-            No videos found
-          </Typography>
-        </>
-      )}
+              </Grid>
+            ))}
+          </Grid>
+        ) : (
+          <>
+            <Typography color="#fff" variant="h3">
+              No videos found
+            </Typography>
+          </>
+        )}
+      </Container>
     </Box>
   );
 }

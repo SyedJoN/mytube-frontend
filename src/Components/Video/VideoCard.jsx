@@ -40,15 +40,18 @@ import {
   UserContext,
   UserInteractionContext,
 } from "../../Contexts/RootContexts";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { addToWatchHistory } from "../../apis/userFn";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { flushSync } from "react-dom";
 import { TimeStampProvider } from "../../Contexts/TimeStampProvider";
 import {
+  flushTelemetryQueue,
+  getCurrentVideoTelemetryData,
   getSavedHoverTime,
   startTelemetry,
   stopTelemetry,
 } from "../../helper/Telemetry";
+import { getWatchHistory } from "../../apis/userFn";
+import { sendTelemetry } from "../../apis/sendTelemetry";
 
 const tooltipStyles = {
   whiteSpace: "nowrap",
@@ -133,8 +136,8 @@ function VideoCard({
 }) {
   const navigate = useNavigate();
   const interactionRef = React.useRef(null);
-  const prevTimeRef = React.useRef(null);
-  const intervalRef = React.useRef(null);
+  const telemetrySentRef = React.useRef(null);
+  const timeoutRef = React.useRef(null);
   const queryClient = useQueryClient();
 
   const context = React.useContext(UserInteractionContext);
@@ -144,7 +147,7 @@ function VideoCard({
   const userContext = React.useContext(UserContext);
   const { data: dataContext } = userContext ?? {};
   const isAuthenticated = dataContext || null;
-
+  const userId = dataContext?._id || null;
   const { setIsUserInteracted } = context ?? {};
   const hoverVideoRef = React.useRef(null);
   const previewRef = React.useRef(null);
@@ -158,6 +161,7 @@ function VideoCard({
   const [viewVideo, setViewVideo] = React.useState(false);
   const [progress, setProgress] = React.useState(0);
   const [isVolumeMuted, setIsVolumeMuted] = React.useState(false);
+
   const fac = new FastAverageColor();
   const colors = [red, blue, green, purple, orange, deepOrange, pink];
   const playlistVideoId = playlist?.videos?.map((video) => {
@@ -165,6 +169,22 @@ function VideoCard({
   });
   const searchParams = React.useMemo(() => ({ v: videoId }), [videoId]);
 
+  const {
+    data: userHistory,
+    isHistoryLoading,
+    isHistoryError,
+    historyError,
+    refetch: refetchHistory,
+  } = useQuery({
+    queryKey: ["userHistory"],
+    queryFn: getWatchHistory,
+    enabled: !!userId,
+  });
+
+  let userResumeTime = userId
+    ? (userHistory?.data?.find((entry) => entry.video?._id === videoId)
+        ?.currentTime ?? 0)
+    : 0;
   const {
     isHoverPlay,
     setIsHoverPlay,
@@ -175,124 +195,150 @@ function VideoCard({
   } = useHoverPreview({
     delay: 1000,
   });
-  const [videoReady, setVideoReady] = React.useState(false);
 
-  const sendWatchHistory = () => {
-    const video = hoverVideoRef.current;
-    if (
-      !video ||
-      !hasWatchedEnoughRef.current ||
-      isNaN(video.currentTime) || !isAuthenticated ||
-      isNaN(video.duration)
-    )
-      return;
-
-    const currentTime = Math.floor(video.currentTime);
-    const duration = Math.floor(video.duration);
-
-    if (currentTime > 0 && currentTime < duration) {
-      setTimeStamp(videoId, currentTime);
-      console.log("pohanch gai", { videoId, duration: currentTime });
-    }
+  const sendWatchHistory = (videoId) => {
+    if (watchHistoryTimeout.current) return;
+    watchHistoryTimeout.current = setTimeout(() => {
+      sendHistoryMutation(videoId);
+    }, 10000);
   };
 
   const handleLoadedMetadata = () => {
     const video = hoverVideoRef.current;
     if (!video) return;
+    const guestResumeTime = getSavedHoverTime(videoId);
 
-    setVideoReady(true);
-    console.log(videoId);
+    const isValidGuestResumeTime =
+      isFinite(guestResumeTime) &&
+      guestResumeTime > 0 &&
+      guestResumeTime < video.duration;
 
-    const savedTime = getSavedHoverTime(videoId);
-    video.currentTime = savedTime;
-    console.log(savedTime);
+    const isValidUserResumeTime =
+      isFinite(userResumeTime) &&
+      userResumeTime > 0 &&
+      userResumeTime < video.duration;
   };
-  React.useEffect(() => {
-    if (!videoReady || !home) return;
+  // React.useEffect(() => {
+  //   if (!videoReady || !home) return;
 
-    const video = hoverVideoRef.current;
-    if (!video) return;
-    const clearAllIntervals = () => {
-      clearInterval(check3SecIntervalRef.current);
-      clearInterval(historyIntervalRef.current);
-    };
+  //   const video = hoverVideoRef.current;
+  //   if (!video) return;
+  //   const clearAllIntervals = () => {
+  //     clearInterval(check3SecIntervalRef.current);
+  //     clearInterval(historyIntervalRef.current);
+  //   };
 
-    const handlePlay = () => {
-      console.log("handleplay");
-      clearAllIntervals();
-      hasWatchedEnoughRef.current = false;
-      prevTimeRef.current = video.currentTime;
+  //   const handlePlay = () => {
+  //     console.log("handleplay");
+  //     clearAllIntervals();
+  //     hasWatchedEnoughRef.current = false;
+  //     prevTimeRef.current = video.currentTime;
 
-      check3SecIntervalRef.current = setInterval(() => {
-        const timeWatched = video.currentTime - prevTimeRef.current;
+  //     check3SecIntervalRef.current = setInterval(() => {
+  //       const timeWatched = video.currentTime - prevTimeRef.current;
 
-        if (timeWatched >= 3) {
-          hasWatchedEnoughRef.current = true;
-          clearInterval(check3SecIntervalRef.current);
+  //       if (timeWatched >= 3) {
+  //         hasWatchedEnoughRef.current = true;
+  //         clearInterval(check3SecIntervalRef.current);
 
-        
-          historyIntervalRef.current = setInterval(sendWatchHistory, 3000);
-        }
-      }, 1000);
-    };
+  //         // Start sending history
+  //         historyIntervalRef.current = setInterval(sendWatchHistory, 3000);
+  //       }
+  //     }, 1000);
+  //   };
 
-    const handlePause = () => {
-      clearAllIntervals();
-      prevTimeRef.current = video.currentTime;
-      hasWatchedEnoughRef.current = false;
-    };
+  //   const handlePause = () => {
+  //     clearAllIntervals();
+  //     prevTimeRef.current = video.currentTime;
+  //     hasWatchedEnoughRef.current = false;
+  //   };
 
-    const handleResume = () => {
-      clearInterval(historyIntervalRef.current);
-      if (hasWatchedEnoughRef.current) {
-        historyIntervalRef.current = setInterval(sendWatchHistory, 5000);
-      } else {
-        handlePlay(); // re-check from current point
-      }
-    };
+  //   const handleResume = () => {
+  //     clearInterval(historyIntervalRef.current);
+  //     if (hasWatchedEnoughRef.current) {
+  //       historyIntervalRef.current = setInterval(sendWatchHistory, 5000);
+  //     } else {
+  //       handlePlay(); // re-check from current point
+  //     }
+  //   };
 
-    video.addEventListener("loadedmetadata", handleLoadedMetadata);
-    video.addEventListener("play", handlePlay);
-    video.addEventListener("pause", handlePause);
-    video.addEventListener("ended", handlePause);
-    video.addEventListener("waiting", clearAllIntervals);
-    video.addEventListener("playing", handleResume);
-    video.addEventListener("seeked", sendWatchHistory);
+  //   video.addEventListener("loadedmetadata", handleLoadedMetadata);
+  //   video.addEventListener("play", handlePlay);
+  //   video.addEventListener("pause", handlePause);
+  //   video.addEventListener("ended", handlePause);
+  //   video.addEventListener("waiting", clearAllIntervals);
+  //   video.addEventListener("playing", handleResume);
+  //   video.addEventListener("seeked", sendWatchHistory);
 
-    return () => {
-      clearAllIntervals();
-      video.removeEventListener("loadedmetadata", handleLoadedMetadata);
-      video.removeEventListener("play", handlePlay);
-      video.removeEventListener("pause", handlePause);
-      video.removeEventListener("ended", handlePause);
-      video.removeEventListener("waiting", clearAllIntervals);
-      video.removeEventListener("playing", handleResume);
-      video.removeEventListener("seeked", sendWatchHistory);
-    };
-  }, [videoReady, home, videoId]);
+  //   return () => {
+  //     clearAllIntervals();
+  //     video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+  //     video.removeEventListener("play", handlePlay);
+  //     video.removeEventListener("pause", handlePause);
+  //     video.removeEventListener("ended", handlePause);
+  //     video.removeEventListener("waiting", clearAllIntervals);
+  //     video.removeEventListener("playing", handleResume);
+  //     video.removeEventListener("seeked", sendWatchHistory);
+  //   };
+  // }, [videoReady, home, videoId]);
 
   React.useEffect(() => {
     const video = hoverVideoRef?.current;
     if (!video) return;
+    if (video.readyState < 3) return;
 
     let playTimeout;
 
     if (isHoverPlay) {
-      playTimeout = setTimeout(() => {
-        video
-          .play()
-          .then(() => startTelemetry(videoId, video))
-          .catch((err) => console.error("Video play error:", err));
-      }, 0);
+      video
+        .play()
+        .then(() => {
+          clearTimeout(timeoutRef.current);
+          if (isVideoPlaying) {
+            timeoutRef.current = setTimeout(() => {
+              video.classList.add("hide-cursor");
+            }, 2000);
+          }
+
+          console.log("Playing then");
+
+          const guestResumeTime = getSavedHoverTime(videoId);
+          const isValidGuestResumeTime =
+            isFinite(guestResumeTime) && guestResumeTime < video.duration;
+
+          const isValidUserResumeTime =
+            isFinite(userResumeTime) && userResumeTime < video.duration;
+          if (video.currentTime === video.duration) {
+            video.currentTime = 0;
+          } else if (isAuthenticated && isValidUserResumeTime) {
+            video.currentTime = userResumeTime;
+          } else if (!isAuthenticated && isValidGuestResumeTime) {
+            video.currentTime = guestResumeTime;
+          } else if (video.currentTime === video.duration) {
+            try {
+              const data = getCurrentVideoTelemetryData(userId, videoId, video);
+              sendTelemetry([data]);
+            } catch (error) {
+              console.log(error);
+            }
+          }
+        })
+        .catch((err) => console.error("Video play error:", err));
+
+      startTelemetry(userId, videoId, video);
     } else {
       clearTimeout(playTimeout);
+      clearTimeout(timeoutRef.current);
       video.pause();
       stopTelemetry();
+      refetchHistory();
+      video.classList.remove("hide-cursor");
     }
 
     return () => {
-      clearTimeout(playTimeout);
       stopTelemetry();
+      clearTimeout(timeoutRef.current);
+      video.classList.remove("hide-cursor");
     };
   }, [isHoverPlay]);
 
@@ -356,7 +402,7 @@ function VideoCard({
       interactionRef.current.classList.add("animate");
     }
   };
-
+  // Hover Video
 
   React.useEffect(() => {
     const video = hoverVideoRef.current;
@@ -373,9 +419,25 @@ function VideoCard({
   };
   const handleVideoEnd = () => {
     setIsHoverPlay(false);
-    setTimeout(() => {
+    // setTimeout(() => {
+    //   setIsHoverPlay(true);
+    // }, 600);
+  };
+
+  const handleVideoMouseMove = (e) => {
+    const video = e.target;
+    if (video.classList.contains("hide-cursor")) {
+      video.classList.remove("hide-cursor");
+    }
+    if (!isHoverPlay) {
       setIsHoverPlay(true);
-    }, 600);
+    }
+    clearTimeout(timeoutRef.current);
+    if (isVideoPlaying) {
+      timeoutRef.current = setTimeout(() => {
+        video.classList.add("hide-cursor");
+      }, 2000);
+    }
   };
 
   const handleTimeUpdate = (event) => {
@@ -384,6 +446,18 @@ function VideoCard({
       const value = (video.currentTime / video.duration) * 100;
       setProgress(value);
     }
+    if (video.currentTime === video.duration) {
+      flushTelemetryQueue();
+      refetchHistory();
+    }
+
+    // if (!telemetrySentRef.current && Math.floor(watchTime) >= 10) {
+    //   telemetrySentRef.current = true;
+    //   console.log("🎯 10 seconds passed, telemetry sending...");
+    //   const data = getCurrentVideoTelemetryData(userId, videoId, video);
+    //   sendTelemetry([data]);
+    //   return;
+    // }
   };
   return (
     <>
@@ -401,7 +475,7 @@ function VideoCard({
             padding: 0,
             cursor: "pointer",
             overflow: "hidden",
-            borderRadius: isHoverPlay ? "0" : "10px",
+            borderRadius: isHoverPlay && isVideoPlaying ? "0" : "10px",
             boxShadow: "none",
             width: "100%",
             display: "block",
@@ -417,6 +491,7 @@ function VideoCard({
             }}
           >
             <Link
+              draggable="false"
               to="/watch"
               onClick={() => hasWatchedEnoughRef.current && setFromHome(true)}
               search={searchParams}
@@ -432,7 +507,6 @@ function VideoCard({
                         height: "100%",
                         objectFit: "cover",
                         aspectRatio: "16/9",
-                        opacity: isHoverPlay && isVideoPlaying ? 0 : 1,
                       }}
                       loading="lazy"
                       component="img"
@@ -455,7 +529,7 @@ function VideoCard({
                         left: 0,
                         top: 0,
                         objectFit: "cover",
-                        opacity: isHoverPlay ? 1 : 0,
+                        opacity: isHoverPlay && isVideoPlaying ? 1 : 0,
                         transition: "opacity 0.3s ease",
                       }}
                     >
@@ -481,6 +555,7 @@ function VideoCard({
                     {videoUrl && (
                       <video
                         playsInline
+                        onMouseMove={handleVideoMouseMove}
                         ref={hoverVideoRef}
                         onTimeUpdate={handleTimeUpdate}
                         onPlaying={handleVideoPlaying}
@@ -498,7 +573,7 @@ function VideoCard({
                           left: 0,
                           top: 0,
                           objectFit: "cover",
-                          opacity: isHoverPlay ? 1 : 0,
+                          opacity: isHoverPlay && isVideoPlaying ? 1 : 0,
                           transition: "opacity 0.3s ease",
                         }}
                       >
@@ -533,7 +608,7 @@ function VideoCard({
             >
               <Box
                 onClick={() => setIsVolumeMuted((prev) => !prev)}
-                className={`volume-overlay ${isHoverPlay ? "" : "hide"}`}
+                className={`volume-overlay ${isHoverPlay && isVideoPlaying ? 1 : 0 ? "" : "hide"}`}
                 sx={{
                   display: "flex",
                   justifyContent: "center",
@@ -619,7 +694,7 @@ function VideoCard({
                 setViewVideo={setViewVideo}
                 videoRef={hoverVideoRef}
                 vttUrl={vttUrl}
-                home={true}
+                playsInline={true}
               />
             )}
           </Box>
@@ -708,7 +783,6 @@ function VideoCard({
                         }}
                       >
                         <Typography
-                          onClick={handleChannelClick}
                           variant="body2"
                           color="#aaa"
                           sx={{
@@ -805,7 +879,6 @@ function VideoCard({
                         height: "100%",
                         objectFit: "cover",
                         userSelect: "none",
-                        opacity: isHoverPlay && isVideoPlaying ? 0 : 1,
                       }}
                       component="img"
                       draggable="false"
@@ -830,7 +903,7 @@ function VideoCard({
                         top: 0,
                         objectFit: "cover",
                         borderRadius: "8px",
-                        opacity: isHoverPlay ? 1 : 0,
+                        opacity: isHoverPlay && isVideoPlaying ? 1 : 0,
                         transition: "opacity 0.3s ease",
                       }}
                     >
@@ -884,8 +957,8 @@ function VideoCard({
           >
             <Link
               to="/watch"
-              search={{ searchParams }}
-              style={{ ...linkStyles, flex: 1 }}
+              search={searchParams}
+              style={{ ...linkStyles }}
               onDragEnd={() => {
                 if (interactionRef.current) {
                   interactionRef.current.classList.remove("down");
@@ -1047,31 +1120,34 @@ function VideoCard({
         </Card>
       ) : search ? (
         <Card
+          onClick={handleInteraction}
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
+          onMouseDown={(e) => {
+            handleMouseDown(e);
+            e.stopPropagation();
+          }}
           sx={{
-            marginTop: 1,
             position: "relative",
-            transition: "0.3s ease-in-out",
+            width: "100%",
+            display: "flex",
             padding: 0,
             cursor: "pointer",
-            overflow: "hidden",
+            overflow: "visible",
             borderRadius: "10px",
             boxShadow: "none",
-            display: "flex",
+            transition: "0.3s ease-in-out",
             backgroundColor: "transparent",
           }}
         >
           <Box
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
             sx={{
               display: "flex",
-              flex: "none",
-              minWidth: "250px",
+              flex: "1",
+              minWidth: "240px",
               maxWidth: "500px",
-              width: {
-                xl: "350px",
-                lg: "300px",
-                md: "250px",
-                sm: "250px",
-              },
               paddingRight: 2,
             }}
           >
@@ -1094,31 +1170,116 @@ function VideoCard({
                   transform: "translateY(-50%)",
                 }}
               >
-                <CardMedia
-                  sx={{
-                    borderRadius: "8px",
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
+                <Link
+                  draggable="false"
+                  to="/watch"
+                  search={searchParams}
+                  style={{ ...linkStyles }}
+                  onDragEnd={handleDragEnd}
+                >
+                  <LazyLoad once>
+                    <CardMedia
+                      sx={{
+                        flexGrow: "1!important",
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        aspectRatio: "16/9",
+                        borderRadius:
+                          isHoverPlay && isVideoPlaying ? "0" : "10px",
+                      }}
+                      loading="lazy"
+                      component="img"
+                      image={thumbnail}
+                    />
+                    {videoUrl && (
+                      <video
+                        playsInline
+                        ref={hoverVideoRef}
+                        onMouseMove={handleVideoMouseMove}
+                        onTimeUpdate={handleTimeUpdate}
+                        onPlaying={handleVideoPlaying}
+                        onEnded={handleVideoEnd}
+                        onLoadedMetadata={handleLoadedMetadata}
+                        id="video-player"
+                        key={videoId}
+                        className="hover-interaction"
+                        crossOrigin="anonymous"
+                        preload="auto"
+                        style={{
+                          position: "absolute",
+                          width: "100%",
+                          height: "100%",
+                          left: 0,
+                          top: 0,
+                          objectFit: "cover",
+                          opacity: isHoverPlay && isVideoPlaying ? 1 : 0,
+                          transition: "opacity 0.3s ease",
+                        }}
+                      >
+                        <source src={videoUrl} type="video/mp4" />
+                      </video>
+                    )}
+                  </LazyLoad>
+                </Link>
+                <Tooltip
+                  disableInteractive
+                  disableFocusListener
+                  disableTouchListener
+                  title={`${isVolumeMuted ? "Unmute" : "Mute"}`}
+                  placement="bottom-end"
+                  slotProps={{
+                    popper: {
+                      modifiers: [
+                        {
+                          name: "offset",
+                          options: {
+                            offset: [30, -14],
+                          },
+                        },
+                      ],
+                    },
+                    tooltip: {
+                      sx: { ...hoverVideoTooltipStyles },
+                    },
                   }}
-                  component="img"
-                  image={thumbnail}
-                />
-
+                >
+                  <Box
+                    onClick={() => setIsVolumeMuted((prev) => !prev)}
+                    className={`volume-overlay ${isHoverPlay ? "" : "hide"}`}
+                    sx={{
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      position: "absolute",
+                      top: "8px",
+                      right: "8px",
+                      width: "35px",
+                      height: "35px",
+                      backgroundColor: "rgba(0,0,0,0.6)",
+                      borderRadius: "50px",
+                    }}
+                  >
+                    {isVolumeMuted ? (
+                      <VolumeOffIcon sx={{ color: "#f1f1f1" }} />
+                    ) : (
+                      <VolumeUpIcon sx={{ color: "#f1f1f1" }} />
+                    )}
+                  </Box>
+                </Tooltip>
                 <Box
+                  className={`${isHoverPlay && isVideoPlaying ? "hidden" : ""}`}
                   sx={{
                     display: "flex",
                     justifyContent: "center",
                     alignItems: "center",
                     position: "absolute",
-                    bottom: "0",
-                    right: "0",
-                    margin: "4px",
+                    bottom: "8px",
+                    right: "8px",
                     width: "35px",
                     height: "20px",
                     backgroundColor: "rgba(0,0,0,0.6)",
-                    borderRadius: "6px",
-                    userSelect: "none",
+                    borderRadius: "5px",
                   }}
                 >
                   <Typography
@@ -1130,6 +1291,50 @@ function VideoCard({
                     {formatDuration(duration)}
                   </Typography>
                 </Box>
+                <Box
+                  className={`${isHoverPlay && isVideoPlaying ? "" : "hidden"}`}
+                  sx={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    position: "absolute",
+                    bottom: "8px",
+                    right: "8px",
+                    width: "35px",
+                    height: "20px",
+                    backgroundColor: "rgba(0,0,0,0.6)",
+                    borderRadius: "5px",
+                  }}
+                >
+                  <Typography
+                    variant="body2"
+                    color="#f1f1f1"
+                    fontSize="0.75rem"
+                    lineHeight="0"
+                  >
+                    {formatDuration(
+                      Math.min(
+                        hoverVideoRef?.current?.currentTime || 0,
+                        hoverVideoRef?.current?.duration || 0
+                      )
+                    )}
+                  </Typography>
+                </Box>
+                {isHoverPlay && isVideoPlaying && (
+                  <ProgressLists
+                    bufferedVal={bufferedVal}
+                    hoverVideoRef={hoverVideoRef}
+                    setBufferedVal={setBufferedVal}
+                    progress={progress}
+                    setProgress={setProgress}
+                    videoId={videoId}
+                    viewVideo={viewVideo}
+                    setViewVideo={setViewVideo}
+                    videoRef={hoverVideoRef}
+                    vttUrl={vttUrl}
+                    playsInline={true}
+                  />
+                )}
               </Box>
             </Box>
           </Box>
@@ -1159,37 +1364,62 @@ function VideoCard({
                 },
               }}
               title={
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
+                <Tooltip
+                  disableInteractive
+                  disableFocusListener
+                  disableTouchListener
+                  title={title}
+                  placement="bottom-end"
+                  slotProps={{
+                    popper: {
+                      modifiers: [
+                        {
+                          name: "offset",
+                          options: {
+                            offset: [-30, 0],
+                          },
+                        },
+                      ],
+                    },
+                    tooltip: {
+                      sx: {
+                        ...tooltipStyles,
+                      },
+                    },
                   }}
                 >
-                  <Typography
-                    variant="h3"
-                    color="#f1f1f1"
+                  <Box
                     sx={{
-                      display: "-webkit-box",
-                      fontSize: "1.2rem!important",
-                      WebkitBoxOrient: "vertical",
-                      WebkitLineClamp: 2,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "normal",
-                      maxHeight: "5.2rem",
-                      fontWeight: 500,
-                      color: "rgb(255,255,255)",
-                      lineHeight: 1.5,
-                      marginRight: 2,
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
                     }}
                   >
-                    {title}
-                  </Typography>
-                  <IconButton sx={{ padding: 0 }} aria-label="settings">
-                    <MoreVertIcon sx={{ color: "#fff" }} />
-                  </IconButton>
-                </Box>
+                    <Typography
+                      variant="h3"
+                      color="#f1f1f1"
+                      sx={{
+                        display: "-webkit-box",
+                        fontSize: "1.2rem!important",
+                        WebkitBoxOrient: "vertical",
+                        WebkitLineClamp: 2,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "normal",
+                        maxHeight: "5.2rem",
+                        fontWeight: 500,
+                        color: "rgb(255,255,255)",
+                        lineHeight: 1.5,
+                        marginRight: 2,
+                      }}
+                    >
+                      {title}
+                    </Typography>
+                    <IconButton sx={{ padding: 0 }} aria-label="settings">
+                      <MoreVertIcon sx={{ color: "#fff" }} />
+                    </IconButton>
+                  </Box>
+                </Tooltip>
               }
               subheader={
                 <>
@@ -1199,51 +1429,82 @@ function VideoCard({
                       {createdAt}
                     </span>
                   </Typography>
-                  <Box
-                    sx={{ display: "flex", alignItems: "center", marginY: 1 }}
-                  >
-                    <Avatar
-                      src={avatar ? avatar : null}
-                      sx={{
-                        bgcolor: getColor(fullName),
-                        width: "25px",
-                        height: "25px",
-                        marginRight: 1,
-                      }}
+                  <Link to={`/@${owner}`} onDragEnd={handleDragEnd}>
+                    <Box
+                      sx={{ display: "flex", alignItems: "center", marginY: 1 }}
                     >
-                      {fullName ? fullName.charAt(0).toUpperCase() : "?"}
-                    </Avatar>
+                      <Avatar
+                        src={avatar ? avatar : null}
+                        sx={{
+                          bgcolor: getColor(fullName),
+                          width: "25px",
+                          height: "25px",
+                          marginRight: 1,
+                        }}
+                      >
+                        {fullName ? fullName.charAt(0).toUpperCase() : "?"}
+                      </Avatar>
+                      <Tooltip
+                        disableInteractive
+                        disableFocusListener
+                        disableTouchListener
+                        title={fullName}
+                        placement="top-start"
+                        slotProps={{
+                          popper: {
+                            disablePortal: true,
+                          },
+                        }}
+                      >
+                        <Typography
+                          variant="body2"
+                          color="#aaa"
+                          sx={{
+                            display: "inline-block",
+                            "&:hover": {
+                              color: "#fff",
+                            },
+                          }}
+                        >
+                          {fullName}
+                        </Typography>
+                      </Tooltip>
+                    </Box>
+                  </Link>
+                  <Tooltip
+                    disableInteractive
+                    disableFocusListener
+                    disableTouchListener
+                    title={"From the video description"}
+                    placement="bottom"
+                    slotProps={{
+                      popper: {
+                        disablePortal: true,
+                      },
+                    }}
+                  >
                     <Typography
                       fontSize="0.75rem"
                       color="#aaa"
                       sx={{
+                        display: "-webkit-box",
+                        WebkitBoxOrient: "vertical",
+                        WebkitLineClamp: 1,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "normal",
+                        fontWeight: 500,
                         marginTop: "2px",
                       }}
                     >
-                      {fullName}
+                      {description}
                     </Typography>
-                  </Box>
-
-                  <Typography
-                    fontSize="0.75rem"
-                    color="#aaa"
-                    sx={{
-                      display: "-webkit-box",
-                      WebkitBoxOrient: "vertical",
-                      WebkitLineClamp: 1,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "normal",
-                      fontWeight: 500,
-                      marginTop: "2px",
-                    }}
-                  >
-                    {description}
-                  </Typography>
+                  </Tooltip>
                 </>
               }
             />
           </CardContent>
+          <Interaction ref={interactionRef} id="video-interaction" />
         </Card>
       ) : profile ? (
         <Card
@@ -1267,7 +1528,7 @@ function VideoCard({
           <Link
             to="/watch"
             search={searchParams}
-            style={linkStyles}
+            style={{ ...linkStyles, width: "100%" }}
             onDragEnd={() => {
               if (interactionRef.current) {
                 interactionRef.current.classList.remove("down");

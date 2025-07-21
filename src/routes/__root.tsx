@@ -105,6 +105,7 @@ function RouteComponent() {
     queryFn: getCurrentUser,
   });
 
+
   const drawerValue = useMemo(() => ({ open, setOpen }), [open]);
   const userValue = useMemo(() => data || null, [data]);
   const userInteractionValue = useMemo(

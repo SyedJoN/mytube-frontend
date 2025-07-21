@@ -10,7 +10,11 @@ const getCurrentUser = async () => {
     });
     return res.data;
   } catch (error) {
-    console.error("Axios Error:", error.response?.data); 
+    if (error.response?.status === 400 || error.response?.status === 401) {
+      return null; 
+    }
+    
+    console.error("Axios Error:", error);
     throw new Error(
       error.response?.data?.message || "Something went wrong. Please try again!"
     );
@@ -58,15 +62,14 @@ const getUserChannelProfile = async (username) => {
     }
   };
 
-   const addToWatchHistory = async (data) => {
+   const getWatchHistory = async () => {
     try {
-      console.log("pohanch gai", data)
-      const res = await axios.post(`${BASE_URL}/history`, data, {
+      const res = await axios.get(`${BASE_URL}/history`, {
         withCredentials: true,
       });
       return res.data;
     } catch (error) {
-      console.error("Axios Error:", error.response?.data); 
+      console.error("Axios Error:", error); 
   
       throw new Error(
         error.response?.data?.message || "Something went wrong. Please try again!"
@@ -93,4 +96,4 @@ const getUserChannelProfile = async (username) => {
 
 
 
-export {getCurrentUser, getUserChannelProfile, registerUser, loginUser, logoutUser, addToWatchHistory, BASE_URL}
+export {getCurrentUser, getUserChannelProfile, registerUser, loginUser, logoutUser, getWatchHistory, BASE_URL}

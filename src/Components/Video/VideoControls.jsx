@@ -174,6 +174,7 @@ const VideoControls = ({
     () => ({
       position: "absolute",
       opacity: controlOpacity,
+      PointerEvent: controlOpacity,
       width: isMini ? "480px" : videoContainerWidth - 24,
       transition: "opacity 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
       bottom: 0,

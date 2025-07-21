@@ -1,5 +1,4 @@
 import React, { useContext, useState, useEffect, useRef } from "react";
-import { DrawerContext, UserContext } from "../../routes/__root";
 import { getColor } from "../../utils/getColor";
 import { Outlet, useLocation, useParams } from "@tanstack/react-router";
 
@@ -20,6 +19,7 @@ import ManageButtons from "./ManageButtons";
 import UserVideos from "./UserVideos";
 import { useMemo } from "react";
 import { debounce, throttle } from "lodash";
+import { DrawerContext, UserContext } from "../../Contexts/RootContexts";
 
 const ChannelProfile = ({ username, userData }) => {
   const location = useLocation();
