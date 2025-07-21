@@ -99,6 +99,7 @@ export function startTelemetry(userId, videoId, videoElement, setVideoRestart) {
 // Stop telemetry tracking
 export function stopTelemetry() {
   clearInterval(telemetryInterval)
+  flushTelemetryQueue();
   telemetryInterval = null;
   isTelemetryActive = false;
   hoverStartTime = null;

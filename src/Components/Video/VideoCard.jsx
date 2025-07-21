@@ -290,7 +290,8 @@ function VideoCard({
     let playTimeout;
 
     if (isHoverPlay) {
-      video
+      refetchHistory().then(()=> {
+  video
         .play()
         .then(() => {
           clearTimeout(timeoutRef.current);
@@ -324,6 +325,8 @@ function VideoCard({
           }
         })
         .catch((err) => console.error("Video play error:", err));
+      });
+    
 
       startTelemetry(userId, videoId, video);
     } else {
@@ -331,7 +334,6 @@ function VideoCard({
       clearTimeout(timeoutRef.current);
       video.pause();
       stopTelemetry();
-      refetchHistory();
       video.classList.remove("hide-cursor");
     }
 
