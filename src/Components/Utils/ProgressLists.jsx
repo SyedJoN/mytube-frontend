@@ -4,9 +4,12 @@ import { WebVTT } from "vtt.js";
 import formatDuration from "../../utils/formatDuration";
 import { useLocation } from "@tanstack/react-router";
 import { transform } from "lodash";
+import { sendTelemetry } from "../../apis/sendTelemetry";
+import { getCurrentVideoTelemetryData, stopTelemetry } from "../../helper/Telemetry";
 
 export const ProgressLists = ({
   videoRef,
+  userId,
   progress,
   setProgress,
   bufferedVal,
@@ -66,8 +69,6 @@ export const ProgressLists = ({
       window.removeEventListener("resize", updateSizes);
     };
   }, []);
-
-
 
   useEffect(() => {
     const video = videoRef.current;
@@ -192,6 +193,20 @@ export const ProgressLists = ({
     const newTime = (videoRef.current?.duration * newProgress) / 100;
     videoRef.current.currentTime = newTime;
     setProgress(newProgress);
+    if (!userId) return;
+    const video = hoverVideoRef.current;
+    if (!video) return;
+    if (playsInline) {
+
+      const data = getCurrentVideoTelemetryData(
+        userId,
+        videoId,
+        video, 
+        1
+      );
+      sendTelemetry([data]);
+      console.log("sending ", data);
+    }
   };
 
   const previewStyle = getBackgroundPosition(hoveredCue?.text);
@@ -202,28 +217,31 @@ export const ProgressLists = ({
     0,
     Math.min(hoverX - half, BarWidth - previewWidth)
   );
-function getBackgroundPosition(cueText, previewWidth = playsInline ? 168 : 240, previewHeight = playsInline ? 93 : 135) {
-  if (typeof cueText !== "string") return {};
-  const [urlPart = "", frag = ""] = cueText.split("#");
-  if (typeof frag !== "string" || !frag.startsWith("xywh=")) return {};
-  const nums = frag.slice(5).split(",").map(Number);
-  if (nums.length !== 4 || nums.some(Number.isNaN)) return {};
-  
-  const [x, y, w, h] = nums; 
-  
+  function getBackgroundPosition(
+    cueText,
+    previewWidth = playsInline ? 168 : 240,
+    previewHeight = playsInline ? 93 : 135
+  ) {
+    if (typeof cueText !== "string") return {};
+    const [urlPart = "", frag = ""] = cueText.split("#");
+    if (typeof frag !== "string" || !frag.startsWith("xywh=")) return {};
+    const nums = frag.slice(5).split(",").map(Number);
+    if (nums.length !== 4 || nums.some(Number.isNaN)) return {};
 
-  const scale = previewWidth / w; 
-  return {
-    width: `${previewWidth}px`,
-    height: `${previewHeight}px`,
-    backgroundImage: `url(${urlPart})`,
-    backgroundPosition: `-${x * scale}px -${y * scale}px`,
-    backgroundRepeat: "no-repeat",
-    backgroundSize: `${10 * w * scale}px auto`, 
-    border: "2px solid #fff",
-    borderRadius: "8px",
-  };
-}
+    const [x, y, w, h] = nums;
+
+    const scale = previewWidth / w;
+    return {
+      width: `${previewWidth}px`,
+      height: `${previewHeight}px`,
+      backgroundImage: `url(${urlPart})`,
+      backgroundPosition: `-${x * scale}px -${y * scale}px`,
+      backgroundRepeat: "no-repeat",
+      backgroundSize: `${10 * w * scale}px auto`,
+      border: "2px solid #fff",
+      borderRadius: "8px",
+    };
+  }
   return (
     <Box
       className={`progress-bar-container control`}
@@ -301,7 +319,8 @@ function getBackgroundPosition(cueText, previewWidth = playsInline ? 168 : 240, 
           className="progress-list"
           sx={{
             position: "relative",
-            transform: isProgressEntered && !playsInline ? "scaleY(1.2)" : "scaleY(.6)",
+            transform:
+              isProgressEntered && !playsInline ? "scaleY(1.2)" : "scaleY(.6)",
             height: "100%",
             background: isMini ? "rgb(51,51,51)" : "rgba(255,255,255,0.2)",
             transition: "transform .1s cubic-bezier(0.4, 0, 1, 1)",

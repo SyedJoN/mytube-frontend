@@ -1,8 +1,8 @@
 import { useEffect } from "react";
 import { sendTelemetry } from "../apis/sendTelemetry";
 
-const BATCH_TIME = 1000;
-const BATCH_LIMIT = 10;
+const BATCH_TIME = 5000;
+const BATCH_LIMIT = 5;
 
 let telemetryInterval = null;
 let hoverStartTime = null;
@@ -28,7 +28,6 @@ function getSessionId() {
   return sessionId;
 }
 
-
 function saveLastHoverTime(videoId, currentTime) {
   sessionStorage.setItem(`hoverTime_${videoId}`, currentTime.toFixed(2));
 }
@@ -38,18 +37,17 @@ export function getSavedHoverTime(videoId) {
   return time ? parseFloat(time) : 0;
 }
 
-// Collect telemetry data from a video element
-export function getCurrentVideoTelemetryData(userId, videoId, videoElement) {
-  const currentTime = parseFloat(videoElement.currentTime.toFixed(0));
-  const duration = parseFloat(videoElement.duration.toFixed(0));
-  const lact = Date.now() - hoverStartTime;
-  
-  console.log(duration)
-      if (userId === null) {
-        saveLastHoverTime(videoId, currentTime);
-        return null;
-    }
 
+export function getCurrentVideoTelemetryData(userId, videoId, videoElement, final = 0) {
+  let currentTime = parseFloat(videoElement.currentTime.toFixed(3));
+  const duration = parseFloat(videoElement.duration.toFixed(3));
+  const lact = Date.now() - hoverStartTime;
+
+  
+  if (userId === null) {
+    saveLastHoverTime(videoId, currentTime);
+    return null;
+  }
 
   return {
     videoId,
@@ -63,11 +61,12 @@ export function getCurrentVideoTelemetryData(userId, videoId, videoElement) {
     anonId: !userId && getOrCreateAnonId(),
     timestamp: Date.now(),
     userId: userId || null,
+    final,
     lact,
   };
 }
 
-export function startTelemetry(userId, videoId, videoElement, setVideoRestart) {
+export function startTelemetry(userId, videoId, videoElement) {
   console.log("🚀 Attempt to start telemetry", {
     telemetryInterval,
     isTelemetryActive,
@@ -82,8 +81,8 @@ export function startTelemetry(userId, videoId, videoElement, setVideoRestart) {
   isTelemetryActive = true;
   hoverStartTime = Date.now();
   console.log("✅ Telemetry started");
-  console.log(videoElement.readyState)
-  console.log(videoElement.currentTime)
+  console.log("readyState", videoElement.readyState);
+  console.log("currentTime", videoElement.currentTime);
 
   telemetryInterval = setInterval(() => {
     console.log("interval");
@@ -96,14 +95,13 @@ export function startTelemetry(userId, videoId, videoElement, setVideoRestart) {
   }, BATCH_TIME);
 }
 
-// Stop telemetry tracking
+
 export function stopTelemetry() {
-  clearInterval(telemetryInterval)
-  flushTelemetryQueue();
+  clearInterval(telemetryInterval);
   telemetryInterval = null;
   isTelemetryActive = false;
   hoverStartTime = null;
-  console.log("Stopped telemetry")
+  console.log("Stopped telemetry");
 }
 
 export async function flushTelemetryQueue() {
@@ -116,6 +114,6 @@ export async function flushTelemetryQueue() {
     console.log("Telemetry flushed successfully:", dataToSend);
   } catch (err) {
     console.error("Failed to flush telemetry", err);
-    batchQueue = [...dataToSend, ...batchQueue]; // retry later
+    batchQueue = [...dataToSend, ...batchQueue]; 
   }
 }

@@ -160,7 +160,7 @@ function VideoCard({
   const [bufferedVal, setBufferedVal] = React.useState(0);
   const [viewVideo, setViewVideo] = React.useState(false);
   const [progress, setProgress] = React.useState(0);
-  const [isVolumeMuted, setIsVolumeMuted] = React.useState(false);
+  const [isVolumeMuted, setIsVolumeMuted] = React.useState(true);
 
   const fac = new FastAverageColor();
   const colors = [red, blue, green, purple, orange, deepOrange, pink];
@@ -287,58 +287,65 @@ function VideoCard({
     if (!video) return;
     if (video.readyState < 3) return;
 
-    let playTimeout;
+    if (isHoverPlay && document.visibilityState === "visible") {
+      if (isAuthenticated) {
+        refetchHistory()
+          .then((res) => {
+            const refetchedVideo = res.data?.data?.find(
+              (video) => video.video._id === videoId
+            );
+            let refetchedTime = refetchedVideo?.currentTime;
+            const refetchedDuration = refetchedVideo?.duration;
 
-    if (isHoverPlay) {
-      refetchHistory().then(()=> {
-  video
-        .play()
-        .then(() => {
-          clearTimeout(timeoutRef.current);
-          if (isVideoPlaying) {
-            timeoutRef.current = setTimeout(() => {
-              video.classList.add("hide-cursor");
-            }, 2000);
-          }
+            // if (refetchedTime === refetchedDuration) {
+            //   resetVideoHistory();
+            // }
+            console.log(refetchedTime);
+            video
+              .play()
+              .then(() => {
+                clearTimeout(timeoutRef.current);
+                if (isVideoPlaying) {
+                  timeoutRef.current = setTimeout(() => {
+                    video.classList.add("hide-cursor");
+                  }, 2000);
+                }
 
-          console.log("Playing then");
+                console.log("Playing then");
 
-          const guestResumeTime = getSavedHoverTime(videoId);
-          const isValidGuestResumeTime =
-            isFinite(guestResumeTime) && guestResumeTime < video.duration;
+                const isValidUserResumeTime =
+                  isFinite(refetchedTime) && refetchedTime < video.duration;
 
-          const isValidUserResumeTime =
-            isFinite(userResumeTime) && userResumeTime < video.duration;
-          if (video.currentTime === video.duration) {
-            video.currentTime = 0;
-          } else if (isAuthenticated && isValidUserResumeTime) {
-            video.currentTime = userResumeTime;
-          } else if (!isAuthenticated && isValidGuestResumeTime) {
-            video.currentTime = guestResumeTime;
-          } else if (video.currentTime === video.duration) {
-            try {
-              const data = getCurrentVideoTelemetryData(userId, videoId, video);
-              sendTelemetry([data]);
-            } catch (error) {
-              console.log(error);
-            }
-          }
-        })
-        .catch((err) => console.error("Video play error:", err));
-      });
-    
-
-      startTelemetry(userId, videoId, video);
+                if (isAuthenticated && isValidUserResumeTime) {
+                  video.currentTime =
+                    refetchedTime === refetchedDuration ? 0 : refetchedTime;
+                } else if (!isAuthenticated && isValidGuestResumeTime) {
+                  video.currentTime = guestResumeTime;
+                } else {
+                  video.currentTime = 0;
+                }
+                startTelemetry(userId, videoId, video);
+              })
+              .catch((err) => console.error("Video play error:", err));
+            stopTelemetry();
+          })
+          .catch((error) => {
+            console.log(error);
+            refetchedTime = 0;
+          });
+      } else {
+        console.log("hi");
+      }
     } else {
-      clearTimeout(playTimeout);
       clearTimeout(timeoutRef.current);
       video.pause();
-      stopTelemetry();
       video.classList.remove("hide-cursor");
     }
 
     return () => {
       stopTelemetry();
+      flushTelemetryQueue();
+      video.pause();
       clearTimeout(timeoutRef.current);
       video.classList.remove("hide-cursor");
     };
@@ -419,8 +426,11 @@ function VideoCard({
   const handleVideoPlaying = () => {
     setIsVideoPlaying(true);
   };
-  const handleVideoEnd = () => {
+  const handleVideoEnd = (event) => {
+    const video = event.target;
     setIsHoverPlay(false);
+    const data = getCurrentVideoTelemetryData(userId, videoId, video);
+    sendTelemetry([data]);
     // setTimeout(() => {
     //   setIsHoverPlay(true);
     // }, 600);
@@ -448,10 +458,10 @@ function VideoCard({
       const value = (video.currentTime / video.duration) * 100;
       setProgress(value);
     }
-    if (video.currentTime === video.duration) {
-      flushTelemetryQueue();
-      refetchHistory();
-    }
+    // if (video.currentTime === video.duration) {
+    //   flushTelemetryQueue();
+    //   refetchHistory();
+    // }
 
     // if (!telemetrySentRef.current && Math.floor(watchTime) >= 10) {
     //   telemetrySentRef.current = true;
@@ -556,6 +566,7 @@ function VideoCard({
                     />
                     {videoUrl && (
                       <video
+                        muted={isVolumeMuted}
                         playsInline
                         onMouseMove={handleVideoMouseMove}
                         ref={hoverVideoRef}
@@ -688,6 +699,7 @@ function VideoCard({
               <ProgressLists
                 bufferedVal={bufferedVal}
                 hoverVideoRef={hoverVideoRef}
+                userId={userId}
                 setBufferedVal={setBufferedVal}
                 progress={progress}
                 setProgress={setProgress}
@@ -1196,6 +1208,7 @@ function VideoCard({
                     />
                     {videoUrl && (
                       <video
+                        muted={isVolumeMuted}
                         playsInline
                         ref={hoverVideoRef}
                         onMouseMove={handleVideoMouseMove}
@@ -1326,6 +1339,7 @@ function VideoCard({
                   <ProgressLists
                     bufferedVal={bufferedVal}
                     hoverVideoRef={hoverVideoRef}
+                    userId={userId}
                     setBufferedVal={setBufferedVal}
                     progress={progress}
                     setProgress={setProgress}
