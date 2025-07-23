@@ -343,8 +343,11 @@ function VideoCard({
     }
 
     return () => {
-      stopTelemetry();
+      const data = getCurrentVideoTelemetryData(userId, videoId, video, 0, 1, "home");
+      sendTelemetry([data]);
       flushTelemetryQueue();
+      stopTelemetry();
+      console.log("sending ", data);
       video.pause();
       clearTimeout(timeoutRef.current);
       video.classList.remove("hide-cursor");

@@ -202,7 +202,9 @@ export const ProgressLists = ({
         userId,
         videoId,
         video, 
-        1
+        1,
+        0,
+        "controls"
       );
       sendTelemetry([data]);
       console.log("sending ", data);

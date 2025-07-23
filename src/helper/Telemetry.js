@@ -38,7 +38,7 @@ export function getSavedHoverTime(videoId) {
 }
 
 
-export function getCurrentVideoTelemetryData(userId, videoId, videoElement, final = 0) {
+export function getCurrentVideoTelemetryData(userId, videoId, videoElement, seeked = 0, final = 0, source) {
   let currentTime = parseFloat(videoElement.currentTime.toFixed(3));
   const duration = parseFloat(videoElement.duration.toFixed(3));
   const lact = Date.now() - hoverStartTime;
@@ -61,8 +61,10 @@ export function getCurrentVideoTelemetryData(userId, videoId, videoElement, fina
     anonId: !userId && getOrCreateAnonId(),
     timestamp: Date.now(),
     userId: userId || null,
-    final,
+    seeked,
     lact,
+    final,
+    source
   };
 }
 

@@ -14,7 +14,6 @@ const getCurrentUser = async () => {
       return null; 
     }
     
-    console.error("Axios Error:", error);
     throw new Error(
       error.response?.data?.message || "Something went wrong. Please try again!"
     );
