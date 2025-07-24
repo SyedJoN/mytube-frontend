@@ -47,6 +47,7 @@ import {
   flushTelemetryQueue,
   getCurrentVideoTelemetryData,
   getSavedHoverTime,
+  sendFinalTelemetryData,
   startTelemetry,
   stopTelemetry,
 } from "../../helper/Telemetry";
@@ -300,7 +301,7 @@ function VideoCard({
             // if (refetchedTime === refetchedDuration) {
             //   resetVideoHistory();
             // }
-            console.log(refetchedTime);
+            console.log("refetchedTime", refetchedTime);
             video
               .play()
               .then(() => {
@@ -317,14 +318,13 @@ function VideoCard({
                   isFinite(refetchedTime) && refetchedTime < video.duration;
 
                 if (isAuthenticated && isValidUserResumeTime) {
-                  video.currentTime =
-                    refetchedTime === refetchedDuration ? 0 : refetchedTime;
+                  video.currentTime = refetchedTime;
                 } else if (!isAuthenticated && isValidGuestResumeTime) {
                   video.currentTime = guestResumeTime;
                 } else {
                   video.currentTime = 0;
                 }
-                startTelemetry(userId, videoId, video);
+                startTelemetry(userId, videoId, video, refetchedTime);
               })
               .catch((err) => console.error("Video play error:", err));
             stopTelemetry();
@@ -338,16 +338,24 @@ function VideoCard({
       }
     } else {
       clearTimeout(timeoutRef.current);
+      sendFinalTelemetryData(
+        userId,
+        videoId,
+        video,
+        userResumeTime,
+        0,
+        0,
+        home ? "home" : "search"
+      );
+      stopTelemetry();
+      flushTelemetryQueue();
       video.pause();
       video.classList.remove("hide-cursor");
     }
 
     return () => {
-      const data = getCurrentVideoTelemetryData(userId, videoId, video, 0, 1, "home");
-      sendTelemetry([data]);
-      flushTelemetryQueue();
       stopTelemetry();
-      console.log("sending ", data);
+      flushTelemetryQueue();
       video.pause();
       clearTimeout(timeoutRef.current);
       video.classList.remove("hide-cursor");

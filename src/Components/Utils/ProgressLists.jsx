@@ -5,7 +5,12 @@ import formatDuration from "../../utils/formatDuration";
 import { useLocation } from "@tanstack/react-router";
 import { transform } from "lodash";
 import { sendTelemetry } from "../../apis/sendTelemetry";
-import { getCurrentVideoTelemetryData, stopTelemetry } from "../../helper/Telemetry";
+import {
+  getCurrentVideoTelemetryData,
+  pushTime,
+  stopTelemetry,
+} from "../../helper/Telemetry";
+import { flushSync } from "react-dom";
 
 export const ProgressLists = ({
   videoRef,
@@ -197,15 +202,15 @@ export const ProgressLists = ({
     const video = hoverVideoRef.current;
     if (!video) return;
     if (playsInline) {
-
       const data = getCurrentVideoTelemetryData(
         userId,
         videoId,
-        video, 
+        video,
         1,
         0,
         "controls"
       );
+      // pushTime(parseFloat(video.currentTime.toFixed(3)))
       sendTelemetry([data]);
       console.log("sending ", data);
     }

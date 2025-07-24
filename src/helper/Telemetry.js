@@ -1,15 +1,22 @@
 import { useEffect } from "react";
 import { sendTelemetry } from "../apis/sendTelemetry";
+import { throttle } from "lodash";
 
-const BATCH_TIME = 5000;
+const BATCH_TIME = 10000;
 const BATCH_LIMIT = 5;
 
 let telemetryInterval = null;
-let hoverStartTime = null;
-let lastRefetchSecond = 0;
+let lastInteraction = null;
+let lastVideoTime = null;
 let isTelemetryActive = false;
 let batchQueue = [];
+let stArray = [];
+let etArray = [];
 
+export function pushTime(et) {
+  stArray.push(lastVideoTime ?? 0);
+  etArray.push(et);
+}
 function getOrCreateAnonId() {
   let anonId = localStorage.getItem("anonId");
   if (!anonId) {
@@ -38,21 +45,31 @@ export function getSavedHoverTime(videoId) {
 }
 
 
-export function getCurrentVideoTelemetryData(userId, videoId, videoElement, seeked = 0, final = 0, source) {
-  let currentTime = parseFloat(videoElement.currentTime.toFixed(3));
+export function sendFinalTelemetryData(
+  userId,
+  videoId,
+  videoElement,
+  refetchedTime = 0,
+  seeked = 0,
+  final = 0,
+  source = "home"
+) {
+  const currentTime = parseFloat(videoElement.currentTime.toFixed(3));
   const duration = parseFloat(videoElement.duration.toFixed(3));
-  const lact = Date.now() - hoverStartTime;
+  const lact = Date.now() - lastInteraction;
+  const referrer = document.referrer || "direct";
 
-  
   if (userId === null) {
     saveLastHoverTime(videoId, currentTime);
     return null;
   }
 
-  return {
+  const telemetry = {
     videoId,
-    currentTime,
+    currentTime: refetchedTime === 0 ? (lastVideoTime ?? 0) : refetchedTime, // et
     duration,
+    st: [refetchedTime === 0 ? (lastVideoTime ?? 0) : refetchedTime],
+    et: [currentTime],
     state: videoElement.paused ? "paused" : "playing",
     muted: videoElement.muted,
     fullscreen: !!document.fullscreenElement,
@@ -61,14 +78,120 @@ export function getCurrentVideoTelemetryData(userId, videoId, videoElement, seek
     anonId: !userId && getOrCreateAnonId(),
     timestamp: Date.now(),
     userId: userId || null,
+    referrer,
     seeked,
     lact,
     final,
-    source
+    source,
   };
+
+  sendTelemetry([telemetry]);
+
+  if (Math.abs(telemetry.st - telemetry.et) > 10) {
+    const cmt = telemetry.et[0];
+    const finalTelemetry = {
+      videoId,
+      currentTime: cmt,
+      duration,
+      st: telemetry.et,
+      et: telemetry.et,
+      state: videoElement.paused ? "paused" : "playing",
+      muted: videoElement.muted,
+      fullscreen: !!document.fullscreenElement,
+      autoplay: videoElement.autoplay || false,
+      sessionId: getSessionId(),
+      anonId: !userId && getOrCreateAnonId(),
+      timestamp: Date.now(),
+      userId: userId || null,
+      referrer,
+      seeked,
+      lact,
+      final: 1,
+      source,
+    };
+    sendTelemetry([finalTelemetry]);
+  } else {
+    const finalTelemetry = {
+      videoId,
+      currentTime: 0,
+      duration,
+      st: [0],
+      et: [0],
+      state: videoElement.paused ? "paused" : "playing",
+      muted: videoElement.muted,
+      fullscreen: !!document.fullscreenElement,
+      autoplay: videoElement.autoplay || false,
+      sessionId: getSessionId(),
+      anonId: !userId && getOrCreateAnonId(),
+      timestamp: Date.now(),
+      userId: userId || null,
+      referrer,
+      seeked,
+      lact,
+      final: 1,
+      source,
+    };
+    sendTelemetry([finalTelemetry]);
+  }
+  lastVideoTime = currentTime; // update for next interval
+  console.log(telemetry.st[0] - telemetry.et[0]);
+  console.log("st", telemetry.st[0]);
+  console.log("et", telemetry.et[0]);
+}
+export function getCurrentVideoTelemetryData(
+  userId,
+  videoId,
+  videoElement,
+  refetchedTime = 0,
+  seeked = 0,
+  final = 0,
+  source = "home"
+) {
+  const currentTime = parseFloat(videoElement.currentTime.toFixed(3));
+  const duration = parseFloat(videoElement.duration.toFixed(3));
+  const lact = Date.now() - lastInteraction;
+  const referrer = document.referrer || "direct";
+
+  if (userId === null) {
+    saveLastHoverTime(videoId, currentTime);
+    return null;
+  }
+  console.log(refetchedTime);
+  // stArray.push(refetchedTime ?? 0);
+  // etArray.push(currentTime);
+
+  const telemetry = {
+    videoId,
+    currentTime: refetchedTime === 0 ? (lastVideoTime ?? 0) : refetchedTime, // et
+    duration,
+    st: [refetchedTime === 0 ? (lastVideoTime ?? 0) : refetchedTime],
+    et: [currentTime],
+    state: videoElement.paused ? "paused" : "playing",
+    muted: videoElement.muted,
+    fullscreen: !!document.fullscreenElement,
+    autoplay: videoElement.autoplay || false,
+    sessionId: getSessionId(),
+    anonId: !userId && getOrCreateAnonId(),
+    timestamp: Date.now(),
+    userId: userId || null,
+    referrer,
+    seeked,
+    lact,
+    final,
+    source,
+  };
+
+  lastVideoTime = currentTime; // update for next interval
+
+  return telemetry;
 }
 
-export function startTelemetry(userId, videoId, videoElement) {
+export function startTelemetry(
+  userId,
+  videoId,
+  videoElement,
+  refetchedTime = 0
+) {
   console.log("🚀 Attempt to start telemetry", {
     telemetryInterval,
     isTelemetryActive,
@@ -81,14 +204,19 @@ export function startTelemetry(userId, videoId, videoElement) {
   }
 
   isTelemetryActive = true;
-  hoverStartTime = Date.now();
+  lastInteraction = Date.now();
   console.log("✅ Telemetry started");
   console.log("readyState", videoElement.readyState);
   console.log("currentTime", videoElement.currentTime);
 
   telemetryInterval = setInterval(() => {
     console.log("interval");
-    const data = getCurrentVideoTelemetryData(userId, videoId, videoElement);
+    const data = getCurrentVideoTelemetryData(
+      userId,
+      videoId,
+      videoElement,
+      refetchedTime
+    );
     batchQueue.push(data);
 
     if (batchQueue.length >= BATCH_LIMIT) {
@@ -97,13 +225,17 @@ export function startTelemetry(userId, videoId, videoElement) {
   }, BATCH_TIME);
 }
 
-
 export function stopTelemetry() {
   clearInterval(telemetryInterval);
   telemetryInterval = null;
   isTelemetryActive = false;
-  hoverStartTime = null;
+  lastInteraction = null;
+  lastVideoTime = null;
+  stArray = [];
+  etArray = [];
   console.log("Stopped telemetry");
+
+  flushTelemetryQueue();
 }
 
 export async function flushTelemetryQueue() {
@@ -116,6 +248,13 @@ export async function flushTelemetryQueue() {
     console.log("Telemetry flushed successfully:", dataToSend);
   } catch (err) {
     console.error("Failed to flush telemetry", err);
-    batchQueue = [...dataToSend, ...batchQueue]; 
+    batchQueue = [...dataToSend, ...batchQueue];
   }
 }
+
+const updateInteraction = () => (lastInteraction = Date.now());
+
+window.addEventListener("mousemove", throttle(updateInteraction, 1000));
+window.addEventListener("keydown", updateInteraction);
+window.addEventListener("click", updateInteraction);
+window.addEventListener("touchstart", updateInteraction);
