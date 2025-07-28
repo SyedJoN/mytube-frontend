@@ -5,11 +5,7 @@ import formatDuration from "../../utils/formatDuration";
 import { useLocation } from "@tanstack/react-router";
 import { transform } from "lodash";
 import { sendTelemetry } from "../../apis/sendTelemetry";
-import {
-  getCurrentVideoTelemetryData,
-  pushTime,
-  stopTelemetry,
-} from "../../helper/Telemetry";
+
 import { flushSync } from "react-dom";
 
 export const ProgressLists = ({
@@ -26,6 +22,7 @@ export const ProgressLists = ({
   showSettings,
   vttUrl,
   playsInline,
+  tracker
 }) => {
   var thumbWidth = 13;
   const theme = useTheme();
@@ -185,36 +182,46 @@ export const ProgressLists = ({
     window.addEventListener("mousemove", handleSeekMove);
     window.addEventListener("mouseup", handleSeekEnd);
   };
-
-  const handleClickSeek = (e) => {
-    if (!sliderRef.current || !videoRef.current) return;
-    const rect = sliderRef.current?.getBoundingClientRect();
-    const offsetX = e.clientX - rect.left;
-    const newProgress = Math.min(
-      Math.max((offsetX / rect.width) * 100, 0),
-      100
-    );
-
-    const newTime = (videoRef.current?.duration * newProgress) / 100;
-    videoRef.current.currentTime = newTime;
-    setProgress(newProgress);
-    if (!userId) return;
-    const video = hoverVideoRef.current;
-    if (!video) return;
-    if (playsInline) {
-      const data = getCurrentVideoTelemetryData(
-        userId,
-        videoId,
-        video,
-        1,
-        0,
-        "controls"
-      );
-      // pushTime(parseFloat(video.currentTime.toFixed(3)))
-      sendTelemetry([data]);
-      console.log("sending ", data);
-    }
-  };
+  let lastTelemetryPosition = 0;
+const handleClickSeek = (e) => {
+  if (!sliderRef?.current || !videoRef?.current) return;
+  
+  const fromTime = videoRef.current.currentTime;
+  
+  const rect = sliderRef.current?.getBoundingClientRect();
+  const offsetX = e.clientX - rect.left;
+  const newProgress = Math.min(
+    Math.max((offsetX / rect.width) * 100, 0),
+    100
+  );
+  const newTime = (videoRef.current?.duration * newProgress) / 100;
+  
+  console.log("🎯 CLICK SEEK:", {
+    capturedFrom: fromTime,
+    calculatedTo: newTime,
+    lastTelemetryPosition: lastTelemetryPosition
+  });
+  
+  // Update video position
+  videoRef.current.currentTime = newTime;
+  setProgress(newProgress);
+  
+  if (!userId) return;
+  
+  const hoverVideo = hoverVideoRef?.current;
+  if (!hoverVideo) return;
+  
+  if (playsInline && hoverVideo && tracker) {
+    hoverVideo.currentTime = newTime;
+    
+    // ✅ Use the method that gives you expected behavior
+    // Option 1: Continuous tracking (YouTube style)
+    tracker.trackSeek(hoverVideo, fromTime, newTime);
+    
+    // Option 2: Actual click positions  
+    // tracker.trackSeekWithActualPositions(hoverVideo, fromTime, newTime);
+  }
+};
 
   const previewStyle = getBackgroundPosition(hoveredCue?.text);
 

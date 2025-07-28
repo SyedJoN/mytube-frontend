@@ -44,12 +44,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { flushSync } from "react-dom";
 import { TimeStampProvider } from "../../Contexts/TimeStampProvider";
 import {
-  flushTelemetryQueue,
-  getCurrentVideoTelemetryData,
-  getSavedHoverTime,
-  sendFinalTelemetryData,
+  HoverTelemetryTracker,
+  initializeTelemetryArrays,
+  sendYouTubeStyleTelemetry,
+  setupVideoTelemetryEvents,
   startTelemetry,
-  stopTelemetry,
 } from "../../helper/Telemetry";
 import { getWatchHistory } from "../../apis/userFn";
 import { sendTelemetry } from "../../apis/sendTelemetry";
@@ -137,7 +136,7 @@ function VideoCard({
 }) {
   const navigate = useNavigate();
   const interactionRef = React.useRef(null);
-  const telemetrySentRef = React.useRef(null);
+  const hoverTrackerRef = React.useRef(new HoverTelemetryTracker());
   const timeoutRef = React.useRef(null);
   const queryClient = useQueryClient();
 
@@ -160,6 +159,7 @@ function VideoCard({
   const [bgColor, setBgColor] = React.useState("rgba(0,0,0,0.6)");
   const [bufferedVal, setBufferedVal] = React.useState(0);
   const [viewVideo, setViewVideo] = React.useState(false);
+  const [fetchedTime, setFetchedTime] = React.useState(0);
   const [progress, setProgress] = React.useState(0);
   const [isVolumeMuted, setIsVolumeMuted] = React.useState(true);
 
@@ -207,12 +207,12 @@ function VideoCard({
   const handleLoadedMetadata = () => {
     const video = hoverVideoRef.current;
     if (!video) return;
-    const guestResumeTime = getSavedHoverTime(videoId);
+    // const guestResumeTime = getSavedHoverTime(videoId);
 
-    const isValidGuestResumeTime =
-      isFinite(guestResumeTime) &&
-      guestResumeTime > 0 &&
-      guestResumeTime < video.duration;
+    // const isValidGuestResumeTime =
+    //   isFinite(guestResumeTime) &&
+    //   guestResumeTime > 0 &&
+    //   guestResumeTime < video.duration;
 
     const isValidUserResumeTime =
       isFinite(userResumeTime) &&
@@ -285,83 +285,99 @@ function VideoCard({
 
   React.useEffect(() => {
     const video = hoverVideoRef?.current;
-    if (!video) return;
-    if (video.readyState < 3) return;
+    const tracker = hoverTrackerRef.current;
 
-    if (isHoverPlay && document.visibilityState === "visible") {
-      if (isAuthenticated) {
-        refetchHistory()
-          .then((res) => {
-            const refetchedVideo = res.data?.data?.find(
-              (video) => video.video._id === videoId
-            );
-            let refetchedTime = refetchedVideo?.currentTime;
-            const refetchedDuration = refetchedVideo?.duration;
+    if (!video || !tracker) return;
 
-            // if (refetchedTime === refetchedDuration) {
-            //   resetVideoHistory();
-            // }
-            console.log("refetchedTime", refetchedTime);
-            video
-              .play()
-              .then(() => {
-                clearTimeout(timeoutRef.current);
-                if (isVideoPlaying) {
-                  timeoutRef.current = setTimeout(() => {
-                    video.classList.add("hide-cursor");
-                  }, 2000);
-                }
+    
+    setupVideoTelemetryEvents(video, tracker, userId, videoId);
 
-                console.log("Playing then");
+    console.log("🎯 Telemetry events setup complete for video:", videoId);
 
-                const isValidUserResumeTime =
-                  isFinite(refetchedTime) && refetchedTime < video.duration;
-
-                if (isAuthenticated && isValidUserResumeTime) {
-                  video.currentTime = refetchedTime;
-                } else if (!isAuthenticated && isValidGuestResumeTime) {
-                  video.currentTime = guestResumeTime;
-                } else {
-                  video.currentTime = 0;
-                }
-                startTelemetry(userId, videoId, video, refetchedTime);
-              })
-              .catch((err) => console.error("Video play error:", err));
-            stopTelemetry();
-          })
-          .catch((error) => {
-            console.log(error);
-            refetchedTime = 0;
-          });
-      } else {
-        console.log("hi");
-      }
-    } else {
-      clearTimeout(timeoutRef.current);
-      sendFinalTelemetryData(
-        userId,
-        videoId,
-        video,
-        userResumeTime,
-        0,
-        0,
-        home ? "home" : "search"
-      );
-      stopTelemetry();
-      flushTelemetryQueue();
-      video.pause();
-      video.classList.remove("hide-cursor");
-    }
-
+    // Cleanup function
     return () => {
-      stopTelemetry();
-      flushTelemetryQueue();
-      video.pause();
+      console.log("🧹 Cleaning up telemetry events");
+    };
+  }, [videoId, userId]); 
+
+
+  React.useEffect(() => {
+    const video = hoverVideoRef?.current;
+    const tracker = hoverTrackerRef.current;
+
+    if (!video || video.readyState < 3) return;
+
+    const handlePlay = async () => {
+      let refetchedTime = 0;
+      if (isAuthenticated) {
+        try {
+          const res = await refetchHistory();
+          const refetchedVideo = res.data?.data?.find(
+            (video) => video.video._id === videoId
+          );
+          refetchedTime = refetchedVideo?.currentTime || 0;
+        } catch (error) {
+          console.error("Error refetching video history:", error);
+        }
+      } else {
+        // refetchedTime = getSavedHoverTime(videoId);
+      }
+
+      const isValidResumeTime =
+        isFinite(refetchedTime) && refetchedTime < video.duration;
+
+      try {
+        await video.play();
+        clearTimeout(timeoutRef.current);
+        if (isVideoPlaying) {
+          timeoutRef.current = setTimeout(() => {
+            video.classList.add("hide-cursor");
+          }, 2000);
+        }
+        video.currentTime = isValidResumeTime ? refetchedTime : 0;
+        setFetchedTime(refetchedTime);
+      } catch (err) {
+        console.error("Video play error:", err);
+      }
+    };
+
+    const handleStop = () => {
       clearTimeout(timeoutRef.current);
+      video.pause();
       video.classList.remove("hide-cursor");
     };
-  }, [isHoverPlay]);
 
+    if (isHoverPlay && document.visibilityState === "visible") {
+      handlePlay();
+      initializeTelemetryArrays();
+      const data = startTelemetry(video, userId, videoId, tracker);
+      console.log("Current Video Time", data.video.currentTime);
+      tracker.startHover(video);
+    } else if (tracker.isTracking) {
+      const telemetryData = tracker.endHover(video);
+      console.log("Telemetry data returned:", telemetryData);
+      if (telemetryData) {
+        sendYouTubeStyleTelemetry(userId, videoId, video, telemetryData);
+      }
+      handleStop();
+      tracker.reset();
+    }
+    return () => {
+      console.log("🧹 useEffect cleanup");
+  
+    };
+  }, [isHoverPlay]);
+  React.useEffect(() => {
+    return () => {
+      console.log("🧹 Component unmount cleanup");
+      const tracker = hoverTrackerRef.current;
+      if (tracker?.telemetryTimer) {
+        tracker.telemetryTimer.stop();
+      }
+      tracker?.reset();
+      clearTimeout(timeoutRef.current);
+    };
+  }, []);
   React.useEffect(() => {
     const preview = previewRef.current;
     let playTimeout;
@@ -386,6 +402,15 @@ function VideoCard({
 
     return () => clearTimeout(playTimeout);
   }, [isHoverPlay]);
+
+  const handleVolumeToggle = () => {
+    const tracker = hoverTrackerRef.current;
+
+    setIsVolumeMuted((prev) => !prev);
+    if (tracker && hoverVideoRef.current) {
+      tracker.handleVolumeToggle(hoverVideoRef.current);
+    }
+  };
 
   const getColor = (name) => {
     if (!name) return red[500];
@@ -440,8 +465,7 @@ function VideoCard({
   const handleVideoEnd = (event) => {
     const video = event.target;
     setIsHoverPlay(false);
-    const data = getCurrentVideoTelemetryData(userId, videoId, video);
-    sendTelemetry([data]);
+
     // setTimeout(() => {
     //   setIsHoverPlay(true);
     // }, 600);
@@ -631,7 +655,7 @@ function VideoCard({
               }}
             >
               <Box
-                onClick={() => setIsVolumeMuted((prev) => !prev)}
+                onClick={handleVolumeToggle}
                 className={`volume-overlay ${isHoverPlay && isVideoPlaying ? 1 : 0 ? "" : "hide"}`}
                 sx={{
                   display: "flex",
@@ -720,6 +744,7 @@ function VideoCard({
                 videoRef={hoverVideoRef}
                 vttUrl={vttUrl}
                 playsInline={true}
+                tracker={hoverTrackerRef.current}
               />
             )}
           </Box>
@@ -1271,7 +1296,7 @@ function VideoCard({
                   }}
                 >
                   <Box
-                    onClick={() => setIsVolumeMuted((prev) => !prev)}
+                    onClick={handleVolumeToggle}
                     className={`volume-overlay ${isHoverPlay ? "" : "hide"}`}
                     sx={{
                       display: "flex",
@@ -1360,6 +1385,7 @@ function VideoCard({
                     videoRef={hoverVideoRef}
                     vttUrl={vttUrl}
                     playsInline={true}
+                    tracker={hoverTrackerRef.current}
                   />
                 )}
               </Box>
