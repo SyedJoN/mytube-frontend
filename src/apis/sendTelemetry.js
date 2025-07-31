@@ -21,7 +21,7 @@ export async function sendTelemetry(telemetryData) {
       
       // Player state
       state: payload.state,
-      muted: payload.muted ? 1 : 0,
+      muted: payload.muted,
       len: payload.len,
       
       // Session & user info
@@ -33,7 +33,6 @@ export async function sendTelemetry(telemetryData) {
       source: payload.source,
       final: payload.final || 0,
       seeked: payload.seeked || 0,
-      userId: payload.userId,
       
       // Timestamp
       t: Date.now()

@@ -159,7 +159,6 @@ function VideoCard({
   const [bgColor, setBgColor] = React.useState("rgba(0,0,0,0.6)");
   const [bufferedVal, setBufferedVal] = React.useState(0);
   const [viewVideo, setViewVideo] = React.useState(false);
-  const [fetchedTime, setFetchedTime] = React.useState(0);
   const [progress, setProgress] = React.useState(0);
   const [isVolumeMuted, setIsVolumeMuted] = React.useState(true);
 
@@ -289,8 +288,7 @@ function VideoCard({
 
     if (!video || !tracker) return;
 
-    
-    setupVideoTelemetryEvents(video, tracker, userId, videoId);
+    setupVideoTelemetryEvents(video, tracker, videoId);
 
     console.log("🎯 Telemetry events setup complete for video:", videoId);
 
@@ -298,14 +296,13 @@ function VideoCard({
     return () => {
       console.log("🧹 Cleaning up telemetry events");
     };
-  }, [videoId, userId]); 
-
+  }, [videoId, userId]);
 
   React.useEffect(() => {
     const video = hoverVideoRef?.current;
     const tracker = hoverTrackerRef.current;
 
-    if (!video || video.readyState < 3) return;
+    if (!video) return;
 
     const handlePlay = async () => {
       let refetchedTime = 0;
@@ -335,9 +332,8 @@ function VideoCard({
           }, 2000);
         }
         video.currentTime = isValidResumeTime ? refetchedTime : 0;
-        setFetchedTime(refetchedTime);
       } catch (err) {
-        console.error("Video play error:", err);
+        setIsVideoPlaying(false);
       }
     };
 
@@ -350,23 +346,23 @@ function VideoCard({
     if (isHoverPlay && document.visibilityState === "visible") {
       handlePlay();
       initializeTelemetryArrays();
-      const data = startTelemetry(video, userId, videoId, tracker);
-      console.log("Current Video Time", data.video.currentTime);
+      startTelemetry(video, videoId, tracker);
       tracker.startHover(video);
     } else if (tracker.isTracking) {
       const telemetryData = tracker.endHover(video);
       console.log("Telemetry data returned:", telemetryData);
       if (telemetryData) {
-        sendYouTubeStyleTelemetry(userId, videoId, video, telemetryData);
+        sendYouTubeStyleTelemetry(videoId, video, telemetryData);
       }
       handleStop();
       tracker.reset();
     }
     return () => {
+      handleStop();
       console.log("🧹 useEffect cleanup");
-  
     };
   }, [isHoverPlay]);
+
   React.useEffect(() => {
     return () => {
       console.log("🧹 Component unmount cleanup");
@@ -378,6 +374,7 @@ function VideoCard({
       clearTimeout(timeoutRef.current);
     };
   }, []);
+
   React.useEffect(() => {
     const preview = previewRef.current;
     let playTimeout;
@@ -559,31 +556,29 @@ function VideoCard({
                       component="img"
                       image={thumbnail}
                     />
-                    <video
-                      loop
-                      playsInline
-                      ref={previewRef}
-                      muted
-                      onPlaying={() => setIsVideoPlaying(true)}
-                      id="video-player"
-                      key={previewUrl}
-                      className={`hover-interaction ${isHoverPlay ? "" : "hide"}`}
-                      crossOrigin="anonymous"
-                      style={{
-                        position: "absolute",
-                        width: "100%",
-                        height: "100%",
-                        left: 0,
-                        top: 0,
-                        objectFit: "cover",
-                        opacity: isHoverPlay && isVideoPlaying ? 1 : 0,
-                        transition: "opacity 0.3s ease",
-                      }}
-                    >
-                      {previewUrl && (
-                        <source src={previewUrl} type="video/mp4" />
-                      )}
-                    </video>
+                    {previewUrl && (
+                      <video
+                        loop
+                        ref={previewRef}
+                        muted
+                        onPlaying={() => setIsVideoPlaying(true)}
+                        id="video-player"
+                        key={previewUrl}
+                        src={isHoverPlay ? previewUrl : undefined}
+                        className={`hover-interaction ${isHoverPlay ? "" : "hide"}`}
+                        crossOrigin="anonymous"
+                        style={{
+                          position: "absolute",
+                          width: "100%",
+                          height: "100%",
+                          left: 0,
+                          top: 0,
+                          objectFit: "cover",
+                          opacity: isHoverPlay && isVideoPlaying ? 1 : 0,
+                          transition: "opacity 0.3s ease",
+                        }}
+                      ></video>
+                    )}
                   </LazyLoad>
                 ) : (
                   <LazyLoad once>
@@ -602,7 +597,6 @@ function VideoCard({
                     {videoUrl && (
                       <video
                         muted={isVolumeMuted}
-                        playsInline
                         onMouseMove={handleVideoMouseMove}
                         ref={hoverVideoRef}
                         onTimeUpdate={handleTimeUpdate}
@@ -613,7 +607,8 @@ function VideoCard({
                         key={videoId}
                         className="hover-interaction"
                         crossOrigin="anonymous"
-                        preload="auto"
+                        preload="none"
+                        src={isHoverPlay ? videoUrl : undefined}
                         style={{
                           position: "absolute",
                           width: "100%",
@@ -624,9 +619,7 @@ function VideoCard({
                           opacity: isHoverPlay && isVideoPlaying ? 1 : 0,
                           transition: "opacity 0.3s ease",
                         }}
-                      >
-                        <source src={videoUrl} type="video/mp4" />
-                      </video>
+                      ></video>
                     )}
                   </LazyLoad>
                 )}
@@ -934,33 +927,31 @@ function VideoCard({
                       draggable="false"
                       image={thumbnail}
                     />
-
-                    <video
-                      loop
-                      playsInline
-                      ref={previewRef}
-                      muted
-                      onPlaying={() => setIsVideoPlaying(true)}
-                      id="video-player"
-                      key={previewUrl}
-                      className={`hover-interaction ${isHoverPlay ? "" : "hide"}`}
-                      crossOrigin="anonymous"
-                      style={{
-                        position: "absolute",
-                        width: "100%",
-                        height: "100%",
-                        left: 0,
-                        top: 0,
-                        objectFit: "cover",
-                        borderRadius: "8px",
-                        opacity: isHoverPlay && isVideoPlaying ? 1 : 0,
-                        transition: "opacity 0.3s ease",
-                      }}
-                    >
-                      {previewUrl && (
-                        <source src={previewUrl} type="video/mp4" />
-                      )}
-                    </video>
+                    {previewUrl && (
+                      <video
+                        loop
+                        ref={previewRef}
+                        muted
+                        onPlaying={() => setIsVideoPlaying(true)}
+                        id="video-player"
+                        key={previewUrl}
+                        preload="none"
+                        className={`hover-interaction ${isHoverPlay ? "" : "hide"}`}
+                        crossOrigin="anonymous"
+                        src={isHoverPlay ? previewUrl : undefined}
+                        style={{
+                          position: "absolute",
+                          width: "100%",
+                          height: "100%",
+                          left: 0,
+                          top: 0,
+                          objectFit: "cover",
+                          borderRadius: "8px",
+                          opacity: isHoverPlay && isVideoPlaying ? 1 : 0,
+                          transition: "opacity 0.3s ease",
+                        }}
+                      ></video>
+                    )}
                   </LazyLoad>
 
                   <Box
@@ -1245,7 +1236,6 @@ function VideoCard({
                     {videoUrl && (
                       <video
                         muted={isVolumeMuted}
-                        playsInline
                         ref={hoverVideoRef}
                         onMouseMove={handleVideoMouseMove}
                         onTimeUpdate={handleTimeUpdate}
@@ -1256,7 +1246,8 @@ function VideoCard({
                         key={videoId}
                         className="hover-interaction"
                         crossOrigin="anonymous"
-                        preload="auto"
+                        preload="none"
+                        src={isHoverPlay ? videoUrl : undefined}
                         style={{
                           position: "absolute",
                           width: "100%",
@@ -1267,9 +1258,7 @@ function VideoCard({
                           opacity: isHoverPlay && isVideoPlaying ? 1 : 0,
                           transition: "opacity 0.3s ease",
                         }}
-                      >
-                        <source src={videoUrl} type="video/mp4" />
-                      </video>
+                      ></video>
                     )}
                   </LazyLoad>
                 </Link>
@@ -1297,7 +1286,7 @@ function VideoCard({
                 >
                   <Box
                     onClick={handleVolumeToggle}
-                    className={`volume-overlay ${isHoverPlay ? "" : "hide"}`}
+                    className={`volume-overlay ${isHoverPlay && isVideoPlaying ? "" : "hide"}`}
                     sx={{
                       display: "flex",
                       justifyContent: "center",
