@@ -181,10 +181,6 @@ function VideoCard({
     enabled: !!userId,
   });
 
-  let userResumeTime = userId
-    ? (userHistory?.data?.find((entry) => entry.video?._id === videoId)
-        ?.currentTime ?? 0)
-    : 0;
   const {
     isHoverPlay,
     setIsHoverPlay,
@@ -203,85 +199,6 @@ function VideoCard({
     }, 10000);
   };
 
-  const handleLoadedMetadata = () => {
-    const video = hoverVideoRef.current;
-    if (!video) return;
-    // const guestResumeTime = getSavedHoverTime(videoId);
-
-    // const isValidGuestResumeTime =
-    //   isFinite(guestResumeTime) &&
-    //   guestResumeTime > 0 &&
-    //   guestResumeTime < video.duration;
-
-    const isValidUserResumeTime =
-      isFinite(userResumeTime) &&
-      userResumeTime > 0 &&
-      userResumeTime < video.duration;
-  };
-  // React.useEffect(() => {
-  //   if (!videoReady || !home) return;
-
-  //   const video = hoverVideoRef.current;
-  //   if (!video) return;
-  //   const clearAllIntervals = () => {
-  //     clearInterval(check3SecIntervalRef.current);
-  //     clearInterval(historyIntervalRef.current);
-  //   };
-
-  //   const handlePlay = () => {
-  //     console.log("handleplay");
-  //     clearAllIntervals();
-  //     hasWatchedEnoughRef.current = false;
-  //     prevTimeRef.current = video.currentTime;
-
-  //     check3SecIntervalRef.current = setInterval(() => {
-  //       const timeWatched = video.currentTime - prevTimeRef.current;
-
-  //       if (timeWatched >= 3) {
-  //         hasWatchedEnoughRef.current = true;
-  //         clearInterval(check3SecIntervalRef.current);
-
-  //         // Start sending history
-  //         historyIntervalRef.current = setInterval(sendWatchHistory, 3000);
-  //       }
-  //     }, 1000);
-  //   };
-
-  //   const handlePause = () => {
-  //     clearAllIntervals();
-  //     prevTimeRef.current = video.currentTime;
-  //     hasWatchedEnoughRef.current = false;
-  //   };
-
-  //   const handleResume = () => {
-  //     clearInterval(historyIntervalRef.current);
-  //     if (hasWatchedEnoughRef.current) {
-  //       historyIntervalRef.current = setInterval(sendWatchHistory, 5000);
-  //     } else {
-  //       handlePlay(); // re-check from current point
-  //     }
-  //   };
-
-  //   video.addEventListener("loadedmetadata", handleLoadedMetadata);
-  //   video.addEventListener("play", handlePlay);
-  //   video.addEventListener("pause", handlePause);
-  //   video.addEventListener("ended", handlePause);
-  //   video.addEventListener("waiting", clearAllIntervals);
-  //   video.addEventListener("playing", handleResume);
-  //   video.addEventListener("seeked", sendWatchHistory);
-
-  //   return () => {
-  //     clearAllIntervals();
-  //     video.removeEventListener("loadedmetadata", handleLoadedMetadata);
-  //     video.removeEventListener("play", handlePlay);
-  //     video.removeEventListener("pause", handlePause);
-  //     video.removeEventListener("ended", handlePause);
-  //     video.removeEventListener("waiting", clearAllIntervals);
-  //     video.removeEventListener("playing", handleResume);
-  //     video.removeEventListener("seeked", sendWatchHistory);
-  //   };
-  // }, [videoReady, home, videoId]);
-
   React.useEffect(() => {
     const video = hoverVideoRef?.current;
     const tracker = hoverTrackerRef.current;
@@ -292,7 +209,7 @@ function VideoCard({
 
     console.log("🎯 Telemetry events setup complete for video:", videoId);
 
-    // Cleanup function
+
     return () => {
       console.log("🧹 Cleaning up telemetry events");
     };
@@ -301,18 +218,19 @@ function VideoCard({
   React.useEffect(() => {
     const video = hoverVideoRef?.current;
     const tracker = hoverTrackerRef.current;
-
     if (!video) return;
 
     const handlePlay = async () => {
       let refetchedTime = 0;
+      let videoDuration = 0;
       if (isAuthenticated) {
         try {
           const res = await refetchHistory();
           const refetchedVideo = res.data?.data?.find(
-            (video) => video.video._id === videoId
+            (video) => video.video?._id === videoId
           );
           refetchedTime = refetchedVideo?.currentTime || 0;
+          videoDuration = refetchedVideo?.duration || 0;
         } catch (error) {
           console.error("Error refetching video history:", error);
         }
@@ -321,17 +239,20 @@ function VideoCard({
       }
 
       const isValidResumeTime =
-        isFinite(refetchedTime) && refetchedTime < video.duration;
+        isFinite(refetchedTime) && refetchedTime < videoDuration;
 
       try {
         await video.play();
-        clearTimeout(timeoutRef.current);
-        if (isVideoPlaying) {
-          timeoutRef.current = setTimeout(() => {
-            video.classList.add("hide-cursor");
-          }, 2000);
-        }
         video.currentTime = isValidResumeTime ? refetchedTime : 0;
+
+        initializeTelemetryArrays();
+        startTelemetry(video, videoId, tracker);
+        tracker.startHover(video);
+        clearTimeout(timeoutRef.current);
+
+        timeoutRef.current = setTimeout(() => {
+          video.classList.add("hide-cursor");
+        }, 2000);
       } catch (err) {
         setIsVideoPlaying(false);
       }
@@ -345,9 +266,6 @@ function VideoCard({
 
     if (isHoverPlay && document.visibilityState === "visible") {
       handlePlay();
-      initializeTelemetryArrays();
-      startTelemetry(video, videoId, tracker);
-      tracker.startHover(video);
     } else if (tracker.isTracking) {
       const telemetryData = tracker.endHover(video);
       console.log("Telemetry data returned:", telemetryData);
@@ -402,10 +320,10 @@ function VideoCard({
 
   const handleVolumeToggle = () => {
     const tracker = hoverTrackerRef.current;
-
+    const fromTime = parseFloat(hoverVideoRef.current.currentTime.toFixed(3));
     setIsVolumeMuted((prev) => !prev);
     if (tracker && hoverVideoRef.current) {
-      tracker.handleVolumeToggle(hoverVideoRef.current);
+      tracker.handleMuteToggle(hoverVideoRef.current, fromTime);
     }
   };
 
@@ -443,16 +361,15 @@ function VideoCard({
       interactionRef.current.classList.remove("down");
       interactionRef.current.classList.add("animate");
     }
-  };
-  // Hover Video
+  }
 
   React.useEffect(() => {
     const video = hoverVideoRef.current;
     if (!video) return;
     if (isVolumeMuted) {
-      video.volume = 0;
+      video.muted = 1;
     } else {
-      video.volume = 1;
+      video.muted = 0;
     }
   }, [isVolumeMuted]);
 
@@ -490,18 +407,7 @@ function VideoCard({
       const value = (video.currentTime / video.duration) * 100;
       setProgress(value);
     }
-    // if (video.currentTime === video.duration) {
-    //   flushTelemetryQueue();
-    //   refetchHistory();
-    // }
 
-    // if (!telemetrySentRef.current && Math.floor(watchTime) >= 10) {
-    //   telemetrySentRef.current = true;
-    //   console.log("🎯 10 seconds passed, telemetry sending...");
-    //   const data = getCurrentVideoTelemetryData(userId, videoId, video);
-    //   sendTelemetry([data]);
-    //   return;
-    // }
   };
   return (
     <>
@@ -602,7 +508,6 @@ function VideoCard({
                         onTimeUpdate={handleTimeUpdate}
                         onPlaying={handleVideoPlaying}
                         onEnded={handleVideoEnd}
-                        onLoadedMetadata={handleLoadedMetadata}
                         id="video-player"
                         key={videoId}
                         className="hover-interaction"
@@ -717,7 +622,7 @@ function VideoCard({
               >
                 {formatDuration(
                   Math.min(
-                    hoverVideoRef?.current?.currentTime || 0,
+                    Math.max(0, hoverVideoRef?.current?.duration - hoverVideoRef?.current?.currentTime)  || 0,
                     hoverVideoRef?.current?.duration || 0
                   )
                 )}
@@ -1352,12 +1257,12 @@ function VideoCard({
                     fontSize="0.75rem"
                     lineHeight="0"
                   >
-                    {formatDuration(
-                      Math.min(
-                        hoverVideoRef?.current?.currentTime || 0,
-                        hoverVideoRef?.current?.duration || 0
-                      )
-                    )}
+                   {formatDuration(
+                  Math.min(
+                    Math.max(0, hoverVideoRef?.current?.duration - hoverVideoRef?.current?.currentTime)  || 0,
+                    hoverVideoRef?.current?.duration || 0
+                  )
+                )}
                   </Typography>
                 </Box>
                 {isHoverPlay && isVideoPlaying && (

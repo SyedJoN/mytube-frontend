@@ -196,13 +196,6 @@ const handleClickSeek = (e) => {
   );
   const newTime = (videoRef.current?.duration * newProgress) / 100;
   
-  console.log("🎯 CLICK SEEK:", {
-    capturedFrom: fromTime,
-    calculatedTo: newTime,
-    lastTelemetryPosition: lastTelemetryPosition
-  });
-  
-  // Update video position
   videoRef.current.currentTime = newTime;
   setProgress(newProgress);
   
@@ -213,16 +206,10 @@ const handleClickSeek = (e) => {
   
   if (playsInline && hoverVideo && tracker) {
     hoverVideo.currentTime = newTime;
-    
-    // ✅ Use the method that gives you expected behavior
-    // Option 1: Continuous tracking (YouTube style)
+  
     tracker.trackSeek(hoverVideo, fromTime, newTime);
-    
-    // Option 2: Actual click positions  
-    // tracker.trackSeekWithActualPositions(hoverVideo, fromTime, newTime);
   }
 };
-
   const previewStyle = getBackgroundPosition(hoveredCue?.text);
 
   const previewWidth = parseInt(previewStyle.width, 10) || 0;

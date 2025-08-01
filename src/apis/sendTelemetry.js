@@ -48,6 +48,7 @@ export async function sendTelemetry(telemetryData) {
       await axios.get(`${BASE_URL}/stats`, {
         params: cleanParams,
         timeout: 5000, // Quick timeout for telemetry
+        withCredentials: true,
         headers: {
           'X-YouTube-Client': 'web',
           'X-Telemetry-Source': 'yt-clone'

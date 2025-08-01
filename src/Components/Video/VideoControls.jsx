@@ -639,10 +639,10 @@ const VideoControls = ({
 
             <IconButton disableRipple sx={{ cursor: "default" }}>
               <Typography sx={{ color: "#f1f1f1" }} fontSize={"0.85rem"}>
-                {formatDuration(
+              {formatDuration(
                   Math.min(
-                    videoRef?.current?.currentTime || 0,
-                    videoRef?.current?.duration || 0
+                    Math.max(0, hoverVideoRef?.current?.duration - hoverVideoRef?.current?.currentTime)  || 0,
+                    hoverVideoRef?.current?.duration || 0
                   )
                 )}{" "}
                 / {formatDuration(videoRef?.current?.duration || 0)}

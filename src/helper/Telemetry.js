@@ -5,7 +5,7 @@ let stArray = [];
 let etArray = [];
 let volumeArray = [];
 let mutedArray = [];
-let lastTelemetryPosition = 0; 
+let lastTelemetryPosition = 0;
 
 export class HoverTelemetryTracker {
   constructor() {
@@ -19,142 +19,154 @@ export class HoverTelemetryTracker {
   startHover(video) {
     this.hoverStartTime = Date.now();
     this.segmentStartTime = video.currentTime;
+    this.currentSegmentStart = video.currentTime;
     this.isTracking = true;
     cpn = getNewCpn();
 
     lastTelemetryPosition = this.segmentStartTime;
-    console.log("🎬 Hover started - Initial position:", lastTelemetryPosition);
+    console.log(
+      "Hover started - Segment begins at:",
+      this.currentSegmentStart
+    );
   }
 
   endHover(video) {
     if (!this.isTracking || !this.hoverStartTime) {
-      console.log("❌ No active hover to end");
+      console.log("No active hover to end");
       return null;
-    }
-    console.log("⏹️ Hover ended");
-
-    if (this.telemetryTimer) {
-      this.telemetryTimer.stop();
-      this.telemetryTimer = null;
     }
 
     const videoCurrentTime = parseFloat(video.currentTime.toFixed(3));
+    this.closeCurrentSegment(videoCurrentTime, video);
 
+    const finalCmt = parseFloat(video.currentTime.toFixed(3));
     const telemetryData = {
-      cmt: videoCurrentTime,
-      st: lastTelemetryPosition, 
-      et: videoCurrentTime, 
+      cmt: finalCmt,
+      st: stArray.join(","),
+      et: etArray.join(","),
       debug: {
-        lastTelemetryPosition,
-        continuousSequence: true,
+        segments: stArray.length,
+        finalPosition: videoCurrentTime,
       },
     };
 
-    lastTelemetryPosition = videoCurrentTime;
-
-    console.log("📊 Hover telemetry calculated:", {
+    console.log("Hover telemetry - Segments tracked:", {
       st: telemetryData.st,
       et: telemetryData.et,
       cmt: telemetryData.cmt,
-      sequence: "continuous",
+      totalSegments: stArray.length,
     });
 
     this.reset();
     return telemetryData;
   }
 
-  handleVolumeToggle(video) {
-    const currentTime = parseFloat(video.currentTime.toFixed(3));
-    console.log("🔍 video.muted =", video.muted);
+  closeCurrentSegment(endTime, video) {
+    const segmentStart = parseFloat(this.currentSegmentStart.toFixed(3));
+    const segmentEnd = parseFloat(endTime.toFixed(3));
+
+      stArray.push(segmentStart);
+      etArray.push(segmentEnd);
+
+      console.log("close initial array pushed", {
+        st: segmentStart,
+        et: segmentEnd,
+      });
+      const isMuted = video.muted ? 1 : 0;
+      const volumeValue = Math.round(video.volume * 100);
+
+      volumeArray.push(volumeValue);
+      mutedArray.push(isMuted);
+
+      console.log("Segment closed:", {
+        from: segmentStart,
+        to: segmentEnd,
+        duration: (segmentEnd - segmentStart).toFixed(3) + "s",
+      });
+    
+  }
+  handleMuteToggle(video, fromTime) {
+    console.log("video.muted =", video.muted);
 
     if (video.muted || video.volume === 0) {
-      this.trackVolumeChange(video, 1.0);
-
-      console.log("🔊 Volume icon clicked - UNMUTE:", {
-        from: 0,
-        to: 100,
-        time: currentTime,
-      });
+      this.trackMuteStatusChange(video, 1, fromTime);
     } else {
-
-      this.previousVolume = Math.round(video.volume * 100); 
-      video.muted = true;
-      this.trackVolumeChange(video, 0);
-
-      console.log("🔇 Volume icon clicked - MUTE:", {
-        from: this.previousVolume,
-        to: 0,
-        time: currentTime,
-      });
+      this.trackMuteStatusChange(video, 0, fromTime);
     }
   }
 
   trackSeek(video, fromTime, toTime) {
-    const seekFrom = parseFloat(lastTelemetryPosition.toFixed(3)); 
+    const seekFrom = parseFloat(fromTime.toFixed(3));
     const seekTo = parseFloat(toTime.toFixed(3));
-  const isMuted = video.muted || video.volume === 0 ? 1 : 0;
-  const volumeValue = isMuted ? 0 : 100;
 
-    console.log("🔍 SEEK DEBUG:", {
-      providedFromTime: fromTime,
-      lastTelemetryPosition: lastTelemetryPosition,
-      usingAsFrom: seekFrom,
-      seekTo: seekTo,
+    console.log("SEEK detected:", {
+      from: seekFrom,
+      to: seekTo,
+      currentSegmentStart: this.currentSegmentStart,
+      direction: seekTo > seekFrom ? "FORWARD" : "BACKWARD",
     });
 
-    stArray.push(seekFrom);
-    etArray.push(seekTo);
-    volumeArray.push(volumeValue);
-    mutedArray.push(isMuted);
+    const segmentStart = parseFloat(this.currentSegmentStart.toFixed(3));
+    const segmentEnd = seekFrom;
 
-    if (this.telemetryTimer) {
-      this.telemetryTimer.markInteraction();
+    if (segmentEnd > segmentStart) {
+      stArray.push(segmentStart);
+      etArray.push(segmentEnd);
+      console.log("track array pushed", { st: segmentStart, et: segmentEnd });
+      const isMuted = video.muted || video.volume === 0 ? 1 : 0;
+      const volumeValue = Math.round(video.volume * 100);
+
+      volumeArray.push(volumeValue);
+      mutedArray.push(isMuted);
+
+      console.log("Segment closed by seek:", {
+        from: segmentStart,
+        to: segmentEnd,
+        duration: (segmentEnd - segmentStart).toFixed(3) + "s",
+      });
     }
 
+    
+    this.currentSegmentStart = seekTo;
     lastTelemetryPosition = seekTo;
 
-    console.log("⏭️ Seek tracked - Added to arrays:", {
-      seekDirection: seekTo > seekFrom ? "FORWARD" : "BACKWARD",
-      added_st: seekFrom,
-      added_et: seekTo,
-      jump: `${seekFrom} → ${seekTo}`,
-      current_stArray: stArray.join(","),
-      current_etArray: etArray.join(","),
-      updatedLastPosition: lastTelemetryPosition,
-    });
-  }
-
-  trackVolumeChange(video, newVolume) {
-    const currentTime = parseFloat(video.currentTime.toFixed(3));
-    const isMuted = newVolume;
-    const volumeValue = isMuted ? 0 : 100;
-
-    stArray.push(currentTime);
-    etArray.push(currentTime);
-    volumeArray.push(volumeValue);
-    mutedArray.push(isMuted);
-
-    lastTelemetryPosition = currentTime;
-
     if (this.telemetryTimer) {
       this.telemetryTimer.markInteraction();
     }
 
-    console.log("🔊 Volume change tracked - Added to arrays:", {
-      added_st: currentTime,
-      added_et: currentTime,
-      added_volume: volumeValue,
+    console.log("New segment started at:", seekTo, {
       current_stArray: stArray.join(","),
       current_etArray: etArray.join(","),
-      current_volumeArray: volumeArray.join(","),
-      current_mutedArray: mutedArray.join(","),
-      updatedLastPosition: lastTelemetryPosition,
     });
   }
+
+trackMuteStatusChange(video, muteStatus, fromTime) {
+  const currentTime = parseFloat(video.currentTime.toFixed(3));
+  
+  this.closeCurrentSegment(fromTime, video);
+  
+  this.currentSegmentStart = currentTime;
+  
+  const volumeValue = Math.round(video.volume * 100);
+  
+  console.log("Volume change creates segment break:", {
+    closedAt: fromTime,
+    newSegmentFrom: currentTime,
+    volume: volumeValue,
+    muted: muteStatus
+  });
+  
+  lastTelemetryPosition = currentTime;
+  
+  if (this.telemetryTimer) {
+    this.telemetryTimer.markInteraction();
+  }
+}
 
   reset() {
     this.hoverStartTime = null;
     this.segmentStartTime = 0;
+    this.currentSegmentStart = 0;
     this.isTracking = false;
     this.previousVolume = 100;
 
@@ -168,9 +180,10 @@ export class HoverTelemetryTracker {
 }
 
 class YouTubeTelemetryTimer {
-  constructor(video, videoId) {
+  constructor(video, videoId, tracker) {
     this.video = video;
     this.videoId = videoId;
+    this.tracker = tracker; 
     this.timer = null;
     this.lastInteractionTime = 0;
     this.isBackgroundTab = false;
@@ -216,7 +229,7 @@ class YouTubeTelemetryTimer {
     document.addEventListener("visibilitychange", () => {
       this.isBackgroundTab = document.hidden;
       console.log(
-        `📱 Tab ${this.isBackgroundTab ? "hidden" : "visible"} - adjusting telemetry`
+        `Tab ${this.isBackgroundTab ? "hidden" : "visible"} - adjusting telemetry`
       );
       this.rescheduleTimer();
     });
@@ -224,19 +237,19 @@ class YouTubeTelemetryTimer {
 
   markInteraction() {
     this.lastInteractionTime = Date.now();
-    console.log("👆 User interaction - scheduling faster telemetry");
+    console.log("User interaction - scheduling faster telemetry");
     this.rescheduleTimer();
   }
 
   start() {
-    console.log("🚀 Starting YouTube-style telemetry timer");
+    console.log("Starting YouTube-style telemetry timer");
     this.isStopped = false;
     this.scheduleNext();
   }
 
   scheduleNext() {
     if (this.isStopped) {
-      console.log("⏹️ Timer is stopped, not scheduling next heartbeat");
+      console.log("Timer is stopped, not scheduling next heartbeat");
       return;
     }
 
@@ -247,12 +260,12 @@ class YouTubeTelemetryTimer {
     this.currentInterval = this.calculateNextInterval();
 
     console.log(
-      `⏰ Next telemetry in ${this.currentInterval / 1000}s (${this.getReasonForInterval()})`
+      `Next telemetry in ${this.currentInterval / 1000}s (${this.getReasonForInterval()})`
     );
 
     this.timer = setTimeout(() => {
       if (this.isStopped) {
-        console.log("⏹️ Timer stopped during timeout, skipping heartbeat");
+        console.log("Timer stopped during timeout, skipping heartbeat");
         return;
       }
 
@@ -276,15 +289,45 @@ class YouTubeTelemetryTimer {
     const isMuted = this.video.muted || this.video.volume === 0 ? 1 : 0;
     const duration = parseFloat(this.video.duration.toFixed(3));
 
+  
+    if (this.tracker && this.tracker.isTracking) {
+      console.log(
+        "Heartbeat during hover - closing segment at:",
+        currentTime
+      );
+
+    
+      const segmentStart = parseFloat(
+        this.tracker.currentSegmentStart.toFixed(3)
+      );
+      const segmentEnd = currentTime;
+
+      if (segmentEnd > segmentStart) {
+        stArray.push(segmentStart);
+        etArray.push(segmentEnd);
+
+        const volumeValue = Math.round(this.video.volume * 100);
+
+        volumeArray.push(volumeValue);
+        mutedArray.push(isMuted);
+
+        console.log("Heartbeat segment closed:", {
+          from: segmentStart,
+          to: segmentEnd,
+          duration: (segmentEnd - segmentStart).toFixed(3) + "s",
+        });
+      }
+
+    
+      this.tracker.currentSegmentStart = currentTime;
+    }
+
     const telemetryData = {
       ns: "yt",
       el: "home",
       docid: this.videoId,
       cmt: currentTime,
-      st:
-        stArray.length > 0
-          ? stArray.join(",")
-          : lastTelemetryPosition.toFixed(3),
+      st: stArray.length > 0 ? stArray.join(",") : currentTime.toFixed(3),
       et: etArray.length > 0 ? etArray.join(",") : currentTime.toFixed(3),
       volume:
         volumeArray.length > 0
@@ -300,17 +343,18 @@ class YouTubeTelemetryTimer {
       source: "home",
     };
 
-    console.log(`💓 Heartbeat telemetry (${this.getReasonForInterval()}):`, {
+    console.log(`Heartbeat telemetry (${this.getReasonForInterval()}):`, {
       st: telemetryData.st,
       et: telemetryData.et,
       cmt: telemetryData.cmt,
-      sequence: `${lastTelemetryPosition} → ${currentTime}`,
+      segments: stArray.length,
     });
 
     sendTelemetry([telemetryData]);
 
     lastTelemetryPosition = currentTime;
 
+   
     stArray = [];
     etArray = [];
     volumeArray = [];
@@ -322,7 +366,7 @@ class YouTubeTelemetryTimer {
   }
 
   stop() {
-    console.log("⏹️ Stopping telemetry timer");
+    console.log("Stopping telemetry timer");
     this.isStopped = true;
 
     if (this.timer) {
@@ -333,17 +377,17 @@ class YouTubeTelemetryTimer {
 }
 
 export function startTelemetry(video, videoId, tracker) {
-  console.log("🎬 Starting telemetry for video:", videoId);
+  console.log("Starting telemetry for video:", videoId);
   initializeTelemetryArrays();
 
-  const timer = new YouTubeTelemetryTimer(video, videoId);
+ 
+  const timer = new YouTubeTelemetryTimer(video, videoId, tracker);
   tracker.telemetryTimer = timer;
   setupVideoInteractionListeners(video, timer);
   timer.start();
 
   return timer;
 }
-
 function setupVideoInteractionListeners(video, timer) {
   const markInteraction = () => timer.markInteraction();
 
@@ -354,34 +398,21 @@ function setupVideoInteractionListeners(video, timer) {
 }
 
 export function sendYouTubeStyleTelemetry(videoId, video, hoverData) {
-  const st = parseFloat(hoverData.st.toFixed(3));
-  const et = parseFloat(hoverData.et.toFixed(3));
+  const stValues = hoverData.st || "0"; 
+  const etValues = hoverData.et || "0"; 
   const cmt = parseFloat(hoverData.cmt.toFixed(3));
   const isMuted = video.muted || video.volume === 0 ? 1 : 0;
-  const volumeValue = isMuted ? 0 : 100;
+  const volumeValue = Math.round(video.volume * 100);
+
   const duration = parseFloat(video.duration.toFixed(3));
-
-  stArray.push(st);
-  etArray.push(et);
-  volumeArray.push(volumeValue);
-  mutedArray.push(isMuted);
-
-  console.log("📥 Final telemetry with correct sequence:", {
-    st: stArray.join(","),
-    et: etArray.join(","),
-    volume: volumeArray.join(","),
-    cmt: cmt,
-    muted: mutedArray.join(","),
-    sequenceType: "hover-end",
-  });
 
   const telemetryPayload = {
     ns: "yt",
     el: "home",
     docid: videoId,
     cmt,
-    st: stArray.length > 0 ? stArray.join(",") : st,
-    et: etArray.length > 0 ? etArray.join(",") : et,
+    st: stValues,
+    et: etValues, 
     volume: volumeArray.length > 0 ? volumeArray.join(",") : volumeValue,
     state: video.paused ? "paused" : "playing",
     muted: mutedArray.length > 0 ? mutedArray.join(",") : isMuted,
@@ -393,6 +424,7 @@ export function sendYouTubeStyleTelemetry(videoId, video, hoverData) {
 
   sendTelemetry([telemetryPayload]);
 
+  
   stArray = [];
   etArray = [];
   volumeArray = [];
@@ -408,15 +440,15 @@ export function sendYouTubeStyleTelemetry(videoId, video, hoverData) {
       cmt: cmt,
       final: 1,
     };
-    console.log("📤 Sending final telemetry:", finalPayload);
+    console.log("Sending final telemetry:", finalPayload);
     sendTelemetry([finalPayload]);
   }, 50);
 }
 export function getNewCpn(length = 12) {
-    const array = new Uint8Array(length);
+  const array = new Uint8Array(length);
   crypto.getRandomValues(array);
   return btoa(String.fromCharCode(...array))
-    .replace(/[+/=]/g, '')
+    .replace(/[+/=]/g, "")
     .substring(0, length);
 }
 
@@ -438,28 +470,4 @@ export function initializeTelemetryArrays() {
 
 export function setupVideoTelemetryEvents(video, tracker) {
   let seekFromTime = null;
-
-  video.addEventListener("seeking", () => {
-    seekFromTime = video.currentTime;
-    console.log("🎯 Seeking started from:", seekFromTime);
-  });
-
-  video.addEventListener("seeked", () => {
-    if (seekFromTime !== null) {
-      const seekToTime = video.currentTime;
-
-      console.log("🎯 Seek completed:", {
-        from: seekFromTime,
-        to: seekToTime,
-        direction: seekToTime > seekFromTime ? "forward" : "backward",
-      });
-
-      tracker.trackSeek(video, seekFromTime, seekToTime);
-
-      console.log("⏭️ Seek added to arrays, telemetry will send on heartbeat");
-      seekFromTime = null;
-    }
-  });
-
-
 }
