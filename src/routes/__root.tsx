@@ -6,9 +6,9 @@ import React, {
   useCallback,
 } from "react";
 import { createRootRoute, Outlet, useLocation } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Box, CssBaseline, useMediaQuery, useTheme } from "@mui/material";
-import { getCurrentUser } from "../apis/userFn";
+import { getCurrentUser, refreshToken } from "../apis/userFn";
 import throttle from "lodash/throttle";
 
 import Header from "../Components/Header/Header";
@@ -19,6 +19,7 @@ import {
   UserContext,
   UserInteractionContext,
 } from "../Contexts/RootContexts";
+import { getCurrentUserWithAutoRefresh } from "../helper/getCurrentUserWithAutoRefresh";
 
 const NotFoundComponent = () => (
   <Box sx={{ textAlign: "center", mt: 5 }}>
@@ -88,11 +89,13 @@ function RouteComponent() {
   const theme = useTheme();
   const isLaptop = useMediaQuery(theme.breakpoints.down("lg"));
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
+  const queryClient = useQueryClient();
+  const channel = new BroadcastChannel("auth_channel");
 
   const shouldBeOpen = home || search || userProfile;
   const [open, setOpen] = useState(false);
   const [isUserInteracted, setIsUserInteracted] = useState(false);
-
+  const [isAuthenticated, setAuthenticated] = useState(false);
 
   useEffect(() => {
     requestAnimationFrame(() => setOpen(shouldBeOpen));
@@ -100,14 +103,75 @@ function RouteComponent() {
 
   useBodyScrollLock(open, isLaptop, watch);
 
-  const { data } = useQuery({
+  const [data, setData] = useState<any>(null);
+  const { data: queryData, refetch } = useQuery({
     queryKey: ["user"],
     queryFn: getCurrentUser,
+    refetchOnWindowFocus: false,
+    retry: false,
   });
 
+  useEffect(()=> {
+    console.log(data)
+  }, [data])
+  
+  useEffect(() => {
+    if (queryData !== undefined) {
+      setData(queryData);
+    }
+  }, [queryData]);
+
+  useEffect(() => {
+    const hasLoginFlag = document.cookie.includes("login_flag=");
+    setAuthenticated(hasLoginFlag);
+    if (hasLoginFlag) {
+      refetch();
+    }
+  }, [refetch]);
+
+  useEffect(() => {
+    const channel = new BroadcastChannel("auth_channel");
+
+    channel.onmessage = (event) => {
+      if (event.data.type === "LOGIN") {
+        setAuthenticated(true)
+        refetch();
+      }
+      if (event.data.type === "LOGOUT") {
+        setData(null);
+        queryClient.setQueryData(["user"], null);
+        setAuthenticated(false)
+        refetch();
+      }
+    };
+
+    return () => {
+      channel.close();
+    };
+  }, [refetch]);
+
+   const silentRefresh = async () => {
+    try {
+      await refreshToken();
+      const userData = await getCurrentUser();
+      setData(userData);
+    } catch (e) {
+      channel.postMessage({ type: "LOGOUT" });
+
+    }
+  };
+   useEffect(() => {
+    if (!isAuthenticated) return;
+  
+    const interval = setInterval(() => {
+      silentRefresh();
+    }, 15 * 60 * 1000); 
+
+    return () => clearInterval(interval);
+  }, [silentRefresh, isAuthenticated]);
 
   const drawerValue = useMemo(() => ({ open, setOpen }), [open]);
-  const userValue = useMemo(() => data || null, [data]);
+  const userValue = useMemo(() => ({ data, setData }), [data]);
   const userInteractionValue = useMemo(
     () => ({ isUserInteracted, setIsUserInteracted }),
     [isUserInteracted]

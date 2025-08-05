@@ -47,11 +47,9 @@ import {
   HoverTelemetryTracker,
   initializeTelemetryArrays,
   sendYouTubeStyleTelemetry,
-  setupVideoTelemetryEvents,
   startTelemetry,
 } from "../../helper/Telemetry";
 import { getWatchHistory } from "../../apis/userFn";
-import { sendTelemetry } from "../../apis/sendTelemetry";
 
 const tooltipStyles = {
   whiteSpace: "nowrap",
@@ -111,6 +109,7 @@ function VideoCard({
   videoId,
   owner,
   thumbnail,
+  isSubscribedTo,
   previewUrl,
   videoUrl,
   vttUrl,
@@ -147,20 +146,20 @@ function VideoCard({
   const userContext = React.useContext(UserContext);
   const { data: dataContext } = userContext ?? {};
   const isAuthenticated = dataContext || null;
-  const userId = dataContext?._id || null;
+  const userId = dataContext?.data?._id || null;
   const { setIsUserInteracted } = context ?? {};
   const hoverVideoRef = React.useRef(null);
   const previewRef = React.useRef(null);
   const theme = useTheme();
   const imgRef = React.useRef(null);
   const hasWatchedEnoughRef = React.useRef(false);
-  const check3SecIntervalRef = React.useRef(null);
-  const historyIntervalRef = React.useRef(null);
+  const [fetchedVideo, setFetchedVideo] = React.useState(0);
   const [bgColor, setBgColor] = React.useState("rgba(0,0,0,0.6)");
   const [bufferedVal, setBufferedVal] = React.useState(0);
   const [viewVideo, setViewVideo] = React.useState(false);
   const [progress, setProgress] = React.useState(0);
   const [isVolumeMuted, setIsVolumeMuted] = React.useState(true);
+  const [isSubscribed, setIsSubscribed] = React.useState(null);
 
   const fac = new FastAverageColor();
   const colors = [red, blue, green, purple, orange, deepOrange, pink];
@@ -168,15 +167,11 @@ function VideoCard({
     return video._id;
   });
   const searchParams = React.useMemo(() => ({ v: videoId }), [videoId]);
-
   const {
-    data: userHistory,
-    isHistoryLoading,
-    isHistoryError,
-    historyError,
     refetch: refetchHistory,
   } = useQuery({
     queryKey: ["userHistory"],
+    refetchOnWindowFocus: false,
     queryFn: getWatchHistory,
     enabled: !!userId,
   });
@@ -200,61 +195,64 @@ function VideoCard({
   };
 
   React.useEffect(() => {
-    const video = hoverVideoRef?.current;
-    const tracker = hoverTrackerRef.current;
-
-    if (!video || !tracker) return;
-
-    setupVideoTelemetryEvents(video, tracker, videoId);
-
-    console.log("🎯 Telemetry events setup complete for video:", videoId);
-
-
-    return () => {
-      console.log("🧹 Cleaning up telemetry events");
-    };
-  }, [videoId, userId]);
+    const user = refetchHistory();
+    user.then((data) => {
+      const fetchedVideo = data?.data?.data?.find(
+        (video) => video?.video?._id === videoId
+      );
+      const refetchedTime = fetchedVideo?.currentTime || 0;
+      const videoDuration = fetchedVideo?.duration || 0;
+      setFetchedVideo(refetchedTime / videoDuration);
+    });
+  }, [fetchedVideo]);
 
   React.useEffect(() => {
     const video = hoverVideoRef?.current;
     const tracker = hoverTrackerRef.current;
-    if (!video) return;
+    if (!video || !tracker) return;
 
     const handlePlay = async () => {
       let refetchedTime = 0;
       let videoDuration = 0;
+
       if (isAuthenticated) {
         try {
           const res = await refetchHistory();
-          const refetchedVideo = res.data?.data?.find(
-            (video) => video.video?._id === videoId
+          const refetchedVideo = res?.data?.data?.find(
+            (video) => video?.video?._id === videoId
           );
           refetchedTime = refetchedVideo?.currentTime || 0;
           videoDuration = refetchedVideo?.duration || 0;
+
+          const isValidResumeTime =
+            isFinite(refetchedTime) && refetchedTime < videoDuration;
+          video.currentTime = isValidResumeTime ? refetchedTime : 0;
         } catch (error) {
           console.error("Error refetching video history:", error);
         }
-      } else {
-        // refetchedTime = getSavedHoverTime(videoId);
       }
-
-      const isValidResumeTime =
-        isFinite(refetchedTime) && refetchedTime < videoDuration;
 
       try {
         await video.play();
-        video.currentTime = isValidResumeTime ? refetchedTime : 0;
+        if (tracker?.telemetryTimer) {
+          tracker.telemetryTimer.stop();
+          tracker.telemetryTimer = null;
+        }
 
         initializeTelemetryArrays();
         startTelemetry(video, videoId, tracker);
-        tracker.startHover(video);
-        clearTimeout(timeoutRef.current);
+        tracker.startHover(video, refetchedTime);
 
+        clearTimeout(timeoutRef.current);
         timeoutRef.current = setTimeout(() => {
           video.classList.add("hide-cursor");
         }, 2000);
       } catch (err) {
         setIsVideoPlaying(false);
+        if (tracker?.telemetryTimer) {
+          tracker.telemetryTimer.stop();
+          tracker.telemetryTimer = null;
+        }
       }
     };
 
@@ -262,36 +260,28 @@ function VideoCard({
       clearTimeout(timeoutRef.current);
       video.pause();
       video.classList.remove("hide-cursor");
+      const telemetryData = tracker.endHover(video, isSubscribedTo);
+      console.log("isSubscribedTo", isSubscribedTo)
+      console.log("Telemetry data returned:", telemetryData);
+
+      if (telemetryData) {
+        sendYouTubeStyleTelemetry(videoId, video, telemetryData);
+      }
     };
 
     if (isHoverPlay && document.visibilityState === "visible") {
       handlePlay();
-    } else if (tracker.isTracking) {
-      const telemetryData = tracker.endHover(video);
-      console.log("Telemetry data returned:", telemetryData);
-      if (telemetryData) {
-        sendYouTubeStyleTelemetry(videoId, video, telemetryData);
-      }
+    } else {
       handleStop();
-      tracker.reset();
     }
+
     return () => {
       handleStop();
+      tracker.reset();
+      setProgress(0);
       console.log("🧹 useEffect cleanup");
     };
   }, [isHoverPlay]);
-
-  React.useEffect(() => {
-    return () => {
-      console.log("🧹 Component unmount cleanup");
-      const tracker = hoverTrackerRef.current;
-      if (tracker?.telemetryTimer) {
-        tracker.telemetryTimer.stop();
-      }
-      tracker?.reset();
-      clearTimeout(timeoutRef.current);
-    };
-  }, []);
 
   React.useEffect(() => {
     const preview = previewRef.current;
@@ -361,7 +351,7 @@ function VideoCard({
       interactionRef.current.classList.remove("down");
       interactionRef.current.classList.add("animate");
     }
-  }
+  };
 
   React.useEffect(() => {
     const video = hoverVideoRef.current;
@@ -380,18 +370,19 @@ function VideoCard({
     const video = event.target;
     setIsHoverPlay(false);
 
-    // setTimeout(() => {
-    //   setIsHoverPlay(true);
-    // }, 600);
+    video.removeEventListener("mousemove", handleMouseMoveOnce);
+    video.addEventListener("mousemove", handleMouseMoveOnce);
+  };
+
+  const handleMouseMoveOnce = (event) => {
+    setIsHoverPlay(true);
+    event.target.removeEventListener("mousemove", handleMouseMoveOnce);
   };
 
   const handleVideoMouseMove = (e) => {
     const video = e.target;
     if (video.classList.contains("hide-cursor")) {
       video.classList.remove("hide-cursor");
-    }
-    if (!isHoverPlay) {
-      setIsHoverPlay(true);
     }
     clearTimeout(timeoutRef.current);
     if (isVideoPlaying) {
@@ -407,7 +398,6 @@ function VideoCard({
       const value = (video.currentTime / video.duration) * 100;
       setProgress(value);
     }
-
   };
   return (
     <>
@@ -425,7 +415,6 @@ function VideoCard({
             padding: 0,
             cursor: "pointer",
             overflow: "hidden",
-            borderRadius: isHoverPlay && isVideoPlaying ? "0" : "10px",
             boxShadow: "none",
             width: "100%",
             display: "block",
@@ -451,12 +440,14 @@ function VideoCard({
                   <LazyLoad height={200} once offset={100}>
                     <CardMedia
                       sx={{
-                        borderRadius: "10px",
                         flexGrow: "1!important",
                         width: "100%",
                         height: "100%",
                         objectFit: "cover",
                         aspectRatio: "16/9",
+                        borderRadius:
+                          isHoverPlay && isVideoPlaying ? "0" : "15px",
+                        transition: "all 0.3s ease-in-out",
                       }}
                       loading="lazy"
                       component="img"
@@ -487,7 +478,14 @@ function VideoCard({
                     )}
                   </LazyLoad>
                 ) : (
-                  <LazyLoad once>
+                  <LazyLoad
+                    once
+                    style={{
+                      position: "relative",
+                      borderRadius: "15px",
+                      overflow: "hidden",
+                    }}
+                  >
                     <CardMedia
                       sx={{
                         flexGrow: "1!important",
@@ -495,6 +493,9 @@ function VideoCard({
                         height: "100%",
                         objectFit: "cover",
                         aspectRatio: "16/9",
+                        borderRadius:
+                          isHoverPlay && isVideoPlaying ? "0" : "15px",
+                        transition: "all 0.3s ease-in-out",
                       }}
                       loading="lazy"
                       component="img"
@@ -506,6 +507,10 @@ function VideoCard({
                         onMouseMove={handleVideoMouseMove}
                         ref={hoverVideoRef}
                         onTimeUpdate={handleTimeUpdate}
+                        onPause={() => {
+                          setIsVideoPlaying(false);
+                          setIsHoverPlay(false);
+                        }}
                         onPlaying={handleVideoPlaying}
                         onEnded={handleVideoEnd}
                         id="video-player"
@@ -526,6 +531,28 @@ function VideoCard({
                         }}
                       ></video>
                     )}
+                    <Box
+                      className="progress-list"
+                      sx={{
+                        position: "relative",
+                        background: "rgb(51,51,51)",
+                        transition: "transform .1s cubic-bezier(0.4, 0, 1, 1)",
+                      }}
+                    >
+                      <div
+                        className="play-progress"
+                        style={{
+                          position: "absolute",
+                          bottom: 0,
+                          left: 0,
+                          width: "100%",
+                          height: "3px",
+                          transform: `scaleX(${fetchedVideo})`,
+                          transformOrigin: "0 0",
+                          zIndex: 3,
+                        }}
+                      ></div>
+                    </Box>
                   </LazyLoad>
                 )}
               </Box>
@@ -622,7 +649,11 @@ function VideoCard({
               >
                 {formatDuration(
                   Math.min(
-                    Math.max(0, hoverVideoRef?.current?.duration - hoverVideoRef?.current?.currentTime)  || 0,
+                    Math.max(
+                      0,
+                      hoverVideoRef?.current?.duration -
+                        hoverVideoRef?.current?.currentTime
+                    ) || 0,
                     hoverVideoRef?.current?.duration || 0
                   )
                 )}
@@ -1142,6 +1173,10 @@ function VideoCard({
                       <video
                         muted={isVolumeMuted}
                         ref={hoverVideoRef}
+                        onPause={() => {
+                          setIsVideoPlaying(false);
+                          setIsHoverPlay(false);
+                        }}
                         onMouseMove={handleVideoMouseMove}
                         onTimeUpdate={handleTimeUpdate}
                         onPlaying={handleVideoPlaying}
@@ -1257,12 +1292,16 @@ function VideoCard({
                     fontSize="0.75rem"
                     lineHeight="0"
                   >
-                   {formatDuration(
-                  Math.min(
-                    Math.max(0, hoverVideoRef?.current?.duration - hoverVideoRef?.current?.currentTime)  || 0,
-                    hoverVideoRef?.current?.duration || 0
-                  )
-                )}
+                    {formatDuration(
+                      Math.min(
+                        Math.max(
+                          0,
+                          hoverVideoRef?.current?.duration -
+                            hoverVideoRef?.current?.currentTime
+                        ) || 0,
+                        hoverVideoRef?.current?.duration || 0
+                      )
+                    )}
                   </Typography>
                 </Box>
                 {isHoverPlay && isVideoPlaying && (

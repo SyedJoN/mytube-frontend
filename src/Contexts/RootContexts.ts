@@ -12,6 +12,7 @@ type UserInteractionContextType = {
 
 type UserContextType = {
   data?: any;
+  setData: React.Dispatch<React.SetStateAction<any>>;
 };
 
 

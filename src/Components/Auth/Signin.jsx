@@ -19,6 +19,7 @@ function Signin(props) {
   const [coverImage, setCoverImage] = useState(null);
   const [firstPage, setFirstPage] = useState(false);
   const queryClient = useQueryClient();
+  const channel = new BroadcastChannel("auth_channel");
 
   const schema = yup.object({
     email: yup.string().email("Invalid email").required("Email is required"),
@@ -33,7 +34,8 @@ function Signin(props) {
     mutationFn: loginUser,
     onSuccess: () => {
       onClose();
-      queryClient.invalidateQueries(["userData"]);
+      queryClient.invalidateQueries(["user"]);
+      channel.postMessage({ type: "LOGIN" });
     },
     onError: (error) => {
       console.error(
@@ -61,7 +63,7 @@ function Signin(props) {
   };
   return (
     <Dialog
-    disableScrollLock
+      disableScrollLock
       maxWidth="sm"
       sx={{
         background: "rgba(38, 37, 37, 0.5)",

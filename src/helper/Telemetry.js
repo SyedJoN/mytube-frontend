@@ -5,7 +5,8 @@ let stArray = [];
 let etArray = [];
 let volumeArray = [];
 let mutedArray = [];
-let lastTelemetryPosition = 0;
+
+const engagementThreshold = 5000;
 
 export class HoverTelemetryTracker {
   constructor() {
@@ -14,23 +15,97 @@ export class HoverTelemetryTracker {
     this.isTracking = false;
     this.telemetryTimer = null;
     this.previousVolume = 100;
+    this.totalCommittedTime = 0;
+    this.sessionCommittedTime = 0;
+    this.isEngaged = false;
+    this.lastMouseActivity = 0;
+    this.engagementStartTime = null;
+    this.video = null;
+    this.engagementCheckTimer = null;
   }
 
-  startHover(video) {
+  setPreviousEngagement(refetchedTime) {
+    this.totalCommittedTime = refetchedTime || 0;
+    this.hasHistory = refetchedTime > 0;
+  }
+
+  startHover(video, refetchedTime = 0) {
+    this.video = video;
     this.hoverStartTime = Date.now();
     this.segmentStartTime = video.currentTime;
     this.currentSegmentStart = video.currentTime;
     this.isTracking = true;
+    this.sessionCommittedTime = 0;
+    this.hasHistory = false;
+    this.isEngaged = false;
+    this.engagementStartTime = null;
+
     cpn = getNewCpn();
 
-    lastTelemetryPosition = this.segmentStartTime;
-    console.log(
-      "Hover started - Segment begins at:",
-      this.currentSegmentStart
-    );
+    this.setPreviousEngagement(refetchedTime);
+
+    console.log("Starting hover")
+    if (this.hasHistory) {
+      this.isEngaged = true;
+      this.engagementStartTime = Date.now();
+    } else {
+      this.startEngagementTimer();
+    }
   }
 
-  endHover(video) {
+  startEngagementTimer() {
+    if (this.engagementCheckTimer) {
+      clearTimeout(this.engagementCheckTimer);
+    }
+
+    this.engagementCheckTimer = setTimeout(() => {
+      if (this.isTracking && !this.isEngaged && !this.hasHistory) {
+        this.isEngaged = true;
+        this.engagementStartTime = Date.now();
+      }
+    }, engagementThreshold);
+  }
+
+  onUserInteraction() {
+    this.lastMouseActivity = Date.now();
+
+    if (this.hasHistory && !this.isEngaged) {
+      this.isEngaged = true;
+      this.engagementStartTime = Date.now();
+    }
+  }
+
+  calculateCommittedTime(video) {
+    let sessionCommitted = 0;
+
+    if (etArray[etArray.length - 1] < etArray[0])
+      return etArray[etArray.length - 1];
+
+    if (this.hasHistory) {
+      const videoPlayedDuration = video.currentTime - this.segmentStartTime;
+      sessionCommitted = Math.max(0, videoPlayedDuration);
+      this.sessionCommittedTime = sessionCommitted;
+    } else if (this.isEngaged) {
+      const totalVideoWatched = video.currentTime - this.segmentStartTime;
+      sessionCommitted = Math.max(0, totalVideoWatched);
+      this.sessionCommittedTime = sessionCommitted;
+    }
+
+    const totalCommitted = this.totalCommittedTime + this.sessionCommittedTime;
+    console.log("Total CMT calculation:", {
+      hasHistory: this.hasHistory,
+      previousCMT: this.totalCommittedTime,
+      sessionCMT: this.sessionCommittedTime,
+      totalCMT: totalCommitted,
+      isEngaged: this.isEngaged,
+    });
+
+    return totalCommitted;
+  }
+
+  endHover(video, isSubscribed) {
+    console.log("ending hover")
+
     if (!this.isTracking || !this.hoverStartTime) {
       console.log("No active hover to end");
       return null;
@@ -39,25 +114,37 @@ export class HoverTelemetryTracker {
     const videoCurrentTime = parseFloat(video.currentTime.toFixed(3));
     this.closeCurrentSegment(videoCurrentTime, video);
 
-    const finalCmt = parseFloat(video.currentTime.toFixed(3));
+    const finalCmt = this.calculateCommittedTime(video);
+
     const telemetryData = {
-      cmt: finalCmt,
+      cmt:
+        parseFloat(finalCmt.toFixed(3)) === 0
+          ? 0
+          : parseFloat(finalCmt.toFixed(3)),
       st: stArray.join(","),
       et: etArray.join(","),
+      subscribed: isSubscribed ? 1 : 0,
       debug: {
         segments: stArray.length,
         finalPosition: videoCurrentTime,
+        wasEngaged: this.isEngaged,
+        sessionCommitted: this.sessionCommittedTime,
+        totalCommitted: finalCmt,
+        hoverDuration: (Date.now() - this.hoverStartTime) / 1000,
       },
     };
 
-    console.log("Hover telemetry - Segments tracked:", {
+    console.log("Hover telemetry - YouTube-style tracking:", {
       st: telemetryData.st,
       et: telemetryData.et,
       cmt: telemetryData.cmt,
-      totalSegments: stArray.length,
+      wasEngaged: this.isEngaged,
+      sessionCommittedTime: this.sessionCommittedTime,
+      totalCommittedTime: finalCmt,
     });
 
     this.reset();
+
     return telemetryData;
   }
 
@@ -65,26 +152,27 @@ export class HoverTelemetryTracker {
     const segmentStart = parseFloat(this.currentSegmentStart.toFixed(3));
     const segmentEnd = parseFloat(endTime.toFixed(3));
 
-      stArray.push(segmentStart);
-      etArray.push(segmentEnd);
+    stArray.push(segmentStart);
+    etArray.push(segmentEnd);
 
-      console.log("close initial array pushed", {
-        st: segmentStart,
-        et: segmentEnd,
-      });
-      const isMuted = video.muted ? 1 : 0;
-      const volumeValue = Math.round(video.volume * 100);
+    console.log("close initial array pushed", {
+      st: segmentStart,
+      et: segmentEnd,
+    });
 
-      volumeArray.push(volumeValue);
-      mutedArray.push(isMuted);
+    const isMuted = video.muted ? 1 : 0;
+    const volumeValue = Math.round(video.volume * 100);
 
-      console.log("Segment closed:", {
-        from: segmentStart,
-        to: segmentEnd,
-        duration: (segmentEnd - segmentStart).toFixed(3) + "s",
-      });
-    
+    volumeArray.push(volumeValue);
+    mutedArray.push(isMuted);
+
+    console.log("Segment closed:", {
+      from: segmentStart,
+      to: segmentEnd,
+      duration: (segmentEnd - segmentStart).toFixed(3) + "s",
+    });
   }
+
   handleMuteToggle(video, fromTime) {
     console.log("video.muted =", video.muted);
 
@@ -96,39 +184,31 @@ export class HoverTelemetryTracker {
   }
 
   trackSeek(video, fromTime, toTime) {
+    this.onUserInteraction();
+
+    if (!this.isEngaged) {
+      this.isEngaged = true;
+      this.engagementStartTime = Date.now();
+      console.log(
+        "🎯 SEEK detected - user immediately engaged (bypassing 3s rule)"
+      );
+
+      if (this.engagementCheckTimer) {
+        clearTimeout(this.engagementCheckTimer);
+        this.engagementCheckTimer = null;
+      }
+    }
+
     const seekFrom = parseFloat(fromTime.toFixed(3));
     const seekTo = parseFloat(toTime.toFixed(3));
-
+    this.closeCurrentSegment(seekFrom, video);
+    this.currentSegmentStart = seekTo;
     console.log("SEEK detected:", {
       from: seekFrom,
       to: seekTo,
       currentSegmentStart: this.currentSegmentStart,
       direction: seekTo > seekFrom ? "FORWARD" : "BACKWARD",
     });
-
-    const segmentStart = parseFloat(this.currentSegmentStart.toFixed(3));
-    const segmentEnd = seekFrom;
-
-    if (segmentEnd > segmentStart) {
-      stArray.push(segmentStart);
-      etArray.push(segmentEnd);
-      console.log("track array pushed", { st: segmentStart, et: segmentEnd });
-      const isMuted = video.muted || video.volume === 0 ? 1 : 0;
-      const volumeValue = Math.round(video.volume * 100);
-
-      volumeArray.push(volumeValue);
-      mutedArray.push(isMuted);
-
-      console.log("Segment closed by seek:", {
-        from: segmentStart,
-        to: segmentEnd,
-        duration: (segmentEnd - segmentStart).toFixed(3) + "s",
-      });
-    }
-
-    
-    this.currentSegmentStart = seekTo;
-    lastTelemetryPosition = seekTo;
 
     if (this.telemetryTimer) {
       this.telemetryTimer.markInteraction();
@@ -140,28 +220,25 @@ export class HoverTelemetryTracker {
     });
   }
 
-trackMuteStatusChange(video, muteStatus, fromTime) {
-  const currentTime = parseFloat(video.currentTime.toFixed(3));
-  
-  this.closeCurrentSegment(fromTime, video);
-  
-  this.currentSegmentStart = currentTime;
-  
-  const volumeValue = Math.round(video.volume * 100);
-  
-  console.log("Volume change creates segment break:", {
-    closedAt: fromTime,
-    newSegmentFrom: currentTime,
-    volume: volumeValue,
-    muted: muteStatus
-  });
-  
-  lastTelemetryPosition = currentTime;
-  
-  if (this.telemetryTimer) {
-    this.telemetryTimer.markInteraction();
+  trackMuteStatusChange(video, muteStatus, fromTime) {
+    const currentTime = parseFloat(video.currentTime.toFixed(3));
+
+    this.closeCurrentSegment(fromTime, video);
+    this.currentSegmentStart = currentTime;
+
+    const volumeValue = Math.round(video.volume * 100);
+
+    console.log("Volume change creates segment break:", {
+      closedAt: fromTime,
+      newSegmentFrom: currentTime,
+      volume: volumeValue,
+      muted: muteStatus,
+    });
+
+    if (this.telemetryTimer) {
+      this.telemetryTimer.markInteraction();
+    }
   }
-}
 
   reset() {
     this.hoverStartTime = null;
@@ -169,13 +246,22 @@ trackMuteStatusChange(video, muteStatus, fromTime) {
     this.currentSegmentStart = 0;
     this.isTracking = false;
     this.previousVolume = 100;
+    this.isEngaged = false;
+    this.sessionCommittedTime = 0;
+    this.engagementStartTime = null;
+    this.lastMouseActivity = 0;
+    this.hasHistory = false;
+    this.video = null;
+
+    if (this.engagementCheckTimer) {
+      clearTimeout(this.engagementCheckTimer);
+      this.engagementCheckTimer = null;
+    }
 
     if (this.telemetryTimer) {
       this.telemetryTimer.stop();
       this.telemetryTimer = null;
     }
-
-    lastTelemetryPosition = 0;
   }
 }
 
@@ -183,7 +269,7 @@ class YouTubeTelemetryTimer {
   constructor(video, videoId, tracker) {
     this.video = video;
     this.videoId = videoId;
-    this.tracker = tracker; 
+    this.tracker = tracker;
     this.timer = null;
     this.lastInteractionTime = 0;
     this.isBackgroundTab = false;
@@ -198,21 +284,10 @@ class YouTubeTelemetryTimer {
     const now = Date.now();
     const timeSinceInteraction = now - this.lastInteractionTime;
 
-    if (timeSinceInteraction < 5000) {
-      return 5000;
-    }
-
-    if (this.isBackgroundTab) {
-      return 60000;
-    }
-
-    if (this.video.paused) {
-      return 30000;
-    }
-
-    if (this.hasSlowConnection()) {
-      return 5000;
-    }
+    if (timeSinceInteraction < 5000) return 5000;
+    if (this.isBackgroundTab) return 60000;
+    if (this.video.paused) return 30000;
+    if (this.hasSlowConnection()) return 5000;
 
     return this.baseInterval;
   }
@@ -237,6 +312,9 @@ class YouTubeTelemetryTimer {
 
   markInteraction() {
     this.lastInteractionTime = Date.now();
+    if (this.tracker) {
+      this.tracker.onUserInteraction();
+    }
     console.log("User interaction - scheduling faster telemetry");
     this.rescheduleTimer();
   }
@@ -248,40 +326,20 @@ class YouTubeTelemetryTimer {
   }
 
   scheduleNext() {
-    if (this.isStopped) {
-      console.log("Timer is stopped, not scheduling next heartbeat");
-      return;
-    }
+    if (this.isStopped) return;
 
     if (this.timer) {
       clearTimeout(this.timer);
+      this.timer = null;
     }
 
     this.currentInterval = this.calculateNextInterval();
 
-    console.log(
-      `Next telemetry in ${this.currentInterval / 1000}s (${this.getReasonForInterval()})`
-    );
-
     this.timer = setTimeout(() => {
-      if (this.isStopped) {
-        console.log("Timer stopped during timeout, skipping heartbeat");
-        return;
-      }
-
+      if (this.isStopped) return;
       this.sendHeartbeat();
       this.scheduleNext();
     }, this.currentInterval);
-  }
-
-  getReasonForInterval() {
-    const timeSinceInteraction = Date.now() - this.lastInteractionTime;
-
-    if (timeSinceInteraction < 5000) return "recent interaction";
-    if (this.isBackgroundTab) return "background tab";
-    if (this.video.paused) return "video paused";
-    if (this.hasSlowConnection()) return "slow connection";
-    return "normal viewing";
   }
 
   sendHeartbeat() {
@@ -289,14 +347,7 @@ class YouTubeTelemetryTimer {
     const isMuted = this.video.muted || this.video.volume === 0 ? 1 : 0;
     const duration = parseFloat(this.video.duration.toFixed(3));
 
-  
     if (this.tracker && this.tracker.isTracking) {
-      console.log(
-        "Heartbeat during hover - closing segment at:",
-        currentTime
-      );
-
-    
       const segmentStart = parseFloat(
         this.tracker.currentSegmentStart.toFixed(3)
       );
@@ -305,30 +356,44 @@ class YouTubeTelemetryTimer {
       if (segmentEnd > segmentStart) {
         stArray.push(segmentStart);
         etArray.push(segmentEnd);
-
-        const volumeValue = Math.round(this.video.volume * 100);
-
-        volumeArray.push(volumeValue);
+        volumeArray.push(Math.round(this.video.volume * 100));
         mutedArray.push(isMuted);
 
-        console.log("Heartbeat segment closed:", {
+        console.log("Heartbeat segment:", {
           from: segmentStart,
           to: segmentEnd,
           duration: (segmentEnd - segmentStart).toFixed(3) + "s",
         });
       }
 
-    
       this.tracker.currentSegmentStart = currentTime;
     }
+
+    const committedTime = this.tracker
+      ? this.tracker.calculateCommittedTime(this.video)
+      : currentTime;
+    const cmtValue =
+      parseFloat(committedTime.toFixed(3)) === 0
+        ? 0
+        : parseFloat(committedTime.toFixed(3));
 
     const telemetryData = {
       ns: "yt",
       el: "home",
       docid: this.videoId,
-      cmt: currentTime,
-      st: stArray.length > 0 ? stArray.join(",") : currentTime.toFixed(3),
-      et: etArray.length > 0 ? etArray.join(",") : currentTime.toFixed(3),
+      cmt: cmtValue,
+      st:
+        stArray.length > 0
+          ? stArray.join(",")
+          : currentTime === 0
+            ? 0
+            : parseFloat(currentTime.toFixed(3)),
+      et:
+        etArray.length > 0
+          ? etArray.join(",")
+          : currentTime === 0
+            ? 0
+            : parseFloat(currentTime.toFixed(3)),
       volume:
         volumeArray.length > 0
           ? volumeArray.join(",")
@@ -339,22 +404,20 @@ class YouTubeTelemetryTimer {
       cpn,
       heartbeat: 1,
       interval: this.currentInterval,
-      reason: this.getReasonForInterval(),
       source: "home",
+      engaged: this.tracker ? this.tracker.isEngaged : false,
+      debug: {
+        segmentsInHeartbeat: stArray.length,
+        isEngaged: this.tracker ? this.tracker.isEngaged : false,
+        sessionCMT: this.tracker ? this.tracker.sessionCommittedTime : 0,
+      },
     };
 
-    console.log(`Heartbeat telemetry (${this.getReasonForInterval()}):`, {
-      st: telemetryData.st,
-      et: telemetryData.et,
-      cmt: telemetryData.cmt,
-      segments: stArray.length,
-    });
-
+    console.log(
+      `💓 Heartbeat telemetry - CMT: ${cmtValue}s (engaged: ${this.tracker?.isEngaged || false})`
+    );
     sendTelemetry([telemetryData]);
 
-    lastTelemetryPosition = currentTime;
-
-   
     stArray = [];
     etArray = [];
     volumeArray = [];
@@ -366,9 +429,7 @@ class YouTubeTelemetryTimer {
   }
 
   stop() {
-    console.log("Stopping telemetry timer");
     this.isStopped = true;
-
     if (this.timer) {
       clearTimeout(this.timer);
       this.timer = null;
@@ -380,30 +441,23 @@ export function startTelemetry(video, videoId, tracker) {
   console.log("Starting telemetry for video:", videoId);
   initializeTelemetryArrays();
 
- 
   const timer = new YouTubeTelemetryTimer(video, videoId, tracker);
   tracker.telemetryTimer = timer;
-  setupVideoInteractionListeners(video, timer);
   timer.start();
-
-  return timer;
 }
-function setupVideoInteractionListeners(video, timer) {
-  const markInteraction = () => timer.markInteraction();
 
-  video.addEventListener("seeking", markInteraction);
-  video.addEventListener("volumechange", markInteraction);
-  video.addEventListener("play", markInteraction);
-  video.addEventListener("pause", markInteraction);
-}
+
 
 export function sendYouTubeStyleTelemetry(videoId, video, hoverData) {
-  const stValues = hoverData.st || "0"; 
-  const etValues = hoverData.et || "0"; 
-  const cmt = parseFloat(hoverData.cmt.toFixed(3));
+  const cmt =
+    parseFloat(hoverData.cmt.toFixed(3)) === 0
+      ? 0
+      : parseFloat(hoverData.cmt.toFixed(3));
+  const stValues = hoverData.st <= 0.009 ? 0 : hoverData.st || "0";
+  const etValues = hoverData.et || "0";
+  const subscribed = hoverData.subscribed;
   const isMuted = video.muted || video.volume === 0 ? 1 : 0;
   const volumeValue = Math.round(video.volume * 100);
-
   const duration = parseFloat(video.duration.toFixed(3));
 
   const telemetryPayload = {
@@ -412,7 +466,8 @@ export function sendYouTubeStyleTelemetry(videoId, video, hoverData) {
     docid: videoId,
     cmt,
     st: stValues,
-    et: etValues, 
+    et: etValues,
+    subscribed,
     volume: volumeArray.length > 0 ? volumeArray.join(",") : volumeValue,
     state: video.paused ? "paused" : "playing",
     muted: mutedArray.length > 0 ? mutedArray.join(",") : isMuted,
@@ -420,11 +475,10 @@ export function sendYouTubeStyleTelemetry(videoId, video, hoverData) {
     cpn,
     timestamp: Date.now(),
     source: "home",
+    engaged: hoverData.debug?.wasEngaged || false,
   };
-
   sendTelemetry([telemetryPayload]);
 
-  
   stArray = [];
   etArray = [];
   volumeArray = [];
@@ -433,14 +487,14 @@ export function sendYouTubeStyleTelemetry(videoId, video, hoverData) {
   setTimeout(() => {
     const finalPayload = {
       ...telemetryPayload,
-      st: cmt.toFixed(3),
-      et: cmt.toFixed(3),
+      st: cmt === 0 ? 0 : cmt,
+      et: cmt === 0 ? 0 : cmt,
       volume: volumeValue,
       muted: isMuted,
       cmt: cmt,
       final: 1,
     };
-    console.log("Sending final telemetry:", finalPayload);
+
     sendTelemetry([finalPayload]);
   }, 50);
 }
@@ -452,22 +506,9 @@ export function getNewCpn(length = 12) {
     .substring(0, length);
 }
 
-function getSessionId() {
-  let sessionId = sessionStorage.getItem("sessionId");
-  if (!sessionId) {
-    sessionId = crypto.randomUUID();
-    sessionStorage.setItem("sessionId", sessionId);
-  }
-  return sessionId;
-}
-
 export function initializeTelemetryArrays() {
   stArray = [];
   etArray = [];
   volumeArray = [];
   mutedArray = [];
-}
-
-export function setupVideoTelemetryEvents(video, tracker) {
-  let seekFromTime = null;
 }

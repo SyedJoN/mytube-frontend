@@ -53,6 +53,7 @@ export default function AccountMenu() {
   const { data: userData } = context ?? {};
 
   const queryClient = useQueryClient();
+  const channel = new BroadcastChannel("auth_channel");
 
   const handleClick = (event) => {
     setAnchorEl((prev) => (prev ? null : event.currentTarget));
@@ -83,9 +84,9 @@ export default function AccountMenu() {
   const { mutate, isPending, isError, error } = useMutation({
     mutationFn: logoutUser,
     onSuccess: () => {
-      queryClient.invalidateQueries(["userData"]); // ✅ Clears and refetches user data
-      queryClient.setQueryData(["userData"], null); // 🧹 Resets user data to null
-      window.location.href = "/";
+      queryClient.invalidateQueries(["user"]); // ✅ Clears and refetches user data
+      queryClient.setQueryData(["user"], null); // 🧹 Resets user data to null
+      channel.postMessage({ type: "LOGOUT" });
     },
     onError: (error) => {
       console.error(
@@ -119,8 +120,13 @@ export default function AccountMenu() {
     <React.Fragment>
       {userData ? (
         <Box
-        className="account-wrapper"
-          sx={{ display: "flex", alignItems: "center", textAlign: "center",gap: isSmallScreen ? "16px" : 0 }}
+          className="account-wrapper"
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            textAlign: "center",
+            gap: isSmallScreen ? "16px" : 0,
+          }}
         >
           <Box
             sx={{

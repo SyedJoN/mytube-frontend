@@ -2,6 +2,17 @@ import axios from "axios";
 
 const BASE_URL = "http://localhost:3000/api/v1/users"
 
+export async function refreshToken() {
+  try {
+    const res = await axios.get(`${BASE_URL}/refresh-token`, {
+      withCredentials: true,
+    });
+    return res.data;
+  } catch (error) {
+    console.error("Failed to refresh token", error);
+    throw error;
+  }
+}
 
 const getCurrentUser = async () => {
   try {
@@ -10,13 +21,8 @@ const getCurrentUser = async () => {
     });
     return res.data;
   } catch (error) {
-    if (error.response?.status === 400 || error.response?.status === 401) {
-      return null; 
-    }
-    
-    throw new Error(
-      error.response?.data?.message || "Something went wrong. Please try again!"
-    );
+
+   throw error
   }
 };
 
@@ -26,7 +32,6 @@ const getUserChannelProfile = async (username) => {
     });
     return res.data;
 };
-
 
 
   const registerUser = async (data) => {

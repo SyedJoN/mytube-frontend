@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useRef, useContext } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useContext,
+  useCallback,
+} from "react";
 import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
 import { WebVTT } from "vtt.js";
 import formatDuration from "../../utils/formatDuration";
@@ -7,6 +13,7 @@ import { transform } from "lodash";
 import { sendTelemetry } from "../../apis/sendTelemetry";
 
 import { flushSync } from "react-dom";
+import throttle from "lodash/throttle";
 
 export const ProgressLists = ({
   videoRef,
@@ -22,7 +29,7 @@ export const ProgressLists = ({
   showSettings,
   vttUrl,
   playsInline,
-  tracker
+  tracker,
 }) => {
   var thumbWidth = 13;
   const theme = useTheme();
@@ -71,50 +78,59 @@ export const ProgressLists = ({
       window.removeEventListener("resize", updateSizes);
     };
   }, []);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const updateBuffered = () => {
-      try {
-        if (video.buffered.length > 0 && video.duration > 0) {
-          const currentTime = video.currentTime;
-          let bufferedEnd = video.buffered.end(0);
-
-          for (let i = 0; i < video.buffered.length; i++) {
-            if (
-              video.buffered.start(i) <= currentTime &&
-              video.buffered.end(i) > currentTime
-            ) {
-              bufferedEnd = video.buffered.end(i);
-              break;
-            }
-          }
-
-          const bufferProgress = bufferedEnd / video.duration;
-          setBufferedVal(bufferProgress);
-        } else {
-          setBufferedVal(0);
+const updateBuffered = useCallback(() => {
+  const video = videoRef?.current;
+  if (!video) return;
+  
+  try {
+    if (video?.buffered?.length > 0 && video?.duration > 0) {
+      const currentTime = video.currentTime;
+      let bufferedEnd = 0;
+      
+      for (let i = 0; i < video.buffered.length; i++) {
+        if (
+          video.buffered.start(i) <= currentTime &&
+          video.buffered.end(i) > currentTime
+        ) {
+          bufferedEnd = video.buffered.end(i);
+          break;
         }
-      } catch (e) {
-        console.warn("Buffered read error", e);
-        setBufferedVal(0);
       }
-    };
+      
+      const bufferProgress = bufferedEnd / video.duration;
+      setBufferedVal(bufferProgress);
+    } else {
+      setBufferedVal(0);
+    }
+  } catch (e) {
+    console.warn("Buffered read error", e);
+    setBufferedVal(0);
+  }
+}, [videoRef, setBufferedVal]);
 
-    const events = ["progress", "timeupdate", "seeked"];
+const throttledUpdate = useCallback(
+  throttle(updateBuffered, 200),
+  [updateBuffered]
+);
+
+useEffect(() => {
+  const video = videoRef?.current;
+  if (!video) return;
+  
+  const events = ["loadeddata", "progress", "seek"];
+  
+  events.forEach((event) => {
+    video.addEventListener(event, throttledUpdate);
+  });
+  
+  throttledUpdate();
+  
+  return () => {
     events.forEach((event) => {
-      video.addEventListener(event, updateBuffered);
+      video.removeEventListener(event, throttledUpdate);
     });
-
-    return () => {
-      events.forEach((event) => {
-        video.removeEventListener(event, updateBuffered);
-      });
-    };
-  }, [videoId]);
-
+  };
+}, [videoRef, throttledUpdate]);
   useEffect(() => {
     if (!vttUrl) return;
 
@@ -182,34 +198,34 @@ export const ProgressLists = ({
     window.addEventListener("mousemove", handleSeekMove);
     window.addEventListener("mouseup", handleSeekEnd);
   };
-  let lastTelemetryPosition = 0;
-const handleClickSeek = (e) => {
-  if (!sliderRef?.current || !videoRef?.current) return;
-  
-  const fromTime = videoRef.current.currentTime;
-  
-  const rect = sliderRef.current?.getBoundingClientRect();
-  const offsetX = e.clientX - rect.left;
-  const newProgress = Math.min(
-    Math.max((offsetX / rect.width) * 100, 0),
-    100
-  );
-  const newTime = (videoRef.current?.duration * newProgress) / 100;
-  
-  videoRef.current.currentTime = newTime;
-  setProgress(newProgress);
-  
-  if (!userId) return;
-  
-  const hoverVideo = hoverVideoRef?.current;
-  if (!hoverVideo) return;
-  
-  if (playsInline && hoverVideo && tracker) {
-    hoverVideo.currentTime = newTime;
-  
-    tracker.trackSeek(hoverVideo, fromTime, newTime);
-  }
-};
+
+  const handleClickSeek = (e) => {
+    if (!sliderRef?.current || !videoRef?.current) return;
+
+    const fromTime = videoRef.current.currentTime;
+
+    const rect = sliderRef.current?.getBoundingClientRect();
+    const offsetX = e.clientX - rect.left;
+    const newProgress = Math.min(
+      Math.max((offsetX / rect.width) * 100, 0),
+      100
+    );
+    const newTime = (videoRef.current?.duration * newProgress) / 100;
+
+    videoRef.current.currentTime = newTime;
+    setProgress(newProgress);
+
+    if (!userId) return;
+
+    const hoverVideo = hoverVideoRef?.current;
+    if (!hoverVideo) return;
+
+    if (playsInline && tracker) {
+      hoverVideo.currentTime = newTime;
+
+      tracker.trackSeek(hoverVideo, fromTime, newTime);
+    }
+  };
   const previewStyle = getBackgroundPosition(hoveredCue?.text);
 
   const previewWidth = parseInt(previewStyle.width, 10) || 0;

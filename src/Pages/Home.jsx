@@ -26,7 +26,7 @@ function Home() {
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["videos"],
     queryFn: fetchVideos,
-    staleTime: 1000 * 60 * 5,
+
   });
 
   const videos = data?.data?.docs || [];
@@ -135,6 +135,7 @@ function Home() {
                     home={true}
                     thumbnail={video.thumbnail.url}
                     title={video.title}
+                    isSubscribedTo={video.owner?.isSubscribedTo}
                     avatar={video.owner.avatar.url}
                     fullName={video.owner.fullName}
                     views={video.views}
