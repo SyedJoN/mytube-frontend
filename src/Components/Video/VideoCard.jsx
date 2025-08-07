@@ -104,6 +104,7 @@ const ExpandMore = styled((props) => {
     },
   ],
 }));
+const colors = [red, blue, green, purple, orange, deepOrange, pink];
 
 function VideoCard({
   videoId,
@@ -137,12 +138,7 @@ function VideoCard({
   const interactionRef = React.useRef(null);
   const hoverTrackerRef = React.useRef(new HoverTelemetryTracker());
   const timeoutRef = React.useRef(null);
-  const queryClient = useQueryClient();
-
   const context = React.useContext(UserInteractionContext);
-  const { setTimeStamp, setFromHome, getTimeStamp } =
-    React.useContext(TimeStampContext);
-
   const userContext = React.useContext(UserContext);
   const { data: dataContext } = userContext ?? {};
   const isAuthenticated = dataContext || null;
@@ -153,23 +149,17 @@ function VideoCard({
   const theme = useTheme();
   const imgRef = React.useRef(null);
   const hasWatchedEnoughRef = React.useRef(false);
-  const [fetchedVideo, setFetchedVideo] = React.useState(0);
+  const [fetchedTime, setFetchedTime] = React.useState(0);
   const [bgColor, setBgColor] = React.useState("rgba(0,0,0,0.6)");
   const [bufferedVal, setBufferedVal] = React.useState(0);
   const [viewVideo, setViewVideo] = React.useState(false);
   const [progress, setProgress] = React.useState(0);
   const [isVolumeMuted, setIsVolumeMuted] = React.useState(true);
-  const [isSubscribed, setIsSubscribed] = React.useState(null);
-
-  const fac = new FastAverageColor();
-  const colors = [red, blue, green, purple, orange, deepOrange, pink];
   const playlistVideoId = playlist?.videos?.map((video) => {
     return video._id;
   });
   const searchParams = React.useMemo(() => ({ v: videoId }), [videoId]);
-  const {
-    refetch: refetchHistory,
-  } = useQuery({
+  const { refetch: refetchHistory } = useQuery({
     queryKey: ["userHistory"],
     refetchOnWindowFocus: false,
     queryFn: getWatchHistory,
@@ -187,24 +177,27 @@ function VideoCard({
     delay: 1000,
   });
 
-  const sendWatchHistory = (videoId) => {
-    if (watchHistoryTimeout.current) return;
-    watchHistoryTimeout.current = setTimeout(() => {
-      sendHistoryMutation(videoId);
-    }, 10000);
-  };
-
   React.useEffect(() => {
     const user = refetchHistory();
     user.then((data) => {
       const fetchedVideo = data?.data?.data?.find(
         (video) => video?.video?._id === videoId
       );
+      const hasEnded = fetchedVideo?.hasEnded;
       const refetchedTime = fetchedVideo?.currentTime || 0;
       const videoDuration = fetchedVideo?.duration || 0;
-      setFetchedVideo(refetchedTime / videoDuration);
+      if (videoDuration && videoDuration !== 0) {
+        setFetchedTime(
+          hasEnded
+            ? 100
+            : parseFloat((refetchedTime / videoDuration) * 100).toFixed(0)
+        );
+      } else {
+        setFetchedTime(0);
+      }
     });
-  }, [fetchedVideo]);
+    console.log(fetchedTime);
+  }, []);
 
   React.useEffect(() => {
     const video = hoverVideoRef?.current;
@@ -261,7 +254,7 @@ function VideoCard({
       video.pause();
       video.classList.remove("hide-cursor");
       const telemetryData = tracker.endHover(video, isSubscribedTo);
-      console.log("isSubscribedTo", isSubscribedTo)
+      console.log("isSubscribedTo", isSubscribedTo);
       console.log("Telemetry data returned:", telemetryData);
 
       if (telemetryData) {
@@ -427,17 +420,13 @@ function VideoCard({
               display: "block",
               width: "100%",
               paddingTop: "56.25%",
+              borderRadius: isHoverPlay && isVideoPlaying ? "0" : "12px",
             }}
           >
-            <Link
-              draggable="false"
-              to="/watch"
-              onClick={() => hasWatchedEnoughRef.current && setFromHome(true)}
-              search={searchParams}
-            >
+            <Link draggable="false" to="/watch" search={searchParams}>
               <Box height="100%" position="absolute" top="0" left="0">
                 {videoMd ? (
-                  <LazyLoad height={200} once offset={100}>
+                  <LazyLoad height={200} offset={100} once>
                     <CardMedia
                       sx={{
                         flexGrow: "1!important",
@@ -445,8 +434,6 @@ function VideoCard({
                         height: "100%",
                         objectFit: "cover",
                         aspectRatio: "16/9",
-                        borderRadius:
-                          isHoverPlay && isVideoPlaying ? "0" : "15px",
                         transition: "all 0.3s ease-in-out",
                       }}
                       loading="lazy"
@@ -478,14 +465,7 @@ function VideoCard({
                     )}
                   </LazyLoad>
                 ) : (
-                  <LazyLoad
-                    once
-                    style={{
-                      position: "relative",
-                      borderRadius: "15px",
-                      overflow: "hidden",
-                    }}
-                  >
+                  <LazyLoad once>
                     <CardMedia
                       sx={{
                         flexGrow: "1!important",
@@ -493,14 +473,13 @@ function VideoCard({
                         height: "100%",
                         objectFit: "cover",
                         aspectRatio: "16/9",
-                        borderRadius:
-                          isHoverPlay && isVideoPlaying ? "0" : "15px",
                         transition: "all 0.3s ease-in-out",
                       }}
                       loading="lazy"
                       component="img"
                       image={thumbnail}
                     />
+
                     {videoUrl && (
                       <video
                         muted={isVolumeMuted}
@@ -531,30 +510,29 @@ function VideoCard({
                         }}
                       ></video>
                     )}
-                    <Box
-                      className="progress-list"
-                      sx={{
-                        position: "relative",
-                        background: "rgb(51,51,51)",
-                        transition: "transform .1s cubic-bezier(0.4, 0, 1, 1)",
-                      }}
-                    >
-                      <div
-                        className="play-progress"
-                        style={{
-                          position: "absolute",
-                          bottom: 0,
-                          left: 0,
-                          width: "100%",
-                          height: "3px",
-                          transform: `scaleX(${fetchedVideo})`,
-                          transformOrigin: "0 0",
-                          zIndex: 3,
-                        }}
-                      ></div>
-                    </Box>
                   </LazyLoad>
                 )}
+                <Box
+                  className={`progress-list ${fetchedTime > 0 ? "" : "hide"}`}
+                  sx={{
+                    position: "absolute",
+                    left: 0,
+                    bottom: 0,
+                    background: "#717171",
+                    transition: "all .1s cubic-bezier(0.4, 0, 1, 1)",
+                    opacity: isHoverPlay && isVideoPlaying ? 0 : 1,
+                    width: "100%",
+                    height: "4px",
+                  }}
+                >
+                  <div
+                    className="play-progress"
+                    style={{
+                      width: `${Math.max(fetchedTime, 10)}%`,
+                      height: "100%",
+                    }}
+                  ></div>
+                </Box>
               </Box>
             </Link>
             <Tooltip
@@ -809,7 +787,7 @@ function VideoCard({
             padding: 0,
             cursor: "pointer",
             overflow: "visible",
-            borderRadius: "8px",
+            borderRadius: isHoverPlay && isVideoPlaying ? "0" : "8px",
             boxShadow: "none",
             display: "flex",
             backgroundColor: "transparent",
@@ -831,6 +809,7 @@ function VideoCard({
                 position: "relative",
                 display: "block",
                 paddingTop: "56.25%",
+                overflow: "hidden",
               }}
             >
               <Box
@@ -853,7 +832,8 @@ function VideoCard({
                     <CardMedia
                       loading="lazy"
                       sx={{
-                        borderRadius: "8px",
+                        borderRadius:
+                          isHoverPlay && isVideoPlaying ? "0" : "8px",
                         width: "100%",
                         height: "100%",
                         objectFit: "cover",
@@ -917,6 +897,27 @@ function VideoCard({
                     </Typography>
                   </Box>
                 </Link>
+              </Box>
+              <Box
+                className={`progress-list ${fetchedTime > 0 ? "" : "hide"}`}
+                sx={{
+                  position: "absolute",
+                  left: 0,
+                  bottom: 0,
+                  background: "#717171",
+                  transition: "all .1s cubic-bezier(0.4, 0, 1, 1)",
+                  opacity: isHoverPlay && isVideoPlaying ? 0 : 1,
+                  width: "100%",
+                  height: "4px",
+                }}
+              >
+                <div
+                  className="play-progress"
+                  style={{
+                    width: `${Math.max(fetchedTime, 10)}%`,
+                    height: "100%",
+                  }}
+                ></div>
               </Box>
             </Box>
           </Box>
@@ -1110,8 +1111,7 @@ function VideoCard({
             display: "flex",
             padding: 0,
             cursor: "pointer",
-            overflow: "visible",
-            borderRadius: "10px",
+            overflow: "hidden",
             boxShadow: "none",
             transition: "0.3s ease-in-out",
             backgroundColor: "transparent",
@@ -1135,6 +1135,7 @@ function VideoCard({
                 display: "block",
                 paddingTop: "56.25%",
                 height: "0",
+                overflow: "hidden",
               }}
             >
               <Box
@@ -1162,8 +1163,6 @@ function VideoCard({
                         height: "100%",
                         objectFit: "cover",
                         aspectRatio: "16/9",
-                        borderRadius:
-                          isHoverPlay && isVideoPlaying ? "0" : "10px",
                       }}
                       loading="lazy"
                       component="img"
@@ -1181,7 +1180,6 @@ function VideoCard({
                         onTimeUpdate={handleTimeUpdate}
                         onPlaying={handleVideoPlaying}
                         onEnded={handleVideoEnd}
-                        onLoadedMetadata={handleLoadedMetadata}
                         id="video-player"
                         key={videoId}
                         className="hover-interaction"
@@ -1321,6 +1319,27 @@ function VideoCard({
                     tracker={hoverTrackerRef.current}
                   />
                 )}
+              </Box>
+              <Box
+                className={`progress-list ${fetchedTime > 0 ? "" : "hide"}`}
+                sx={{
+                  position: "absolute",
+                  left: 0,
+                  bottom: 0,
+                  background: "#717171",
+                  transition: "all .1s cubic-bezier(0.4, 0, 1, 1)",
+                  opacity: isHoverPlay && isVideoPlaying ? 0 : 1,
+                  width: "100%",
+                  height: "4px",
+                }}
+              >
+                <div
+                  className="play-progress"
+                  style={{
+                    width: `${Math.max(fetchedTime, 10)}%`,
+                    height: "100%",
+                  }}
+                ></div>
               </Box>
             </Box>
           </Box>
