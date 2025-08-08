@@ -20,8 +20,6 @@ type VideoProgressMap = {
   [videoId: string]: number;
 };
 type TimeStampContextType = {
-  fromHome: boolean;
-  setFromHome: React.Dispatch<React.SetStateAction<boolean>>;
   timeStampMap: VideoProgressMap;
   setTimeStamp: (videoId: string, time: number) => void;
   getTimeStamp: (videoId: string) => number;

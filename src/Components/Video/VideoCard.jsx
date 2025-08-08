@@ -140,6 +140,7 @@ function VideoCard({
   const timeoutRef = React.useRef(null);
   const context = React.useContext(UserInteractionContext);
   const userContext = React.useContext(UserContext);
+  const { getTimeStamp, setTimeStamp } = React.useContext(TimeStampContext);
   const { data: dataContext } = userContext ?? {};
   const isAuthenticated = dataContext || null;
   const userId = dataContext?.data?._id || null;
@@ -148,7 +149,6 @@ function VideoCard({
   const previewRef = React.useRef(null);
   const theme = useTheme();
   const imgRef = React.useRef(null);
-  const hasWatchedEnoughRef = React.useRef(false);
   const [fetchedTime, setFetchedTime] = React.useState(0);
   const [bgColor, setBgColor] = React.useState("rgba(0,0,0,0.6)");
   const [bufferedVal, setBufferedVal] = React.useState(0);
@@ -178,26 +178,31 @@ function VideoCard({
   });
 
   React.useEffect(() => {
-    const user = refetchHistory();
-    user.then((data) => {
+    let isMounted = true;
+
+    refetchHistory().then((data) => {
+      if (!isMounted) return;
+
       const fetchedVideo = data?.data?.data?.find(
         (video) => video?.video?._id === videoId
       );
       const hasEnded = fetchedVideo?.hasEnded;
       const refetchedTime = fetchedVideo?.currentTime || 0;
       const videoDuration = fetchedVideo?.duration || 0;
-      if (videoDuration && videoDuration !== 0) {
+
+      if (videoDuration) {
         setFetchedTime(
-          hasEnded
-            ? 100
-            : parseFloat((refetchedTime / videoDuration) * 100).toFixed(0)
+          hasEnded ? 100 : Math.round((refetchedTime / videoDuration) * 100)
         );
       } else {
         setFetchedTime(0);
       }
     });
-    console.log(fetchedTime);
-  }, []);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [userId]);
 
   React.useEffect(() => {
     const video = hoverVideoRef?.current;
@@ -205,7 +210,9 @@ function VideoCard({
     if (!video || !tracker) return;
 
     const handlePlay = async () => {
-      let refetchedTime = 0;
+      const savedGuestTime = sessionStorage.getItem(`resumeTime:${videoId}`);
+      let refetchedTime = isAuthenticated ? 0 : Number(savedGuestTime) || 0;
+
       let videoDuration = 0;
 
       if (isAuthenticated) {
@@ -223,6 +230,16 @@ function VideoCard({
         } catch (error) {
           console.error("Error refetching video history:", error);
         }
+      } else {
+        const guestResumeTime = sessionStorage.getItem(`resumeTime:${videoId}`);
+        const isValidResumeTime =
+          isFinite(guestResumeTime) && guestResumeTime > 0;
+        const hasVideoEnded = guestResumeTime - video.duration < 0.5;
+        video.currentTime = isValidResumeTime
+          ? guestResumeTime
+          : hasVideoEnded
+            ? 0
+            : 0;
       }
 
       try {
@@ -412,6 +429,7 @@ function VideoCard({
             width: "100%",
             display: "block",
             backgroundColor: "transparent",
+            borderRadius: 0,
           }}
         >
           <Box
@@ -420,6 +438,7 @@ function VideoCard({
               display: "block",
               width: "100%",
               paddingTop: "56.25%",
+              overflow: "hidden",
               borderRadius: isHoverPlay && isVideoPlaying ? "0" : "12px",
             }}
           >
@@ -1114,6 +1133,7 @@ function VideoCard({
             overflow: "hidden",
             boxShadow: "none",
             transition: "0.3s ease-in-out",
+            borderRadius: 0,
             backgroundColor: "transparent",
           }}
         >
@@ -1135,6 +1155,7 @@ function VideoCard({
                 display: "block",
                 paddingTop: "56.25%",
                 height: "0",
+                borderRadius: isHoverPlay && isVideoPlaying ? "0" : "12px",
                 overflow: "hidden",
               }}
             >

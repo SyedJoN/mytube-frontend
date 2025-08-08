@@ -215,8 +215,6 @@ useEffect(() => {
     videoRef.current.currentTime = newTime;
     setProgress(newProgress);
 
-    if (!userId) return;
-
     const hoverVideo = hoverVideoRef?.current;
     if (!hoverVideo) return;
 

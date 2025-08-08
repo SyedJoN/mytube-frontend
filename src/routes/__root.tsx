@@ -20,6 +20,7 @@ import {
   UserInteractionContext,
 } from "../Contexts/RootContexts";
 import { getCurrentUserWithAutoRefresh } from "../helper/getCurrentUserWithAutoRefresh";
+import { TimeStampProvider } from "../Contexts/TimeStampProvider";
 
 const NotFoundComponent = () => (
   <Box sx={{ textAlign: "center", mt: 5 }}>
@@ -204,12 +205,14 @@ function RouteComponent() {
       <UserInteractionContext.Provider value={userInteractionValue}>
         <UserContext.Provider value={userValue}>
           <DrawerContext.Provider value={drawerValue}>
+            <TimeStampProvider>
             <CssBaseline />
             <Header />
             <Box component="main" sx={rootStyles}>
               <ProgressBar />
               <Outlet />
             </Box>
+            </TimeStampProvider>
           </DrawerContext.Provider>
         </UserContext.Provider>
       </UserInteractionContext.Provider>

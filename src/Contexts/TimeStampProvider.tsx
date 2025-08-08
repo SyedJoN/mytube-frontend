@@ -2,7 +2,6 @@ import React, { useState, useCallback } from "react";
 import { TimeStampContext } from "./RootContexts";
 
 export const TimeStampProvider = ({ children }) => {
-  const [fromHome, setFromHome] = useState(false);
 
   const [timeStampMap, setTimeStampMap] = useState<{
     [videoId: string]: number;
@@ -25,7 +24,7 @@ export const TimeStampProvider = ({ children }) => {
 
   return (
     <TimeStampContext.Provider
-      value={{ fromHome, setFromHome, timeStampMap, setTimeStamp, getTimeStamp }}
+      value={{ timeStampMap, setTimeStamp, getTimeStamp }}
     >
       {children}
     </TimeStampContext.Provider>

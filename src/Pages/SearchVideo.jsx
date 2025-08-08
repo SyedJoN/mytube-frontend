@@ -43,6 +43,7 @@ function SearchVideo() {
                 key={video._id}
                 sx={{
                   marginTop: 2,
+                
                 }}
               >
                 <VideoCard

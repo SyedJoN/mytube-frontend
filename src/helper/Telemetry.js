@@ -44,7 +44,7 @@ export class HoverTelemetryTracker {
 
     this.setPreviousEngagement(refetchedTime);
 
-    console.log("Starting hover")
+    console.log("Starting hover");
     if (this.hasHistory) {
       this.isEngaged = true;
       this.engagementStartTime = Date.now();
@@ -78,6 +78,9 @@ export class HoverTelemetryTracker {
   calculateCommittedTime(video) {
     let sessionCommitted = 0;
 
+    if (!etArray.length || !stArray.length) {
+      return 0;
+    }
     if (etArray[etArray.length - 1] < etArray[0])
       return etArray[etArray.length - 1];
 
@@ -100,11 +103,11 @@ export class HoverTelemetryTracker {
       isEngaged: this.isEngaged,
     });
 
-    return totalCommitted;
+    return Number(totalCommitted) || 0;
   }
 
   endHover(video, isSubscribed) {
-    console.log("ending hover")
+    console.log("ending hover");
 
     if (!this.isTracking || !this.hoverStartTime) {
       console.log("No active hover to end");
@@ -114,7 +117,7 @@ export class HoverTelemetryTracker {
     const videoCurrentTime = parseFloat(video.currentTime.toFixed(3));
     this.closeCurrentSegment(videoCurrentTime, video);
 
-    const finalCmt = this.calculateCommittedTime(video);
+    const finalCmt = this.calculateCommittedTime(video) || 0;
 
     const telemetryData = {
       cmt:
@@ -373,7 +376,7 @@ class YouTubeTelemetryTimer {
       ? this.tracker.calculateCommittedTime(this.video)
       : currentTime;
     const cmtValue =
-      parseFloat(committedTime.toFixed(3)) === 0
+      parseFloat(committedTime?.toFixed(3)) === 0
         ? 0
         : parseFloat(committedTime.toFixed(3));
 
@@ -445,8 +448,6 @@ export function startTelemetry(video, videoId, tracker) {
   tracker.telemetryTimer = timer;
   timer.start();
 }
-
-
 
 export function sendYouTubeStyleTelemetry(videoId, video, hoverData) {
   const cmt =
