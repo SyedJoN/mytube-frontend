@@ -47,6 +47,7 @@ import { UserInteractionContext } from "../../Contexts/RootContexts";
 
 const VideoControls = ({
   videoRef,
+  tracker,
   videoId,
   playlistId,
   shuffledVideos,
@@ -641,8 +642,8 @@ const VideoControls = ({
               <Typography sx={{ color: "#f1f1f1" }} fontSize={"0.85rem"}>
               {formatDuration(
                   Math.min(
-                    Math.max(0, hoverVideoRef?.current?.duration - hoverVideoRef?.current?.currentTime)  || 0,
-                    hoverVideoRef?.current?.duration || 0
+                    Math.max(0, videoRef?.current?.duration - videoRef?.current?.currentTime)  || 0,
+                    videoRef?.current?.duration || 0
                   )
                 )}{" "}
                 / {formatDuration(videoRef?.current?.duration || 0)}
@@ -1272,6 +1273,7 @@ const VideoControls = ({
 
         <ProgressLists
           videoRef={videoRef}
+          tracker={tracker}
           videoId={videoId}
           bufferedVal={bufferedVal}
           setBufferedVal={setBufferedVal}

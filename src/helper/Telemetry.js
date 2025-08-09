@@ -152,29 +152,35 @@ export class HoverTelemetryTracker {
   }
 
   closeCurrentSegment(endTime, video) {
-    const segmentStart = parseFloat(this.currentSegmentStart.toFixed(3));
-    const segmentEnd = parseFloat(endTime.toFixed(3));
+  const startValue = (typeof this.currentSegmentStart === "number" && !isNaN(this.currentSegmentStart))
+    ? this.currentSegmentStart
+    : video?.currentTime || 0;
 
-    stArray.push(segmentStart);
-    etArray.push(segmentEnd);
+  const segmentStart = parseFloat(startValue.toFixed(3));
+  const segmentEnd = parseFloat(endTime.toFixed(3));
 
-    console.log("close initial array pushed", {
-      st: segmentStart,
-      et: segmentEnd,
-    });
+  stArray.push(segmentStart);
+  etArray.push(segmentEnd);
 
-    const isMuted = video.muted ? 1 : 0;
-    const volumeValue = Math.round(video.volume * 100);
+  console.log("close initial array pushed", {
+    st: segmentStart,
+    et: segmentEnd,
+    fallbackUsed: startValue !== this.currentSegmentStart
+  });
 
-    volumeArray.push(volumeValue);
-    mutedArray.push(isMuted);
+  const isMuted = video?.muted ? 1 : 0;
+  const volumeValue = Math.round((video?.volume ?? 1) * 100);
 
-    console.log("Segment closed:", {
-      from: segmentStart,
-      to: segmentEnd,
-      duration: (segmentEnd - segmentStart).toFixed(3) + "s",
-    });
-  }
+  volumeArray.push(volumeValue);
+  mutedArray.push(isMuted);
+
+  console.log("Segment closed:", {
+    from: segmentStart,
+    to: segmentEnd,
+    duration: (segmentEnd - segmentStart).toFixed(3) + "s",
+  });
+}
+
 
   handleMuteToggle(video, fromTime) {
     console.log("video.muted =", video.muted);
@@ -444,12 +450,23 @@ export function startTelemetry(video, videoId, tracker, setTimeStamp) {
   console.log("Starting telemetry for video:", videoId);
   initializeTelemetryArrays();
 
-  const timer = new YouTubeTelemetryTimer(video, videoId, tracker, setTimeStamp);
+  const timer = new YouTubeTelemetryTimer(
+    video,
+    videoId,
+    tracker,
+    setTimeStamp
+  );
   tracker.telemetryTimer = timer;
   timer.start(setTimeStamp);
 }
 
-export function sendYouTubeStyleTelemetry(videoId, video, hoverData, setTimeStamp) {
+export function sendYouTubeStyleTelemetry(
+  videoId,
+  video,
+  hoverData,
+  setTimeStamp,
+  isVideo = false
+) {
   const cmt =
     parseFloat(hoverData.cmt.toFixed(3)) === 0
       ? 0
@@ -461,7 +478,35 @@ export function sendYouTubeStyleTelemetry(videoId, video, hoverData, setTimeStam
   const volumeValue = Math.round(video.volume * 100);
   const duration = parseFloat(video.duration.toFixed(3));
 
-  const telemetryPayload = {
+  if (isVideo) {
+    const telemetryPayload = {
+      ns: "yt",
+      el: "home",
+      docid: videoId,
+      cmt,
+      st: cmt === 0 ? 0 : cmt,
+      et: cmt === 0 ? 0 : cmt,
+      subscribed,
+      volume: volumeValue,
+      muted: isMuted,
+      final: 1,
+      state: video.paused ? "paused" : "playing",
+      len: duration,
+      cpn,
+      timestamp: Date.now(),
+      feature: "home",
+      engaged: hoverData.debug?.wasEngaged || false,
+    };
+  sendTelemetry([telemetryPayload], setTimeStamp);
+
+  stArray = [];
+  etArray = [];
+  volumeArray = [];
+  mutedArray = [];
+
+
+  } else {
+ const telemetryPayload = {
     ns: "yt",
     el: "home",
     docid: videoId,
@@ -498,6 +543,9 @@ export function sendYouTubeStyleTelemetry(videoId, video, hoverData, setTimeStam
 
     sendTelemetry([finalPayload], setTimeStamp);
   }, 50);
+  }
+
+ 
 }
 export function getNewCpn(length = 12) {
   const array = new Uint8Array(length);

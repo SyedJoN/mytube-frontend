@@ -14,18 +14,15 @@ import { sendTelemetry } from "../../apis/sendTelemetry";
 
 import { flushSync } from "react-dom";
 import throttle from "lodash/throttle";
+import { UserContext, UserInteractionContext } from "../../Contexts/RootContexts";
 
 export const ProgressLists = ({
   videoRef,
-  userId,
   progress,
   setProgress,
   bufferedVal,
   setBufferedVal,
-  videoId,
   isMini,
-  isTheatre,
-  hoverVideoRef,
   showSettings,
   vttUrl,
   playsInline,
@@ -33,10 +30,9 @@ export const ProgressLists = ({
 }) => {
   var thumbWidth = 13;
   const theme = useTheme();
-  const location = useLocation();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const isTablet = useMediaQuery(theme.breakpoints.down("md"));
-  const isDesktop = useMediaQuery(theme.breakpoints.down("xl"));
+  const { isUserInteracted, setIsUserInteracted } = React.useContext(UserInteractionContext);
+
   const [hoverTime, setHoverTime] = useState(0);
   const [cueMap, setCueMap] = useState([]);
   const [hoveredCue, setHoveredCue] = useState(null);
@@ -78,59 +74,58 @@ export const ProgressLists = ({
       window.removeEventListener("resize", updateSizes);
     };
   }, []);
-const updateBuffered = useCallback(() => {
-  const video = videoRef?.current;
-  if (!video) return;
-  
-  try {
-    if (video?.buffered?.length > 0 && video?.duration > 0) {
-      const currentTime = video.currentTime;
-      let bufferedEnd = 0;
-      
-      for (let i = 0; i < video.buffered.length; i++) {
-        if (
-          video.buffered.start(i) <= currentTime &&
-          video.buffered.end(i) > currentTime
-        ) {
-          bufferedEnd = video.buffered.end(i);
-          break;
+  const updateBuffered = useCallback(() => {
+    const video = videoRef?.current;
+    if (!video) return;
+
+    try {
+      if (video?.buffered?.length > 0 && video?.duration > 0) {
+        const currentTime = video.currentTime;
+        let bufferedEnd = 0;
+
+        for (let i = 0; i < video.buffered.length; i++) {
+          if (
+            video.buffered.start(i) <= currentTime &&
+            video.buffered.end(i) > currentTime
+          ) {
+            bufferedEnd = video.buffered.end(i);
+            break;
+          }
         }
+
+        const bufferProgress = bufferedEnd / video.duration;
+        setBufferedVal(bufferProgress);
+      } else {
+        setBufferedVal(0);
       }
-      
-      const bufferProgress = bufferedEnd / video.duration;
-      setBufferedVal(bufferProgress);
-    } else {
+    } catch (e) {
+      console.warn("Buffered read error", e);
       setBufferedVal(0);
     }
-  } catch (e) {
-    console.warn("Buffered read error", e);
-    setBufferedVal(0);
-  }
-}, [videoRef, setBufferedVal]);
+  }, [videoRef, setBufferedVal]);
 
-const throttledUpdate = useCallback(
-  throttle(updateBuffered, 200),
-  [updateBuffered]
-);
+  const throttledUpdate = useCallback(throttle(updateBuffered, 200), [
+    updateBuffered,
+  ]);
 
-useEffect(() => {
-  const video = videoRef?.current;
-  if (!video) return;
-  
-  const events = ["loadeddata", "progress", "seek"];
-  
-  events.forEach((event) => {
-    video.addEventListener(event, throttledUpdate);
-  });
-  
-  throttledUpdate();
-  
-  return () => {
+  useEffect(() => {
+    const video = videoRef?.current;
+    if (!video) return;
+
+    const events = ["loadeddata", "progress", "seek"];
+
     events.forEach((event) => {
-      video.removeEventListener(event, throttledUpdate);
+      video.addEventListener(event, throttledUpdate);
     });
-  };
-}, [videoRef, throttledUpdate]);
+
+    throttledUpdate();
+
+    return () => {
+      events.forEach((event) => {
+        video.removeEventListener(event, throttledUpdate);
+      });
+    };
+  }, [videoRef, throttledUpdate]);
   useEffect(() => {
     if (!vttUrl) return;
 
@@ -214,14 +209,12 @@ useEffect(() => {
 
     videoRef.current.currentTime = newTime;
     setProgress(newProgress);
-
-    const hoverVideo = hoverVideoRef?.current;
-    if (!hoverVideo) return;
-
-    if (playsInline && tracker) {
-      hoverVideo.currentTime = newTime;
-
-      tracker.trackSeek(hoverVideo, fromTime, newTime);
+    if (videoRef.current.paused && !isUserInteracted) {
+      videoRef.current.play();
+      setIsUserInteracted(true);
+    }
+    if (tracker && isFinite(videoRef.current.currentTime)) {
+      tracker.trackSeek(videoRef, fromTime, newTime);
     }
   };
   const previewStyle = getBackgroundPosition(hoveredCue?.text);

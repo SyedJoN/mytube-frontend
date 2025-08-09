@@ -157,6 +157,7 @@ function WatchVideo({ videoId, playlistId }) {
       >
         <VideoPlayer
           index={index}
+          isSubscribedTo={userData?.data?.isSubscribedTo}
           videoId={videoId}
           playlistId={playlistId}
           playlistVideos={playlistVideos}

@@ -63,16 +63,16 @@ import {
 } from "../../Contexts/RootContexts";
 
 import {
-  flushTelemetryQueue,
-  getCurrentVideoTelemetryData,
-  getSavedHoverTime,
+  HoverTelemetryTracker,
+  initializeTelemetryArrays,
+  sendYouTubeStyleTelemetry,
   startTelemetry,
 } from "../../helper/Telemetry";
 import { getWatchHistory } from "../../apis/userFn";
-import { sendTelemetry } from "../../apis/sendTelemetry";
 
 function VideoPlayer({
   videoId,
+  isSubscribedTo,
   playlistId,
   playlistVideos,
   index,
@@ -85,6 +85,7 @@ function VideoPlayer({
   const userContext = useContext(UserContext);
   const drawerContext = useContext(DrawerContext);
   const userInteractionContext = useContext(UserInteractionContext);
+  const { getTimeStamp, setTimeStamp } = useContext(TimeStampContext);
 
   const containerRef = useRef(null);
   const videoRef = useRef(null);
@@ -110,7 +111,6 @@ function VideoPlayer({
   const [showSettings, setShowSettings] = useState(false);
   const [isPiActive, setIsPiPActive] = useState(false);
   const [canPlay, setCanPlay] = useState(true);
-  const [timeStamp, setTimeStamp] = useState(0);
   const [isAmbient, setIsAmbient] = usePlayerSetting("ambientMode", false);
   const [playbackSpeed, setPlaybackSpeed] = usePlayerSetting(
     "playbackSpeed",
@@ -161,8 +161,8 @@ function VideoPlayer({
   const animateTimeoutRef = useRef(null);
   const captureCanvasRef = useRef(null);
   const prevHoverStateRef = useRef(null);
-  const telemetrySentRef = useRef(null);
   const holdTimer = useRef(null);
+  const trackerRef = React.useRef(new HoverTelemetryTracker());
   const isHolding = useRef(null);
   const glowCanvasRef = useRef(null);
   const prevSpeedRef = useRef(null);
@@ -201,25 +201,60 @@ function VideoPlayer({
     return () => video.removeEventListener("pause", onPause);
   }, [setIsPlaying]);
 
-  const storeTimeStamp = () => {
-    const video = videoRef.current;
-    if (!video) return;
-    const currentTime = Math.floor(video.currentTime);
-    const duration = Math.floor(video.duration);
-    if (currentTime > 0 && currentTime < duration) {
-      setTimeStamp(video.currentTime);
-    }
-  };
+  const handlePlay = async () => {
+    const video = videoRef?.current;
+    const tracker = trackerRef.current;
+    if (!video || !tracker) return;
 
-  const handlePlay = (event) => {
-    const video = event.target;
-    if (!video) return;
-        console.log("Start tele at time update")
-    startTelemetry((userId, videoId, video));
+    try {
+      await video.play();
+      if (tracker?.telemetryTimer) {
+        tracker.telemetryTimer.stop();
+        tracker.telemetryTimer = null;
+      }
+      const userResumeTime = userId
+        ? (userHistory?.data?.find((entry) => entry.video?._id === videoId)
+            ?.currentTime ?? 0)
+        : 0;
+      initializeTelemetryArrays();
+      startTelemetry(video, videoId, tracker, setTimeStamp);
+      tracker.startHover(video, userResumeTime);
+
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(() => {
+        video.classList.add("hide-cursor");
+      }, 2000);
+    } catch (err) {
+      setIsPlaying(false);
+      if (tracker?.telemetryTimer) {
+        console.log("STOPPP")
+        tracker.telemetryTimer.stop();
+        tracker.telemetryTimer = null;
+      }
+    }
     setIsReplay(false);
     setCanPlay(true);
     setIsPlaying(true);
   };
+
+  useEffect(() => {
+    console.log("useEffect triggered for pathname:", location.pathname);
+    const video = videoRef?.current;
+    const tracker = trackerRef?.current;
+    if (!video || !tracker) return;
+    const telemetryData = tracker.endHover(video, isSubscribedTo ? 1 : 0);
+    if (telemetryData) {
+      console.log("Sending telmetry");
+      sendYouTubeStyleTelemetry(
+        videoId,
+        video,
+        telemetryData,
+        setTimeStamp,
+        true
+      );
+      tracker.reset();
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -858,7 +893,9 @@ function VideoPlayer({
   const togglePlayPause = useCallback(() => {
     const video = videoRef.current;
     const container = containerRef.current;
+    const tracker = trackerRef.current;
     if (!video || !container || !canPlay) return;
+    setIsUserInteracted(true);
 
     container.querySelector(".video-overlay")?.classList.remove("hide-cursor");
     container.querySelector(".controls")?.classList.remove("hide-cursor");
@@ -867,16 +904,21 @@ function VideoPlayer({
     } else {
       console.warn("playIconRef is null");
     }
+    const fromTime = video.currentTime || 0;
 
     if (video.paused || video.ended) {
       video.play();
+      
       setIsPlaying(true);
     } else {
       video.pause();
       setIsPlaying(false);
     }
+    const newTime = video.currentTime || 0;
+    // if (tracker && video.currentTime !== 0) {
+    //   tracker.trackSeek(video, fromTime, newTime);
+    // }
 
-    setIsUserInteracted(true);
   }, []);
 
   useEffect(() => {
@@ -967,14 +1009,12 @@ function VideoPlayer({
       setTitleOpacity(1);
     }
 
-    const guestResumeTime = getSavedHoverTime(videoId);
+    const savedGuestTime = getTimeStamp(videoId);
 
-    console.log("guest", guestResumeTime);
-    console.log("user", userResumeTime);
     const isValidGuestResumeTime =
-      isFinite(guestResumeTime) &&
-      guestResumeTime > 0 &&
-      guestResumeTime < video.duration;
+      isFinite(savedGuestTime) &&
+      savedGuestTime > 0 &&
+      savedGuestTime < video.duration;
     const isValidUserResumeTime =
       isFinite(userResumeTime) &&
       userResumeTime > 0 &&
@@ -989,7 +1029,7 @@ function VideoPlayer({
     if (isAuthenticated && isValidUserResumeTime && isUserInteracted) {
       video.currentTime = userResumeTime;
     } else if (!isAuthenticated && isValidGuestResumeTime && isUserInteracted) {
-      video.currentTime = guestResumeTime;
+      video.currentTime = savedGuestTime;
     }
     try {
       await video.play();
@@ -1086,18 +1126,25 @@ function VideoPlayer({
 
   const handleVolumeToggle = useCallback(() => {
     const video = videoRef.current;
+    const tracker = trackerRef.current;
     if (!video) return;
 
     const currentVolume = video.volume;
 
     if (currentVolume > 0) {
       prevVolumeRef.current = currentVolume;
-      video.volume = 0;
+      video.muted = true;
       setVolume(0);
     } else {
       const restoreVol = prevVolumeRef.current || 1;
       video.volume = restoreVol;
       setVolume(restoreVol * 40);
+      video.muted = false;
+    }
+    const fromTime = parseFloat(video.currentTime.toFixed(3));
+
+    if (tracker) {
+      tracker.handleMuteToggle(video, fromTime);
     }
   }, []);
 
@@ -1460,6 +1507,7 @@ function VideoPlayer({
               )}
               <VideoControls
                 videoRef={videoRef}
+                tracker={trackerRef.current}
                 videoId={videoId}
                 playlistId={playlistId}
                 shuffledVideos={shuffledVideos}

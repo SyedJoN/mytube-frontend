@@ -179,6 +179,7 @@ function VideoCard({
 
   React.useEffect(() => {
     let isMounted = true;
+    if (!userId) return;
 
     refetchHistory().then((data) => {
       if (!isMounted) return;
@@ -235,12 +236,9 @@ function VideoCard({
         console.log("guestResumeTime", guestResumeTime)
         const isValidResumeTime =
           isFinite(guestResumeTime) && guestResumeTime > 0;
-        const hasVideoEnded = guestResumeTime - video.duration < 0.5;
         video.currentTime = isValidResumeTime
           ? guestResumeTime
-          : hasVideoEnded
-            ? 0
-            : 0;
+          : 0
       }
 
       try {
@@ -271,10 +269,11 @@ function VideoCard({
       clearTimeout(timeoutRef.current);
       video.pause();
       video.classList.remove("hide-cursor");
+    
       const telemetryData = tracker.endHover(video, isSubscribedTo);
-      console.log("isSubscribedTo", isSubscribedTo);
+        console.log("isSubscribedTo", isSubscribedTo);
       console.log("Telemetry data returned:", telemetryData);
-
+      
       if (telemetryData) {
         sendYouTubeStyleTelemetry(videoId, video, telemetryData, setTimeStamp);
       }
@@ -324,7 +323,7 @@ function VideoCard({
     const fromTime = parseFloat(hoverVideoRef.current.currentTime.toFixed(3));
     setIsVolumeMuted((prev) => !prev);
     if (tracker && hoverVideoRef.current) {
-      tracker.handleMuteToggle(hoverVideoRef.current, fromTime);
+      tracker.trackSeek(hoverVideoRef.current, fromTime);
     }
   };
 
@@ -660,15 +659,14 @@ function VideoCard({
             {isHoverPlay && isVideoPlaying && (
               <ProgressLists
                 bufferedVal={bufferedVal}
-                hoverVideoRef={hoverVideoRef}
                 userId={userId}
                 setBufferedVal={setBufferedVal}
                 progress={progress}
                 setProgress={setProgress}
                 videoId={videoId}
                 viewVideo={viewVideo}
-                setViewVideo={setViewVideo}
                 videoRef={hoverVideoRef}
+                setViewVideo={setViewVideo}
                 vttUrl={vttUrl}
                 playsInline={true}
                 tracker={hoverTrackerRef.current}
@@ -1327,7 +1325,6 @@ function VideoCard({
                 {isHoverPlay && isVideoPlaying && (
                   <ProgressLists
                     bufferedVal={bufferedVal}
-                    hoverVideoRef={hoverVideoRef}
                     userId={userId}
                     setBufferedVal={setBufferedVal}
                     progress={progress}
