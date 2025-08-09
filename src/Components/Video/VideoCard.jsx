@@ -210,7 +210,7 @@ function VideoCard({
     if (!video || !tracker) return;
 
     const handlePlay = async () => {
-      const savedGuestTime = sessionStorage.getItem(`resumeTime:${videoId}`);
+      const savedGuestTime = getTimeStamp(videoId);
       let refetchedTime = isAuthenticated ? 0 : Number(savedGuestTime) || 0;
 
       let videoDuration = 0;
@@ -231,7 +231,8 @@ function VideoCard({
           console.error("Error refetching video history:", error);
         }
       } else {
-        const guestResumeTime = sessionStorage.getItem(`resumeTime:${videoId}`);
+        const guestResumeTime = getTimeStamp(videoId);
+        console.log("guestResumeTime", guestResumeTime)
         const isValidResumeTime =
           isFinite(guestResumeTime) && guestResumeTime > 0;
         const hasVideoEnded = guestResumeTime - video.duration < 0.5;
@@ -250,7 +251,7 @@ function VideoCard({
         }
 
         initializeTelemetryArrays();
-        startTelemetry(video, videoId, tracker);
+        startTelemetry(video, videoId, tracker, setTimeStamp);
         tracker.startHover(video, refetchedTime);
 
         clearTimeout(timeoutRef.current);
@@ -275,7 +276,7 @@ function VideoCard({
       console.log("Telemetry data returned:", telemetryData);
 
       if (telemetryData) {
-        sendYouTubeStyleTelemetry(videoId, video, telemetryData);
+        sendYouTubeStyleTelemetry(videoId, video, telemetryData, setTimeStamp);
       }
     };
 

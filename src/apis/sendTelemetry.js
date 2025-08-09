@@ -2,7 +2,7 @@ import axios from "axios";
 
 const BASE_URL = "http://localhost:3000/api/v1/telemetry";
 
-export async function sendTelemetry(telemetryData) {
+export async function sendTelemetry(telemetryData, setTimeStamp) {
   console.log("Sending telemetryData:", telemetryData);
 
   if (Array.isArray(telemetryData) && telemetryData.length > 0) {
@@ -23,7 +23,7 @@ export async function sendTelemetry(telemetryData) {
       subscribed: payload.subscribed,
       c: 'WEB',
       cver: '2.0',
-      source: payload.source,
+      feature: payload.feature,
       final: payload.final || 0,
       t: Date.now()
     };
@@ -46,9 +46,10 @@ export async function sendTelemetry(telemetryData) {
       console.log("✅ Telemetry sent successfully");
 
   
-      if (data?.data?.guestTimestamps) {
+      if (data?.data?.guestTimestamps && typeof setTimeStamp === "function") {
+        console.log("setTimeStamp", setTimeStamp)
         Object.entries(data.data.guestTimestamps).forEach(([videoId, time]) => {
-          sessionStorage.setItem(`resumeTime:${videoId}`, String(time));
+          setTimeStamp(videoId, time);
         });
       }
 

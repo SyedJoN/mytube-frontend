@@ -322,13 +322,13 @@ class YouTubeTelemetryTimer {
     this.rescheduleTimer();
   }
 
-  start() {
+  start(setTimeStamp) {
     console.log("Starting YouTube-style telemetry timer");
     this.isStopped = false;
-    this.scheduleNext();
+    this.scheduleNext(setTimeStamp);
   }
 
-  scheduleNext() {
+  scheduleNext(setTimeStamp) {
     if (this.isStopped) return;
 
     if (this.timer) {
@@ -340,12 +340,12 @@ class YouTubeTelemetryTimer {
 
     this.timer = setTimeout(() => {
       if (this.isStopped) return;
-      this.sendHeartbeat();
+      this.sendHeartbeat(setTimeStamp);
       this.scheduleNext();
     }, this.currentInterval);
   }
 
-  sendHeartbeat() {
+  sendHeartbeat(setTimeStamp) {
     const currentTime = parseFloat(this.video.currentTime.toFixed(3));
     const isMuted = this.video.muted || this.video.volume === 0 ? 1 : 0;
     const duration = parseFloat(this.video.duration.toFixed(3));
@@ -407,7 +407,7 @@ class YouTubeTelemetryTimer {
       cpn,
       heartbeat: 1,
       interval: this.currentInterval,
-      source: "home",
+      feature: "home",
       engaged: this.tracker ? this.tracker.isEngaged : false,
       debug: {
         segmentsInHeartbeat: stArray.length,
@@ -419,7 +419,7 @@ class YouTubeTelemetryTimer {
     console.log(
       `💓 Heartbeat telemetry - CMT: ${cmtValue}s (engaged: ${this.tracker?.isEngaged || false})`
     );
-    sendTelemetry([telemetryData]);
+    sendTelemetry([telemetryData], setTimeStamp);
 
     stArray = [];
     etArray = [];
@@ -440,16 +440,16 @@ class YouTubeTelemetryTimer {
   }
 }
 
-export function startTelemetry(video, videoId, tracker) {
+export function startTelemetry(video, videoId, tracker, setTimeStamp) {
   console.log("Starting telemetry for video:", videoId);
   initializeTelemetryArrays();
 
-  const timer = new YouTubeTelemetryTimer(video, videoId, tracker);
+  const timer = new YouTubeTelemetryTimer(video, videoId, tracker, setTimeStamp);
   tracker.telemetryTimer = timer;
-  timer.start();
+  timer.start(setTimeStamp);
 }
 
-export function sendYouTubeStyleTelemetry(videoId, video, hoverData) {
+export function sendYouTubeStyleTelemetry(videoId, video, hoverData, setTimeStamp) {
   const cmt =
     parseFloat(hoverData.cmt.toFixed(3)) === 0
       ? 0
@@ -475,10 +475,10 @@ export function sendYouTubeStyleTelemetry(videoId, video, hoverData) {
     len: duration,
     cpn,
     timestamp: Date.now(),
-    source: "home",
+    feature: "home",
     engaged: hoverData.debug?.wasEngaged || false,
   };
-  sendTelemetry([telemetryPayload]);
+  sendTelemetry([telemetryPayload], setTimeStamp);
 
   stArray = [];
   etArray = [];
@@ -496,7 +496,7 @@ export function sendYouTubeStyleTelemetry(videoId, video, hoverData) {
       final: 1,
     };
 
-    sendTelemetry([finalPayload]);
+    sendTelemetry([finalPayload], setTimeStamp);
   }, 50);
 }
 export function getNewCpn(length = 12) {
