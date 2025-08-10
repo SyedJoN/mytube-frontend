@@ -285,7 +285,6 @@ function VideoCard({
     return () => {
       handleStop();
       tracker.reset();
-      setProgress(0);
       console.log("🧹 useEffect cleanup");
     };
   }, [isHoverPlay]);

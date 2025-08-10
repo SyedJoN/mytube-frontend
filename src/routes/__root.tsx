@@ -157,6 +157,7 @@ function RouteComponent() {
       const userData = await getCurrentUser();
       setData(userData);
     } catch (e) {
+      setData(null);
       channel.postMessage({ type: "LOGOUT" });
 
     }

@@ -34,6 +34,7 @@ function WatchVideo({ videoId, playlistId }) {
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["video", videoId],
     queryFn: () => fetchVideoById(videoId),
+    refetchOnWindowFocus: false,
     enabled: !!videoId,
   });
 
@@ -50,6 +51,8 @@ function WatchVideo({ videoId, playlistId }) {
   } = useQuery({
     queryKey: ["videos"],
     queryFn: fetchVideos,
+    refetchOnWindowFocus: false,
+
   });
 
   const videos = listVideoData?.data?.docs || [];
@@ -75,6 +78,7 @@ function WatchVideo({ videoId, playlistId }) {
   } = useQuery({
     queryKey: ["channelProfile", user],
     queryFn: () => getUserChannelProfile(user),
+    refetchOnWindowFocus: false,
     enabled: !!user,
   });
   const [subscriberCount, setSubscriberCount] = useState(
@@ -95,6 +99,7 @@ function WatchVideo({ videoId, playlistId }) {
   } = useQuery({
     queryKey: ["playlists", playlistId],
     queryFn: () => fetchPlaylistById(playlistId),
+    refetchOnWindowFocus: false,
     enabled: !!playlistId,
   });
 

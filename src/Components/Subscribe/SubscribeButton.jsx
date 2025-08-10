@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toggleSubscription } from "../../apis/subscriptionFn";
 import Button from "@mui/material/Button";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";

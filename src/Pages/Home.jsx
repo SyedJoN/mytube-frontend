@@ -26,6 +26,8 @@ function Home() {
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["videos"],
     queryFn: fetchVideos,
+    refetchOnWindowFocus: false,
+
 
   });
 

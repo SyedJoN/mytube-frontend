@@ -465,7 +465,6 @@ export function sendYouTubeStyleTelemetry(
   video,
   hoverData,
   setTimeStamp,
-  isVideo = false
 ) {
   const cmt =
     parseFloat(hoverData.cmt.toFixed(3)) === 0
@@ -478,32 +477,6 @@ export function sendYouTubeStyleTelemetry(
   const volumeValue = Math.round(video.volume * 100);
   const duration = parseFloat(video.duration.toFixed(3));
 
-  if (isVideo) {
-    const telemetryPayload = {
-      ns: "yt",
-      el: "home",
-      docid: videoId,
-      cmt,
-      st: cmt === 0 ? 0 : cmt,
-      et: cmt === 0 ? 0 : cmt,
-      subscribed,
-      volume: volumeValue,
-      muted: isMuted,
-      final: 1,
-      state: video.paused ? "paused" : "playing",
-      len: duration,
-      cpn,
-      timestamp: Date.now(),
-      feature: "home",
-      engaged: hoverData.debug?.wasEngaged || false,
-    };
-    sendTelemetry([telemetryPayload], setTimeStamp);
-
-    stArray = [];
-    etArray = [];
-    volumeArray = [];
-    mutedArray = [];
-  } else {
     const telemetryPayload = {
       ns: "yt",
       el: "home",
@@ -542,7 +515,6 @@ export function sendYouTubeStyleTelemetry(
       sendTelemetry([finalPayload], setTimeStamp);
     }, 50);
   }
-}
 function getNewCpn(length = 12) {
   const array = new Uint8Array(length);
   crypto.getRandomValues(array);

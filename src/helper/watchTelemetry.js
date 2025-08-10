@@ -25,7 +25,7 @@ export class VideoTelemetryTimer {
     this.telemetryTimer = null;
   }
 
-  closeCurrentSegment(video, endTime) {
+  closeCurrentSegment(video, endTime, trackState = false) {
     const startValue =
       typeof this.currentSegmentStart === "number" &&
       !isNaN(this.currentSegmentStart)
@@ -40,7 +40,8 @@ export class VideoTelemetryTimer {
       segmentEnd: segmentEnd,
       segmentStart: segmentStart,
     });
-    if (Math.abs(segmentEnd - segmentStart) === 0) return;
+    if (trackState && Math.abs(segmentEnd - segmentStart) < 1) return;
+    if (Math.abs(segmentEnd - segmentStart) < 0) return;
 
     stArray.push(segmentStart);
     etArray.push(segmentEnd);
@@ -56,7 +57,7 @@ export class VideoTelemetryTimer {
   }
   trackVideoState(video, fromTime) {
     const currentTime = video.currentTime;
-    this.closeCurrentSegment(video, fromTime);
+    this.closeCurrentSegment(video, fromTime, 1);
     this.currentSegmentStart = currentTime;
 
     console.log("Video Status Tracked", {
@@ -103,17 +104,42 @@ export class VideoTelemetryTimer {
     this.isStopped = false;
     this.scheduleNext(setTimeStamp);
   }
+  end(video, isSubscribed) {
+    console.log("ending telemetry...");
+
+    const videoCurrentTime = parseFloat(video.currentTime.toFixed(3));
+    this.closeCurrentSegment(video, videoCurrentTime);
+
+    const finalCmt = videoCurrentTime;
+
+    const telemetryData = {
+      cmt:
+        parseFloat(finalCmt.toFixed(3)) === 0
+          ? 0
+          : parseFloat(finalCmt.toFixed(3)),
+      st: stArray.join(","),
+      et: etArray.join(","),
+      subscribed: isSubscribed ? 1 : 0,
+    };
+
+    this.reset();
+
+    return telemetryData;
+  }
+
   scheduleNext(setTimeStamp) {
     if (this.isStopped) return;
+
     if (this.telemetryTimer) {
-      clearInterval(this.telemetryTimer);
+      clearTimeout(this.telemetryTimer);
       this.telemetryTimer = null;
     }
     this.currentInterval = this.calculateNextInterval();
+
     this.telemetryTimer = setTimeout(() => {
       this.sendHeartbeat(setTimeStamp);
       this.count++;
-      this.scheduleNext(setTimeStamp);
+      this.scheduleNext();
     }, this.currentInterval);
   }
 
@@ -122,10 +148,15 @@ export class VideoTelemetryTimer {
     return this.baseInterval;
   }
   sendHeartbeat(setTimeStamp) {
-    const currentTime = parseFloat(this.video.currentTime.toFixed(3));
-    const duration = parseFloat(this.video.duration.toFixed(3));
-    const isMuted = this.video.muted ? 1 : 0 || this.video.volume === 0 ? 1 : 0;
-    const volume = Math.round(this.video.volume * 100);
+    if (this.isStopped) return;
+    const currentTime = parseFloat(this.video?.currentTime.toFixed(3));
+    const duration = parseFloat(this.video?.duration.toFixed(3));
+    const isMuted = this.video?.muted
+      ? 1
+      : 0 || this.video?.volume === 0
+        ? 1
+        : 0;
+    const volume = Math.round(this.video?.volume * 100);
 
     const segmentStart = parseFloat(this.currentSegmentStart.toFixed(3));
     const segmentEnd = currentTime;
@@ -156,7 +187,7 @@ export class VideoTelemetryTimer {
             : parseFloat(currentTime.toFixed(3)),
       volume: volumeArray.length > 0 ? volumeArray.join(",") : volume,
       len: duration,
-      state: this.video.paused ? "paused" : "playing",
+      state: this.video?.paused ? "paused" : "playing",
       muted: mutedArray.length > 0 ? mutedArray.join(",") : isMuted,
       cpn,
       interval: this.currentInterval,
@@ -206,9 +237,54 @@ export class VideoTelemetryTimer {
   reset() {
     this.currentSegmentStart = 0;
     this.count = 0;
+    this.isStopped = true;
     this.video = null;
-    this.telemetryTimer = null;
     this.currentInterval = null;
-    clearInterval(telemetryTimer);
+    this.telemetryTimer = null;
+
+    clearTimeout(this.telemetryTimer);
+
+    stArray = [];
+    etArray = [];
+    volumeArray = [];
+    mutedArray = [];
+    
   }
+}
+export function sendYouTubeStyleTelemetry(
+  videoId,
+  video,
+  hoverData,
+  setTimeStamp
+) {
+  const cmt =
+    parseFloat(hoverData.cmt.toFixed(3)) === 0
+      ? 0
+      : parseFloat(hoverData.cmt.toFixed(3));
+
+  const subscribed = hoverData.subscribed;
+  const isMuted = video.muted || video.volume === 0 ? 1 : 0;
+  const volumeValue = Math.round(video.volume * 100);
+  const duration = parseFloat(video.duration.toFixed(3));
+
+  const finalPayload = {
+    ns: "yt",
+    el: "home",
+    docid: videoId,
+    cmt: cmt,
+    st: cmt === 0 ? 0 : cmt,
+    et: cmt === 0 ? 0 : cmt,
+    subscribed,
+    volume: volumeArray.length > 0 ? volumeArray.join(",") : volumeValue,
+    state: video.paused ? "paused" : "playing",
+    muted: mutedArray.length > 0 ? mutedArray.join(",") : isMuted,
+    len: duration,
+    cpn,
+    final: 1,
+    timestamp: Date.now(),
+    feature: "home",
+    engaged: hoverData.debug?.wasEngaged || false,
+  };
+
+  sendTelemetry([finalPayload], setTimeStamp);
 }

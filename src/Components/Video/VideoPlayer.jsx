@@ -63,7 +63,10 @@ import {
 } from "../../Contexts/RootContexts";
 
 import { getWatchHistory } from "../../apis/userFn";
-import { VideoTelemetryTimer } from "../../helper/watchTelemetry";
+import {
+  sendYouTubeStyleTelemetry,
+  VideoTelemetryTimer,
+} from "../../helper/watchTelemetry";
 
 function VideoPlayer({
   videoId,
@@ -169,6 +172,7 @@ function VideoPlayer({
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["video", videoId],
     queryFn: () => fetchVideoById(videoId),
+    refetchOnWindowFocus: false,
     enabled: !!videoId,
   });
 
@@ -180,6 +184,7 @@ function VideoPlayer({
     refetch: refetchHistory,
   } = useQuery({
     queryKey: ["userHistory"],
+    refetchOnWindowFocus: false,
     queryFn: getWatchHistory,
     enabled: !!userId,
   });
@@ -236,24 +241,19 @@ function VideoPlayer({
     setIsPlaying(true);
   };
 
-  // useEffect(() => {
-  //   console.log("useEffect triggered for pathname:", location.pathname);
-  //   const video = videoRef?.current;
-  //   const tracker = trackerRef?.current;
-  //   if (!video || !tracker) return;
-  //   const telemetryData = tracker.endHover(video, isSubscribedTo ? 1 : 0);
-  //   if (telemetryData) {
-  //     console.log("Sending telmetry");
-  //     sendYouTubeStyleTelemetry(
-  //       videoId,
-  //       video,
-  //       telemetryData,
-  //       setTimeStamp,
-  //       true
-  //     );
-  //     tracker.reset();
-  //   }
-  // }, [location.pathname]);
+  useEffect(() => {
+    console.log("useEffect triggered for pathname:", location.pathname);
+    const video = videoRef?.current;
+    const tracker = trackerRef?.current;
+    tracker.reset();
+
+    if (!video || !tracker) return;
+    const telemetryData = tracker.end(video, isSubscribedTo ? 1 : 0);
+    if (telemetryData) {
+      console.log("Sending telmetry");
+      sendYouTubeStyleTelemetry(videoId, video, telemetryData, setTimeStamp);
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -914,9 +914,9 @@ function VideoPlayer({
       setIsPlaying(false);
     }
     const newTime = video.currentTime || 0;
-    // if (tracker && video.currentTime !== 0) {
-    //   tracker.trackSeek(video, fromTime, newTime);
-    // }
+    if (tracker && video.currentTime !== 0) {
+      tracker.trackVideoState(video, fromTime, newTime);
+    }
   }, []);
 
   useEffect(() => {
@@ -1019,16 +1019,17 @@ function VideoPlayer({
         }
       } else {
         const guestTime = getTimeStamp(videoId);
+        console.log("guestTimeget", guestTime);
+
         setResumeTime(isFinite(guestTime) && guestTime > 0 ? guestTime : 0);
       }
     };
-
     fetchResumeTime();
 
     return () => {
       isMounted = false;
     };
-  }, [videoId, isAuthenticated]);
+  }, [data?.data?._id, isAuthenticated]);
 
   const handleLoadedMetadata = async () => {
     const video = videoRef?.current;
@@ -1156,7 +1157,7 @@ function VideoPlayer({
       video.muted = false;
     }
 
-    if (tracker) {
+    if (tracker && !video.paused) {
       tracker.handleMuteToggle(video, fromTime);
     }
   }, []);
