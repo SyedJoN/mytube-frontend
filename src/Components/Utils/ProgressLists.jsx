@@ -205,16 +205,15 @@ export const ProgressLists = ({
       Math.max((offsetX / rect.width) * 100, 0),
       100
     );
-    const newTime = (videoRef.current?.duration * newProgress) / 100;
+    const newTime = (newProgress * videoRef.current?.duration) / 100;
 
     videoRef.current.currentTime = newTime;
-    setProgress(newProgress);
     if (videoRef.current.paused && !isUserInteracted) {
       videoRef.current.play();
       setIsUserInteracted(true);
     }
     if (tracker && isFinite(videoRef.current.currentTime)) {
-      tracker.trackSeek(videoRef, fromTime, newTime);
+      tracker.trackSeek(videoRef.current, fromTime, newTime);
     }
   };
   const previewStyle = getBackgroundPosition(hoveredCue?.text);
@@ -387,7 +386,7 @@ export const ProgressLists = ({
             top: "-4px",
             transform: `translateX(${(progress / 100) * BarWidth}px)`,
             zIndex: 260,
-            transition: "transform .1s cubic-bezier(0.4, 0, 1, 1)",
+            transition: "none",
             pointerEvents: "none",
           }}
         >

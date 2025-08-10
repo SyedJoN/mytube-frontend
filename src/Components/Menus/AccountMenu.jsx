@@ -56,7 +56,7 @@ export default function AccountMenu() {
   const channel = new BroadcastChannel("auth_channel");
 
   const handleClick = (event) => {
-    setAnchorEl((prev) => (prev ? null : event.currentTarget));
+    setAnchorEl(prev => !prev);
     setCreateAnchorEl(null);
   };
   const handleClose = () => {

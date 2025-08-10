@@ -19,7 +19,6 @@ import { UserContext, UserInteractionContext } from "../Contexts/RootContexts";
 function WatchVideo({ videoId, playlistId }) {
   const navigate = useNavigate();
   const userContext = useContext(UserContext);
-  const userInteractionContext = useContext(UserInteractionContext);
   
   const { data: dataContext } = userContext ?? {};
   const [index, setIndex] = useState(0);

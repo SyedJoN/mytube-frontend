@@ -233,12 +233,10 @@ function VideoCard({
         }
       } else {
         const guestResumeTime = getTimeStamp(videoId);
-        console.log("guestResumeTime", guestResumeTime)
+        console.log("guestResumeTime", guestResumeTime);
         const isValidResumeTime =
           isFinite(guestResumeTime) && guestResumeTime > 0;
-        video.currentTime = isValidResumeTime
-          ? guestResumeTime
-          : 0
+        video.currentTime = isValidResumeTime ? guestResumeTime : 0;
       }
 
       try {
@@ -269,11 +267,10 @@ function VideoCard({
       clearTimeout(timeoutRef.current);
       video.pause();
       video.classList.remove("hide-cursor");
-    
+
       const telemetryData = tracker.endHover(video, isSubscribedTo);
-        console.log("isSubscribedTo", isSubscribedTo);
       console.log("Telemetry data returned:", telemetryData);
-      
+
       if (telemetryData) {
         sendYouTubeStyleTelemetry(videoId, video, telemetryData, setTimeStamp);
       }
@@ -323,7 +320,7 @@ function VideoCard({
     const fromTime = parseFloat(hoverVideoRef.current.currentTime.toFixed(3));
     setIsVolumeMuted((prev) => !prev);
     if (tracker && hoverVideoRef.current) {
-      tracker.trackSeek(hoverVideoRef.current, fromTime);
+      tracker.handleMuteToggle(hoverVideoRef.current, fromTime);
     }
   };
 
@@ -438,7 +435,7 @@ function VideoCard({
               display: "block",
               width: "100%",
               paddingTop: "56.25%",
-              overflow: "hidden",
+              overflow: isHoverPlay && isVideoPlaying ? "visible" : "hidden",
               borderRadius: isHoverPlay && isVideoPlaying ? "0" : "12px",
             }}
           >
@@ -453,6 +450,7 @@ function VideoCard({
                         height: "100%",
                         objectFit: "cover",
                         aspectRatio: "16/9",
+                        borderRadius: 0,
                         transition: "all 0.3s ease-in-out",
                       }}
                       loading="lazy"
@@ -805,8 +803,8 @@ function VideoCard({
             padding: 0,
             cursor: "pointer",
             overflow: "visible",
-            borderRadius: isHoverPlay && isVideoPlaying ? "0" : "8px",
             boxShadow: "none",
+            borderRadius: 0,
             display: "flex",
             backgroundColor: "transparent",
           }}
@@ -828,6 +826,7 @@ function VideoCard({
                 display: "block",
                 paddingTop: "56.25%",
                 overflow: "hidden",
+                borderRadius: isHoverPlay && isVideoPlaying ? "0" : "8px",
               }}
             >
               <Box
@@ -850,8 +849,6 @@ function VideoCard({
                     <CardMedia
                       loading="lazy"
                       sx={{
-                        borderRadius:
-                          isHoverPlay && isVideoPlaying ? "0" : "8px",
                         width: "100%",
                         height: "100%",
                         objectFit: "cover",
@@ -868,7 +865,6 @@ function VideoCard({
                         muted
                         onPlaying={() => setIsVideoPlaying(true)}
                         id="video-player"
-                        key={previewUrl}
                         preload="none"
                         className={`hover-interaction ${isHoverPlay ? "" : "hide"}`}
                         crossOrigin="anonymous"

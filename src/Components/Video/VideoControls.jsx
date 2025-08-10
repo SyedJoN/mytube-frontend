@@ -55,6 +55,7 @@ const VideoControls = ({
   togglePlayPause,
   setShowIcon,
   playlistVideos,
+  videoReady,
   index,
   toggleFullScreen,
   volume,
@@ -175,6 +176,7 @@ const VideoControls = ({
     () => ({
       position: "absolute",
       opacity: controlOpacity,
+      display: videoReady ? "block" : "none",
       PointerEvent: controlOpacity,
       width: isMini ? "480px" : videoContainerWidth - 24,
       transition: "opacity 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
@@ -186,7 +188,7 @@ const VideoControls = ({
       borderRadius: "3px",
       zIndex: 59,
     }),
-    [controlOpacity, isMini, videoContainerWidth, isMobile]
+    [controlOpacity, isMini, videoContainerWidth, isMobile, videoReady]
   );
 
   const isFullscreen = !!document.fullscreenElement;
@@ -640,9 +642,13 @@ const VideoControls = ({
 
             <IconButton disableRipple sx={{ cursor: "default" }}>
               <Typography sx={{ color: "#f1f1f1" }} fontSize={"0.85rem"}>
-              {formatDuration(
+                {formatDuration(
                   Math.min(
-                    Math.max(0, videoRef?.current?.duration - videoRef?.current?.currentTime)  || 0,
+                    Math.max(
+                      0,
+                      videoRef?.current?.duration -
+                        videoRef?.current?.currentTime
+                    ) || 0,
                     videoRef?.current?.duration || 0
                   )
                 )}{" "}

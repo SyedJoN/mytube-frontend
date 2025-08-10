@@ -62,13 +62,8 @@ import {
   UserInteractionContext,
 } from "../../Contexts/RootContexts";
 
-import {
-  HoverTelemetryTracker,
-  initializeTelemetryArrays,
-  sendYouTubeStyleTelemetry,
-  startTelemetry,
-} from "../../helper/Telemetry";
 import { getWatchHistory } from "../../apis/userFn";
+import { VideoTelemetryTimer } from "../../helper/watchTelemetry";
 
 function VideoPlayer({
   videoId,
@@ -91,7 +86,6 @@ function VideoPlayer({
   const videoRef = useRef(null);
   const timeoutRef = useRef(null);
   const fullScreenTitleRef = useRef(null);
-  const historyIntervalRef = useRef(null);
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const { open: isOpen } = drawerContext ?? {};
@@ -105,11 +99,14 @@ function VideoPlayer({
   const [prevTheatre, setPrevTheatre] = useState(false);
   const [videoHeight, setVideoHeight] = useState(0);
   const [playerHeight, setPlayerHeight] = useState("0px");
+  const [resumeTime, setResumeTime] = useState(0);
+
   const [playerWidth, setPlayerWidth] = useState("0px");
   const [controlOpacity, setControlOpacity] = useState(0);
   const [titleOpacity, setTitleOpacity] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   const [isPiActive, setIsPiPActive] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
   const [canPlay, setCanPlay] = useState(true);
   const [isAmbient, setIsAmbient] = usePlayerSetting("ambientMode", false);
   const [playbackSpeed, setPlaybackSpeed] = usePlayerSetting(
@@ -121,8 +118,6 @@ function VideoPlayer({
     1.0
   );
   const isInside = useRef(null);
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const location = useLocation();
   const prevVideoRef = useRef(null);
   const playIconRef = useRef(null);
@@ -162,7 +157,7 @@ function VideoPlayer({
   const captureCanvasRef = useRef(null);
   const prevHoverStateRef = useRef(null);
   const holdTimer = useRef(null);
-  const trackerRef = React.useRef(new HoverTelemetryTracker());
+  const trackerRef = React.useRef(new VideoTelemetryTimer());
   const isHolding = useRef(null);
   const glowCanvasRef = useRef(null);
   const prevSpeedRef = useRef(null);
@@ -182,6 +177,7 @@ function VideoPlayer({
     isHistoryLoading,
     isHistoryError,
     historyError,
+    refetch: refetchHistory,
   } = useQuery({
     queryKey: ["userHistory"],
     queryFn: getWatchHistory,
@@ -192,6 +188,11 @@ function VideoPlayer({
     ? (userHistory?.data?.find((entry) => entry.video?._id === videoId)
         ?.currentTime ?? 0)
     : 0;
+
+  useEffect(() => {
+    setVideoReady(false);
+    hideControls();
+  }, [videoId]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -205,20 +206,18 @@ function VideoPlayer({
     const video = videoRef?.current;
     const tracker = trackerRef.current;
     if (!video || !tracker) return;
-
+    console.log("PLAYING");
     try {
-      await video.play();
+      // await video.play();
       if (tracker?.telemetryTimer) {
-        tracker.telemetryTimer.stop();
+        tracker.stop();
         tracker.telemetryTimer = null;
       }
       const userResumeTime = userId
         ? (userHistory?.data?.find((entry) => entry.video?._id === videoId)
             ?.currentTime ?? 0)
         : 0;
-      initializeTelemetryArrays();
-      startTelemetry(video, videoId, tracker, setTimeStamp);
-      tracker.startHover(video, userResumeTime);
+      tracker.start(video, videoId, setTimeStamp, userResumeTime);
 
       clearTimeout(timeoutRef.current);
       timeoutRef.current = setTimeout(() => {
@@ -227,8 +226,8 @@ function VideoPlayer({
     } catch (err) {
       setIsPlaying(false);
       if (tracker?.telemetryTimer) {
-        console.log("STOPPP")
-        tracker.telemetryTimer.stop();
+        console.log("STOPPP");
+        tracker.stop();
         tracker.telemetryTimer = null;
       }
     }
@@ -237,24 +236,24 @@ function VideoPlayer({
     setIsPlaying(true);
   };
 
-  useEffect(() => {
-    console.log("useEffect triggered for pathname:", location.pathname);
-    const video = videoRef?.current;
-    const tracker = trackerRef?.current;
-    if (!video || !tracker) return;
-    const telemetryData = tracker.endHover(video, isSubscribedTo ? 1 : 0);
-    if (telemetryData) {
-      console.log("Sending telmetry");
-      sendYouTubeStyleTelemetry(
-        videoId,
-        video,
-        telemetryData,
-        setTimeStamp,
-        true
-      );
-      tracker.reset();
-    }
-  }, [location.pathname]);
+  // useEffect(() => {
+  //   console.log("useEffect triggered for pathname:", location.pathname);
+  //   const video = videoRef?.current;
+  //   const tracker = trackerRef?.current;
+  //   if (!video || !tracker) return;
+  //   const telemetryData = tracker.endHover(video, isSubscribedTo ? 1 : 0);
+  //   if (telemetryData) {
+  //     console.log("Sending telmetry");
+  //     sendYouTubeStyleTelemetry(
+  //       videoId,
+  //       video,
+  //       telemetryData,
+  //       setTimeStamp,
+  //       true
+  //     );
+  //     tracker.reset();
+  //   }
+  // }, [location.pathname]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -908,7 +907,7 @@ function VideoPlayer({
 
     if (video.paused || video.ended) {
       video.play();
-      
+
       setIsPlaying(true);
     } else {
       video.pause();
@@ -918,7 +917,6 @@ function VideoPlayer({
     // if (tracker && video.currentTime !== 0) {
     //   tracker.trackSeek(video, fromTime, newTime);
     // }
-
   }, []);
 
   useEffect(() => {
@@ -994,50 +992,66 @@ function VideoPlayer({
 
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || video.readyState < 3) return;
+    if (!video || video.readyState < 2) return;
     if (isUserInteracted) {
       videoRef.current?.play();
     }
   }, [isUserInteracted]);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchResumeTime = async () => {
+      if (isAuthenticated) {
+        try {
+          const res = await refetchHistory();
+          const refetchedVideo = res?.data?.data?.find(
+            (v) => v?.video?._id === videoId
+          );
+          if (!isMounted) return;
+
+          const duration = refetchedVideo?.duration || 0;
+          const time = refetchedVideo?.currentTime || 0;
+          setResumeTime(isFinite(time) && time < duration ? time : 0);
+        } catch (err) {
+          console.error("Error fetching history:", err);
+          if (isMounted) setResumeTime(0);
+        }
+      } else {
+        const guestTime = getTimeStamp(videoId);
+        setResumeTime(isFinite(guestTime) && guestTime > 0 ? guestTime : 0);
+      }
+    };
+
+    fetchResumeTime();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [videoId, isAuthenticated]);
+
   const handleLoadedMetadata = async () => {
     const video = videoRef?.current;
     if (!video) return;
+
+    video.currentTime = resumeTime;
+    const value = (video.currentTime / video.duration) * 100;
+    setProgress(value);
 
     if (!isUserInteracted) {
       showControls();
       setTitleOpacity(1);
     }
-
-    const savedGuestTime = getTimeStamp(videoId);
-
-    const isValidGuestResumeTime =
-      isFinite(savedGuestTime) &&
-      savedGuestTime > 0 &&
-      savedGuestTime < video.duration;
-    const isValidUserResumeTime =
-      isFinite(userResumeTime) &&
-      userResumeTime > 0 &&
-      userResumeTime < video.duration;
-
-    const shouldPlay =
-      isUserInteracted &&
-      (isAuthenticated ? isValidUserResumeTime : isValidGuestResumeTime);
-
-    if (!shouldPlay) return;
-
-    if (isAuthenticated && isValidUserResumeTime && isUserInteracted) {
-      video.currentTime = userResumeTime;
-    } else if (!isAuthenticated && isValidGuestResumeTime && isUserInteracted) {
-      video.currentTime = savedGuestTime;
-    }
     try {
-      await video.play();
-      setIsPlaying(true);
+      if (isUserInteracted) {
+        await video.play();
+        setIsPlaying(true);
+      }
     } catch (err) {
       setIsPlaying(false);
       console.warn("Video play failed:", err);
     }
+    setVideoReady(true);
   };
 
   useEffect(() => {
@@ -1128,7 +1142,7 @@ function VideoPlayer({
     const video = videoRef.current;
     const tracker = trackerRef.current;
     if (!video) return;
-
+    const fromTime = parseFloat(video.currentTime.toFixed(3));
     const currentVolume = video.volume;
 
     if (currentVolume > 0) {
@@ -1141,7 +1155,6 @@ function VideoPlayer({
       setVolume(restoreVol * 40);
       video.muted = false;
     }
-    const fromTime = parseFloat(video.currentTime.toFixed(3));
 
     if (tracker) {
       tracker.handleMuteToggle(video, fromTime);
@@ -1353,7 +1366,9 @@ function VideoPlayer({
     if (!video || isNaN(video.duration) || video.duration === 0) return;
 
     const value = (video.currentTime / video.duration) * 100;
+
     setProgress(value);
+
     const duration = video.duration;
     const watchTime = video.currentTime;
 
@@ -1481,7 +1496,7 @@ function VideoPlayer({
             >
               {data?.data?.videoFile.url && (
                 <video
-                  autoPlay={isUserInteracted}
+                  key={data?.data?.videoFile.url}
                   ref={videoRef}
                   crossOrigin="anonymous"
                   id="video-player"
@@ -1491,7 +1506,8 @@ function VideoPlayer({
                   onPlay={handlePlay}
                   onLoadedMetadata={handleLoadedMetadata}
                   style={{
-                    aspectRatio: isMini ? "1.7777777777777777" : "",
+                    visibility: videoReady ? "visible" : "hidden",
+                    aspectRatio: isMini ? "1.777" : "",
                     position: "absolute",
                     width: isMini ? "480px" : playerWidth,
                     height: isMini ? "auto" : playerHeight,
@@ -1514,6 +1530,7 @@ function VideoPlayer({
                 isLoading={isLoading}
                 isReplay={isReplay}
                 togglePlayPause={togglePlayPause}
+                videoReady={videoReady}
                 toggleFullScreen={toggleFullScreen}
                 setShowIcon={setShowIcon}
                 isPlaying={isPlaying}

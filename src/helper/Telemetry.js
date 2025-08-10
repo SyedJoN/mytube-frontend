@@ -152,40 +152,40 @@ export class HoverTelemetryTracker {
   }
 
   closeCurrentSegment(endTime, video) {
-  const startValue = (typeof this.currentSegmentStart === "number" && !isNaN(this.currentSegmentStart))
-    ? this.currentSegmentStart
-    : video?.currentTime || 0;
+    const startValue =
+      typeof this.currentSegmentStart === "number" &&
+      !isNaN(this.currentSegmentStart)
+        ? this.currentSegmentStart
+        : video?.currentTime || 0;
 
-  const segmentStart = parseFloat(startValue.toFixed(3));
-  const segmentEnd = parseFloat(endTime.toFixed(3));
+    const segmentStart = parseFloat(startValue.toFixed(3));
+    const segmentEnd = parseFloat(endTime.toFixed(3));
+    const volumeValue = Math.round((video?.volume ?? 1) * 100);
+    const isMuted = video.muted ? 1 : 0;
 
-  stArray.push(segmentStart);
-  etArray.push(segmentEnd);
+    stArray.push(segmentStart);
+    etArray.push(segmentEnd);
 
-  console.log("close initial array pushed", {
-    st: segmentStart,
-    et: segmentEnd,
-    fallbackUsed: startValue !== this.currentSegmentStart
-  });
+    console.log("close initial array pushed", {
+      st: segmentStart,
+      et: segmentEnd,
+      fallbackUsed: startValue !== this.currentSegmentStart,
+    });
 
-  const isMuted = video?.muted ? 1 : 0;
-  const volumeValue = Math.round((video?.volume ?? 1) * 100);
+    volumeArray.push(volumeValue);
+    mutedArray.push(isMuted);
 
-  volumeArray.push(volumeValue);
-  mutedArray.push(isMuted);
-
-  console.log("Segment closed:", {
-    from: segmentStart,
-    to: segmentEnd,
-    duration: (segmentEnd - segmentStart).toFixed(3) + "s",
-  });
-}
-
+    console.log("Segment closed:", {
+      from: segmentStart,
+      to: segmentEnd,
+      duration: (segmentEnd - segmentStart).toFixed(3) + "s",
+    });
+  }
 
   handleMuteToggle(video, fromTime) {
     console.log("video.muted =", video.muted);
 
-    if (video.muted || video.volume === 0) {
+    if (video.muted) {
       this.trackMuteStatusChange(video, 1, fromTime);
     } else {
       this.trackMuteStatusChange(video, 0, fromTime);
@@ -353,7 +353,7 @@ class YouTubeTelemetryTimer {
 
   sendHeartbeat(setTimeStamp) {
     const currentTime = parseFloat(this.video.currentTime.toFixed(3));
-    const isMuted = this.video.muted || this.video.volume === 0 ? 1 : 0;
+    const isMuted = this.video.muted ? 1 : 0 || this.video.volume === 0 ? 1 : 0;
     const duration = parseFloat(this.video.duration.toFixed(3));
 
     if (this.tracker && this.tracker.isTracking) {
@@ -497,57 +497,53 @@ export function sendYouTubeStyleTelemetry(
       feature: "home",
       engaged: hoverData.debug?.wasEngaged || false,
     };
-  sendTelemetry([telemetryPayload], setTimeStamp);
+    sendTelemetry([telemetryPayload], setTimeStamp);
 
-  stArray = [];
-  etArray = [];
-  volumeArray = [];
-  mutedArray = [];
-
-
+    stArray = [];
+    etArray = [];
+    volumeArray = [];
+    mutedArray = [];
   } else {
- const telemetryPayload = {
-    ns: "yt",
-    el: "home",
-    docid: videoId,
-    cmt,
-    st: stValues,
-    et: etValues,
-    subscribed,
-    volume: volumeArray.length > 0 ? volumeArray.join(",") : volumeValue,
-    state: video.paused ? "paused" : "playing",
-    muted: mutedArray.length > 0 ? mutedArray.join(",") : isMuted,
-    len: duration,
-    cpn,
-    timestamp: Date.now(),
-    feature: "home",
-    engaged: hoverData.debug?.wasEngaged || false,
-  };
-  sendTelemetry([telemetryPayload], setTimeStamp);
-
-  stArray = [];
-  etArray = [];
-  volumeArray = [];
-  mutedArray = [];
-
-  setTimeout(() => {
-    const finalPayload = {
-      ...telemetryPayload,
-      st: cmt === 0 ? 0 : cmt,
-      et: cmt === 0 ? 0 : cmt,
-      volume: volumeValue,
-      muted: isMuted,
-      cmt: cmt,
-      final: 1,
+    const telemetryPayload = {
+      ns: "yt",
+      el: "home",
+      docid: videoId,
+      cmt,
+      st: stValues,
+      et: etValues,
+      subscribed,
+      volume: volumeArray.length > 0 ? volumeArray.join(",") : volumeValue,
+      state: video.paused ? "paused" : "playing",
+      muted: mutedArray.length > 0 ? mutedArray.join(",") : isMuted,
+      len: duration,
+      cpn,
+      timestamp: Date.now(),
+      feature: "home",
+      engaged: hoverData.debug?.wasEngaged || false,
     };
+    sendTelemetry([telemetryPayload], setTimeStamp);
 
-    sendTelemetry([finalPayload], setTimeStamp);
-  }, 50);
+    stArray = [];
+    etArray = [];
+    volumeArray = [];
+    mutedArray = [];
+
+    setTimeout(() => {
+      const finalPayload = {
+        ...telemetryPayload,
+        st: cmt === 0 ? 0 : cmt,
+        et: cmt === 0 ? 0 : cmt,
+        volume: volumeValue,
+        muted: isMuted,
+        cmt: cmt,
+        final: 1,
+      };
+
+      sendTelemetry([finalPayload], setTimeStamp);
+    }, 50);
   }
-
- 
 }
-export function getNewCpn(length = 12) {
+function getNewCpn(length = 12) {
   const array = new Uint8Array(length);
   crypto.getRandomValues(array);
   return btoa(String.fromCharCode(...array))
