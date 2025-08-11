@@ -80,7 +80,9 @@ const VideoControls = ({
   isAmbient,
   setIsAmbient,
   progress,
+  setProgress,
   bufferedVal,
+  setBufferedVal,
   updateState,
 }) => {
   const theme = useTheme();
@@ -1281,10 +1283,11 @@ const VideoControls = ({
           videoId={videoId}
           bufferedVal={bufferedVal}
           progress={progress}
+          setBufferedVal={setBufferedVal}
+          setProgress={setProgress}
           isTheatre={isTheatre}
           isMini={isMini}
           vttUrl={vttUrl}
-          updateState={updateState}
         />
       </Box>
     </>

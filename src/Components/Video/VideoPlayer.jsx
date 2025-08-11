@@ -59,6 +59,7 @@ import {
   VideoTelemetryTimer,
 } from "../../helper/watchTelemetry";
 import useStateReducer from "../Utils/useStateReducer";
+import useRefReducer from "../Utils/useRefReducer";
 
 function VideoPlayer({
   videoId,
@@ -77,10 +78,34 @@ function VideoPlayer({
   const userInteractionContext = useContext(UserInteractionContext);
   const { getTimeStamp, setTimeStamp } = useContext(TimeStampContext);
 
-  const containerRef = useRef(null);
-  const videoRef = useRef(null);
-  const timeoutRef = useRef(null);
-  const fullScreenTitleRef = useRef(null);
+ const {
+  containerRef,
+  videoRef,
+  videoPauseStatus,
+  prevVolumeRef,
+  prevVolRef,
+  exitingPiPViaOurUIButtonRef,
+  timeoutRef,
+  fullScreenTitleRef,
+  isInside,
+  prevVideoRef,
+  playIconRef,
+  volumeIconRef,
+  pressTimer,
+  clickTimeout,
+  clickCount,
+  animateTimeoutRef,
+  captureCanvasRef,
+  prevHoverStateRef,
+  holdTimer,
+  trackerRef,
+  isHolding,
+  glowCanvasRef,
+  prevSpeedRef,
+  prevSliderSpeedRef,
+} = useRefReducer();
+
+
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const { open: isOpen } = drawerContext ?? {};
@@ -89,8 +114,7 @@ function VideoPlayer({
   const isAuthenticated = dataContext || null;
   const { isUserInteracted, setIsUserInteracted } =
     userInteractionContext ?? {};
-  const videoPauseStatus = useRef(null);
-  const prevVolumeRef = useRef(null);
+
 
   const [isAmbient, setIsAmbient] = usePlayerSetting("ambientMode", false);
   const [playbackSpeed, setPlaybackSpeed] = usePlayerSetting(
@@ -101,23 +125,10 @@ function VideoPlayer({
     "playbackSpeed",
     1.0
   );
-  const isInside = useRef(null);
   const location = useLocation();
-  const prevVideoRef = useRef(null);
-  const playIconRef = useRef(null);
-  const volumeIconRef = useRef(null);
-  const pressTimer = useRef(null);
-  const clickTimeout = useRef(null);
-  const clickCount = useRef(null);
-  const animateTimeoutRef = useRef(null);
-  const captureCanvasRef = useRef(null);
-  const prevHoverStateRef = useRef(null);
-  const holdTimer = useRef(null);
-  const trackerRef = useRef(new VideoTelemetryTimer());
-  const isHolding = useRef(null);
-  const glowCanvasRef = useRef(null);
-  const prevSpeedRef = useRef(null);
-  const prevSliderSpeedRef = useRef(null);
+  const [progress, setProgress] = useState(0);
+  const [bufferedVal, setBufferedVal] = useState(0);
+
   const { state, updateState } = useStateReducer({
     isPlaying: false,
     viewCounted: false,
@@ -130,8 +141,6 @@ function VideoPlayer({
     volumeDown: false,
     volumeMuted: false,
     isBuffering: false,
-    bufferedVal: false,
-    progress: false,
     showBufferingIndicator: false,
     loadingVideo: false,
     isForwardSeek: false,
@@ -391,7 +400,6 @@ function VideoPlayer({
     if (state.controlOpacity !== 0) updateState({ controlOpacity: 0 });
   };
 
-  const exitingPiPViaOurUIButtonRef = useRef(false);
 
   const handleEnterPiP = useCallback(() => {
     showControls();
@@ -533,13 +541,18 @@ function VideoPlayer({
       updateState({ titleOpacity: 1 });
     }
     flushSync(() => {
-
-      updateState({controlOpacity:  isInside.current && prevHoverStateRef.current === 1
-          ? prevHoverStateRef.current
-          : 0})
-     updateState({titleOpacity:  isInside.current && prevHoverStateRef.current === 1
-          ? prevHoverStateRef.current
-          : 0})
+      updateState({
+        controlOpacity:
+          isInside.current && prevHoverStateRef.current === 1
+            ? prevHoverStateRef.current
+            : 0,
+      });
+      updateState({
+        titleOpacity:
+          isInside.current && prevHoverStateRef.current === 1
+            ? prevHoverStateRef.current
+            : 0,
+      });
     });
     clearTimeout(pressTimer.current);
     pressTimer.current = setTimeout(() => {
@@ -777,7 +790,7 @@ function VideoPlayer({
     }, 500);
   };
 
-  const prevVolRef = useRef(0);
+
 
   const updateVolumeStates = (volume) => {
     const prev = prevVolRef.current;
@@ -965,13 +978,13 @@ function VideoPlayer({
           }
 
           const bufferProgress = bufferedEnd / video.duration;
-          updateState({ bufferedVal: bufferProgress });
+          setBufferedVal(bufferProgress);
         } else {
-          updateState({ bufferedVal: 0 });
+          setBufferedVal(0);
         }
       } catch (e) {
         console.warn("Buffered read error", e);
-        updateState({ bufferedVal: 0 });
+        setBufferedVal(0);
       }
     };
 
@@ -1038,7 +1051,7 @@ function VideoPlayer({
 
     video.currentTime = state.resumeTime;
     const value = (video.currentTime / video.duration) * 100;
-    updateState({ progress: value });
+    setProgress(value);
 
     if (!isUserInteracted) {
       showControls();
@@ -1310,7 +1323,7 @@ function VideoPlayer({
         if (!isFullscreen && videoRef.current) {
           setIsUserInteracted(true);
           startTransition(() => {
-            setIsTheatre((prev) => !prev)
+            setIsTheatre((prev) => !prev);
           });
         }
       }
@@ -1371,7 +1384,7 @@ function VideoPlayer({
 
     const value = (video.currentTime / video.duration) * 100;
 
-    updateState({ progress: value });
+    setProgress(value);
 
     const duration = video.duration;
     const watchTime = video.currentTime;
@@ -1549,6 +1562,10 @@ function VideoPlayer({
                 playbackSliderSpeed={playbackSliderSpeed}
                 setPlaybackSliderSpeed={setPlaybackSliderSpeed}
                 customPlayback={state.customPlayback}
+                progress={progress}
+                setProgress={setProgress}
+                bufferedVal={bufferedVal}
+                setBufferedVal={setBufferedVal}
                 {...state}
                 updateState={updateState}
               />

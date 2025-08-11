@@ -28,7 +28,8 @@ export const ProgressLists = ({
   vttUrl,
   playsInline,
   tracker,
-  updateState
+  setBufferedVal,
+  setProgress,
 }) => {
   var thumbWidth = 13;
   const theme = useTheme();
@@ -98,13 +99,14 @@ export const ProgressLists = ({
         }
 
         const bufferProgress = bufferedEnd / video.duration;
-        updateState({ bufferedVal: bufferProgress });
+
+        setBufferedVal(bufferProgress);
       } else {
-        updateState({ bufferedVal: 0 });
+        setBufferedVal(0);
       }
     } catch (e) {
       console.warn("Buffered read error", e);
-      updateState({ bufferedVal: 0 });
+      setBufferedVal(0);
     }
   }, [videoRef]);
 
@@ -184,8 +186,8 @@ export const ProgressLists = ({
     );
 
     const newTime = (videoRef.current?.duration * newProgress) / 100;
-    videoRef.current.currentTime = newTime;
-    updateState({ progress: newProgress });
+    videoRef.current.currentTime = newTime
+    setProgress(newProgress)
   };
   const handleSeekEnd = () => {
     window.removeEventListener("mousemove", handleSeekMove);
