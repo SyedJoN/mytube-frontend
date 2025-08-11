@@ -14,24 +14,28 @@ import { sendTelemetry } from "../../apis/sendTelemetry";
 
 import { flushSync } from "react-dom";
 import throttle from "lodash/throttle";
-import { UserContext, UserInteractionContext } from "../../Contexts/RootContexts";
+import {
+  UserContext,
+  UserInteractionContext,
+} from "../../Contexts/RootContexts";
 
 export const ProgressLists = ({
   videoRef,
   progress,
-  setProgress,
   bufferedVal,
-  setBufferedVal,
   isMini,
   showSettings,
   vttUrl,
   playsInline,
   tracker,
+  updateState
 }) => {
   var thumbWidth = 13;
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const { isUserInteracted, setIsUserInteracted } = React.useContext(UserInteractionContext);
+  const { isUserInteracted, setIsUserInteracted } = React.useContext(
+    UserInteractionContext
+  );
 
   const [hoverTime, setHoverTime] = useState(0);
   const [cueMap, setCueMap] = useState([]);
@@ -94,15 +98,15 @@ export const ProgressLists = ({
         }
 
         const bufferProgress = bufferedEnd / video.duration;
-        setBufferedVal(bufferProgress);
+        updateState({ bufferedVal: bufferProgress });
       } else {
-        setBufferedVal(0);
+        updateState({ bufferedVal: 0 });
       }
     } catch (e) {
       console.warn("Buffered read error", e);
-      setBufferedVal(0);
+      updateState({ bufferedVal: 0 });
     }
-  }, [videoRef, setBufferedVal]);
+  }, [videoRef]);
 
   const throttledUpdate = useCallback(throttle(updateBuffered, 200), [
     updateBuffered,
@@ -181,7 +185,7 @@ export const ProgressLists = ({
 
     const newTime = (videoRef.current?.duration * newProgress) / 100;
     videoRef.current.currentTime = newTime;
-    setProgress(newProgress);
+    updateState({ progress: newProgress });
   };
   const handleSeekEnd = () => {
     window.removeEventListener("mousemove", handleSeekMove);

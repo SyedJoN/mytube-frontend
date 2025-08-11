@@ -53,41 +53,35 @@ const VideoControls = ({
   shuffledVideos,
   isPlaying,
   togglePlayPause,
-  setShowIcon,
   playlistVideos,
   videoReady,
   index,
   toggleFullScreen,
   volume,
-  setVolume,
   handleVolumeToggle,
   isMuted,
   jumpedToMax,
   isIncreased,
   isAnimating,
   isTheatre,
+  setIsTheatre,
   isMini,
   isReplay,
-  setIsTheatre,
-  isPiActive,
+  isPipActive,
   videoContainerWidth,
   controlOpacity,
   handleTogglePiP,
   vttUrl,
   showSettings,
-  setShowSettings,
   playbackSpeed,
   setPlaybackSpeed,
   playbackSliderSpeed,
-  setPlaybackSliderSpeed,
   customPlayback,
-  setCustomPlayback,
   isAmbient,
   setIsAmbient,
   progress,
-  setProgress,
   bufferedVal,
-  setBufferedVal,
+  updateState,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -193,7 +187,7 @@ const VideoControls = ({
 
   const isFullscreen = !!document.fullscreenElement;
   const theatreTitle = isTheatre ? "Default view (t)" : "Theatre mode (t)";
-  const pipTitle = isPiActive
+  const pipTitle = isPipActive
     ? "Exit picture-in-picture"
     : "Picture-in-picture";
   const fullScreenTitle = isFullscreen
@@ -333,10 +327,10 @@ const VideoControls = ({
 
   const handleChange = (_, speed) => {
     console.log("hello");
-    setPlaybackSpeed(speed);
-    setPlaybackSliderSpeed(speed);
+    updateState({ playbackSpeed: speed });
+    updateState({ playbackSliderSpeed: speed });
     if (customPlayback !== true) {
-      setCustomPlayback(true);
+      updateState({ customPlayback: true });
     }
   };
 
@@ -360,7 +354,9 @@ const VideoControls = ({
 
     videoRef.current.volume = newVolume;
 
-    setVolume(newVolume <= 0 ? 0 : Number(newVolume * 40).toFixed(1));
+    updateState({
+      volume: newVolume <= 0 ? 0 : Number(newVolume * 40).toFixed(1),
+    });
   };
 
   const handleVolumeEnd = () => {
@@ -383,7 +379,9 @@ const VideoControls = ({
     const newVolume = Math.min(Math.max(offsetX / rect.width, 0), 1);
 
     videoRef.current.volume = newVolume;
-    setVolume(newVolume <= 0 ? 0 : Number(newVolume * 40).toFixed(1));
+    updateState({
+      volume: newVolume <= 0 ? 0 : Number(newVolume * 40).toFixed(1),
+    });
   };
 
   const handleVolumeHover = (e) => {
@@ -393,7 +391,7 @@ const VideoControls = ({
   const handleTheatreToggle = () => {
     setIsUserInteracted(true);
     startTransition(() => {
-      setIsTheatre((prev) => !prev);
+      setIsTheatre(prev => !prev)
     });
   };
 
@@ -472,7 +470,7 @@ const VideoControls = ({
                   style={controlStyles}
                   onClick={() => {
                     togglePlayPause();
-                    setShowIcon(false);
+                    updateState({showIcon: false});
                   }}
                 >
                   <ReplaySvg />
@@ -501,7 +499,7 @@ const VideoControls = ({
                   style={controlStyles}
                   onClick={() => {
                     togglePlayPause();
-                    setShowIcon(false);
+                    updateState({showIcon: false});
                   }}
                 >
                   <PlayPauseSvg isPlaying={isPlaying} />
@@ -715,7 +713,7 @@ const VideoControls = ({
                     <Box
                       onClick={() => {
                         handlePlaybackspeed(playbackSliderSpeed);
-                        setCustomPlayback(true);
+                        updateState({ customPlayback: true });
                       }}
                       sx={{
                         position: "relative",
@@ -793,7 +791,7 @@ const VideoControls = ({
                     <Box
                       onClick={() => {
                         handlePlaybackspeed(0.25);
-                        setCustomPlayback(false);
+                        updateState({ customPlayback: false });
                         setShowPlaybackMenu(false);
                       }}
                       sx={{
@@ -826,7 +824,7 @@ const VideoControls = ({
                     <Box
                       onClick={() => {
                         handlePlaybackspeed(0.5);
-                        setCustomPlayback(false);
+                        updateState({ customPlayback: false });
                         setShowPlaybackMenu(false);
                       }}
                       sx={{
@@ -860,7 +858,7 @@ const VideoControls = ({
                     <Box
                       onClick={() => {
                         handlePlaybackspeed(0.75);
-                        setCustomPlayback(false);
+                        updateState({ customPlayback: false });
                         setShowPlaybackMenu(false);
                       }}
                       sx={{
@@ -894,7 +892,7 @@ const VideoControls = ({
                     <Box
                       onClick={() => {
                         handlePlaybackspeed(1.0);
-                        setCustomPlayback(false);
+                        updateState({ customPlayback: false });
                         setShowPlaybackMenu(false);
                       }}
                       sx={{
@@ -928,7 +926,7 @@ const VideoControls = ({
                     <Box
                       onClick={() => {
                         handlePlaybackspeed(1.25);
-                        setCustomPlayback(false);
+                        updateState({ customPlayback: false });
                         setShowPlaybackMenu(false);
                       }}
                       sx={{
@@ -962,7 +960,7 @@ const VideoControls = ({
                     <Box
                       onClick={() => {
                         handlePlaybackspeed(1.5);
-                        setCustomPlayback(false);
+                        updateState({ customPlayback: false });
                         setShowPlaybackMenu(false);
                       }}
                       sx={{
@@ -996,7 +994,7 @@ const VideoControls = ({
                     <Box
                       onClick={() => {
                         handlePlaybackspeed(1.75);
-                        setCustomPlayback(false);
+                        updateState({ customPlayback: false });
                         setShowPlaybackMenu(false);
                       }}
                       sx={{
@@ -1030,7 +1028,7 @@ const VideoControls = ({
                     <Box
                       onClick={() => {
                         handlePlaybackspeed(2);
-                        setCustomPlayback(false);
+                        updateState({ customPlayback: false });
                         setShowPlaybackMenu(false);
                       }}
                       sx={{
@@ -1191,7 +1189,7 @@ const VideoControls = ({
                 className="control"
                 style={{ ...controlStyles }}
                 onClick={() => {
-                  setShowSettings((prev) => !prev);
+                  updateState((prev) => ({ showSettings: !prev.showSettings }));
                   setShowPlaybackMenu(false);
                 }}
               >
@@ -1282,12 +1280,11 @@ const VideoControls = ({
           tracker={tracker}
           videoId={videoId}
           bufferedVal={bufferedVal}
-          setBufferedVal={setBufferedVal}
           progress={progress}
-          setProgress={setProgress}
           isTheatre={isTheatre}
           isMini={isMini}
           vttUrl={vttUrl}
+          updateState={updateState}
         />
       </Box>
     </>

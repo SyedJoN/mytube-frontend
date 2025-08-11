@@ -6,18 +6,14 @@ import React, {
   useCallback,
   startTransition,
 } from "react";
-import { FastAverageColor } from "fast-average-color";
 import { keyframes, useMediaQuery, useTheme } from "@mui/system";
 import { fetchVideoById } from "../../apis/videoFn";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PauseIcon from "@mui/icons-material/Pause";
 import FastForwardIcon from "@mui/icons-material/FastForward";
-import SmartDisplayIcon from "@mui/icons-material/SmartDisplay";
-import { Box, Icon, IconButton, Typography } from "@mui/material";
+import { Box, IconButton, Typography } from "@mui/material";
 import CircularProgress from "@mui/material/CircularProgress";
 import CancelIcon from "@mui/icons-material/Cancel";
-import ArrowRightIcon from "@mui/icons-material/ArrowRight";
-import ArrowLeftIcon from "@mui/icons-material/ArrowLeft";
 
 const rotateAnimation = keyframes`
   0% { transform: rotate(0deg); }
@@ -39,12 +35,7 @@ const iconStyle = {
   padding: "12px",
 };
 
-import {
-  useQuery,
-  useMutation,
-  useQueryClient,
-  queryOptions,
-} from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { videoView } from "../../apis/videoFn";
 import { useLocation } from "@tanstack/react-router";
 import { useNavigate } from "@tanstack/react-router";
@@ -67,6 +58,7 @@ import {
   sendYouTubeStyleTelemetry,
   VideoTelemetryTimer,
 } from "../../helper/watchTelemetry";
+import useStateReducer from "../Utils/useStateReducer";
 
 function VideoPlayer({
   videoId,
@@ -99,18 +91,7 @@ function VideoPlayer({
     userInteractionContext ?? {};
   const videoPauseStatus = useRef(null);
   const prevVolumeRef = useRef(null);
-  const [prevTheatre, setPrevTheatre] = useState(false);
-  const [videoHeight, setVideoHeight] = useState(0);
-  const [playerHeight, setPlayerHeight] = useState("0px");
-  const [resumeTime, setResumeTime] = useState(0);
 
-  const [playerWidth, setPlayerWidth] = useState("0px");
-  const [controlOpacity, setControlOpacity] = useState(0);
-  const [titleOpacity, setTitleOpacity] = useState(0);
-  const [showSettings, setShowSettings] = useState(false);
-  const [isPiActive, setIsPiPActive] = useState(false);
-  const [videoReady, setVideoReady] = useState(false);
-  const [canPlay, setCanPlay] = useState(true);
   const [isAmbient, setIsAmbient] = usePlayerSetting("ambientMode", false);
   const [playbackSpeed, setPlaybackSpeed] = usePlayerSetting(
     "playbackSpeed",
@@ -125,49 +106,61 @@ function VideoPlayer({
   const prevVideoRef = useRef(null);
   const playIconRef = useRef(null);
   const volumeIconRef = useRef(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [viewCounted, setViewCounted] = useState(false);
-  const [isLongPress, setIsLongPress] = useState(false);
-  const [showIcon, setShowIcon] = useState(false);
-  const [showVolumeIcon, setShowVolumeIcon] = useState(false);
-  const [volumeUp, setVolumeUp] = useState(false);
-  const [leftOffset, setLeftOffset] = useState("0px");
-  const [topOffset, setTopOffset] = useState("0px");
-  const [volumeDown, setVolumeDown] = useState(false);
-  const [volumeMuted, setVolumeMuted] = useState(false);
   const pressTimer = useRef(null);
   const clickTimeout = useRef(null);
   const clickCount = useRef(null);
-  const [isBuffering, setIsBuffering] = useState(false);
-  const [bufferedVal, setBufferedVal] = useState(0);
-  const [progress, setProgress] = useState(0);
-  const [showBufferingIndicator, setShowBufferingIndicator] = useState(false);
-  const [loadingVideo, setLoadingVideo] = useState(true);
-  const [isForwardSeek, setIsForwardSeek] = useState(false);
-  const [isBackwardSeek, setIsBackwardSeek] = useState(false);
-  const [volume, setVolume] = useState(40);
-  const [isVolumeChanged, setIsVolumeChanged] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isIncreased, setIsIncreased] = useState(false);
-  const [jumpedToMax, setJumpedToMax] = useState(false);
-  const [isAnimating, setIsAnimating] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-
-  const [isReplay, setIsReplay] = useState(false);
-  const [videoContainerWidth, setVideoContainerWidth] = useState("0px");
-  const [isFastPlayback, setIsFastPlayback] = useState(false);
   const animateTimeoutRef = useRef(null);
   const captureCanvasRef = useRef(null);
   const prevHoverStateRef = useRef(null);
   const holdTimer = useRef(null);
-  const trackerRef = React.useRef(new VideoTelemetryTimer());
+  const trackerRef = useRef(new VideoTelemetryTimer());
   const isHolding = useRef(null);
   const glowCanvasRef = useRef(null);
   const prevSpeedRef = useRef(null);
   const prevSliderSpeedRef = useRef(null);
-  const [isMini, setIsMini] = useState(false);
-  const [hideMini, setHideMini] = useState(false);
-  const [customPlayback, setCustomPlayback] = useState(false);
+  const { state, updateState } = useStateReducer({
+    isPlaying: false,
+    viewCounted: false,
+    isLongPress: false,
+    showIcon: false,
+    showVolumeIcon: false,
+    volumeUp: false,
+    leftOffset: "0px",
+    topOffset: "0px",
+    volumeDown: false,
+    volumeMuted: false,
+    isBuffering: false,
+    bufferedVal: false,
+    progress: false,
+    showBufferingIndicator: false,
+    loadingVideo: false,
+    isForwardSeek: false,
+    isBackwardSeek: false,
+    volume: 40,
+    isVolumeChanged: false,
+    isMuted: false,
+    isIncreased: false,
+    isAnimating: false,
+    jumpedToMax: false,
+    isFullscreen: false,
+    isMini: false,
+    hideMini: false,
+    customPlayback: false,
+    isReplay: false,
+    videoContainerWidth: "0px",
+    isFastPlayback: false,
+    prevTheatre: false,
+    videoHeight: 0,
+    playerHeight: "0px",
+    resumeTime: 0,
+    playerWidth: "0px",
+    controlOpacity: 0,
+    titleOpacity: 0,
+    showSettings: false,
+    isPipActive: false,
+    videoReady: false,
+    canPlay: true,
+  });
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["video", videoId],
@@ -195,17 +188,17 @@ function VideoPlayer({
     : 0;
 
   useEffect(() => {
-    setVideoReady(false);
+    updateState({ videoReady: false });
     hideControls();
   }, [videoId]);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    const onPause = () => flushSync(() => setIsPlaying(false));
+    const onPause = () => flushSync(() => updateState({ isPlaying: false }));
     video.addEventListener("pause", onPause);
     return () => video.removeEventListener("pause", onPause);
-  }, [setIsPlaying]);
+  }, []);
 
   const handlePlay = async () => {
     const video = videoRef?.current;
@@ -229,16 +222,16 @@ function VideoPlayer({
         video.classList.add("hide-cursor");
       }, 2000);
     } catch (err) {
-      setIsPlaying(false);
+      updateState({ isPlaying: false });
       if (tracker?.telemetryTimer) {
         console.log("STOPPP");
         tracker.stop();
         tracker.telemetryTimer = null;
       }
     }
-    setIsReplay(false);
-    setCanPlay(true);
-    setIsPlaying(true);
+    updateState({ isReplay: false });
+    updateState({ canPlay: true });
+    updateState({ isPlaying: true });
   };
 
   useEffect(() => {
@@ -272,14 +265,14 @@ function VideoPlayer({
       threshold = calculateThreshold();
       const scrollY = window.scrollY;
 
-      if (scrollY > threshold && !hideMini && canPlay) {
-        setIsMini(true);
+      if (scrollY > threshold && !state.hideMini && state.canPlay) {
+        updateState({ isMini: true });
       }
       if (scrollY < threshold) {
-        setIsMini(false);
+        updateState({ isMini: false });
 
-        if (hideMini) {
-          setHideMini(false);
+        if (state.hideMini) {
+          updateState({ hideMini: false });
         }
       }
     };
@@ -299,11 +292,11 @@ function VideoPlayer({
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("orientationchange", handleResize);
     };
-  }, [isTheatre, data?.data?._id, hideMini, canPlay, isOpen]);
+  }, [isTheatre, data?.data?._id, state.hideMini, state.canPlay, isOpen]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      updateState({ isFullscreen: !!document.fullscreenElement });
     };
 
     document.addEventListener("fullscreenchange", handleFullscreenChange);
@@ -391,33 +384,33 @@ function VideoPlayer({
   }, [isAmbient]);
 
   const showControls = () => {
-    if (controlOpacity !== 1) setControlOpacity(1);
+    if (state.controlOpacity !== 1) updateState({ controlOpacity: 1 });
   };
 
   const hideControls = () => {
-    if (controlOpacity !== 0) setControlOpacity(0);
+    if (state.controlOpacity !== 0) updateState({ controlOpacity: 0 });
   };
 
   const exitingPiPViaOurUIButtonRef = useRef(false);
 
   const handleEnterPiP = useCallback(() => {
     showControls();
-    setIsPiPActive(true);
+    updateState({ isPipActive: true });
 
     if (!prevVideoRef.current) videoRef.current?.play();
   }, []);
 
   const handleLeavePiP = useCallback(() => {
-    setShowIcon(false);
+    updateState({ showIcon: false });
 
-    setIsPiPActive(false);
+    updateState({ isPipActive: false });
 
     exitingPiPViaOurUIButtonRef.current = false;
 
     requestAnimationFrame(() => {
-      setIsPlaying(videoRef.current?.paused ? false : true);
+      updateState({ isPlaying: videoRef.current?.paused ? false : true });
     });
-  }, [setIsPlaying]);
+  }, []);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -453,16 +446,16 @@ function VideoPlayer({
 
   const handleClick = (e) => {
     if (e.button === 2) return;
-    if (isReplay) return;
-    if (clickTimeout.current || isLongPress) return;
+    if (state.isReplay) return;
+    if (clickTimeout.current || state.isLongPress) return;
     videoPauseStatus.current = false;
     clickCount.current += 1;
     if (clickCount.current === 1) {
       clickTimeout.current = setTimeout(() => {
         togglePlayPause();
         flushSync(() => {
-          setShowIcon(true);
-          setShowVolumeIcon(false);
+          updateState({ showIcon: true });
+          updateState({ showVolumeIcon: false });
         });
         console.log("Single Click");
         clickCount.current = 0;
@@ -497,24 +490,24 @@ function VideoPlayer({
 
     clearTimeout(clickTimeout.current);
     clickTimeout.current = null;
-    prevHoverStateRef.current = controlOpacity;
+    prevHoverStateRef.current = state.controlOpacity;
 
     pressTimer.current = setTimeout(() => {
       console.log("down");
-      setIsLongPress(true);
+      updateState({ isLongPress: true });
       hideControls();
-      setTitleOpacity(0);
-      setShowIcon(false);
+      updateState({ titleOpacity: 0 });
+      updateState({ showIcon: false });
       if (video.paused) {
         video.play();
         videoPauseStatus.current = true;
-        setIsPlaying(true);
+        updateState({ isPlaying: true });
       }
 
       video.playbackRate = 2.0;
       setPlaybackSpeed(2.0);
       setPlaybackSliderSpeed(playbackSpeed);
-      setIsFastPlayback(true);
+      updateState({ isFastPlayback: true });
       pressTimer.current = null;
     }, 600);
 
@@ -530,35 +523,32 @@ function VideoPlayer({
     const video = videoRef.current;
     if (!video) return;
     flushSync(() => {
-      setShowIcon(true);
-      setShowVolumeIcon(false);
+      updateState({ showIcon: true });
+      updateState({ showVolumeIcon: false });
     });
     if (videoPauseStatus.current) {
       video.pause();
-      setIsPlaying(false);
+      updateState({ isPlaying: false });
       showControls();
-      setTitleOpacity(1);
+      updateState({ titleOpacity: 1 });
     }
     flushSync(() => {
-      setControlOpacity(
-        isInside.current && prevHoverStateRef.current === 1
+
+      updateState({controlOpacity:  isInside.current && prevHoverStateRef.current === 1
           ? prevHoverStateRef.current
-          : 0
-      );
-      setTitleOpacity(
-        isInside.current && prevHoverStateRef.current === 1
+          : 0})
+     updateState({titleOpacity:  isInside.current && prevHoverStateRef.current === 1
           ? prevHoverStateRef.current
-          : 0
-      );
+          : 0})
     });
     clearTimeout(pressTimer.current);
     pressTimer.current = setTimeout(() => {
-      setIsLongPress(false);
+      updateState({ isLongPress: false });
       pressTimer.current = null;
       console.log("up");
     }, 200);
-    setIsFastPlayback(false);
-    if (customPlayback) {
+    updateState({ isFastPlayback: false });
+    if (state.customPlayback) {
       video.playbackRate = prevSliderSpeedRef.current;
     } else {
       video.playbackRate = prevSpeedRef.current;
@@ -569,7 +559,7 @@ function VideoPlayer({
   const handleContainerMouseMove = () => {
     const container = containerRef.current;
     if (!container) return;
-    if (!isLongPress) {
+    if (!state.isLongPress) {
       console.log("move");
 
       container
@@ -578,7 +568,7 @@ function VideoPlayer({
       container.querySelector(".controls")?.classList.remove("hide-cursor");
       isInside.current = true;
       showControls();
-      setTitleOpacity(1);
+      updateState({ titleOpacity: 1 });
     }
   };
   const handleMouseMove = (e) => {
@@ -603,14 +593,14 @@ function VideoPlayer({
     timeoutRef.current = null;
     timeoutRef.current = setTimeout(() => {
       if (
-        isPlaying &&
+        state.isPlaying &&
         !controls.length &&
-        !isReplay &&
+        !state.isReplay &&
         !isHolding.current &&
-        !showSettings
+        !state.showSettings
       ) {
         hideControls();
-        setTitleOpacity(0);
+        updateState({ titleOpacity: 0 });
         container.querySelector(".video-overlay")?.classList.add("hide-cursor");
         container.querySelector(".controls")?.classList.add("hide-cursor");
       }
@@ -627,18 +617,18 @@ function VideoPlayer({
 
     const controls = container.getElementsByClassName("MuiPopper-root");
 
-    if (!isPlaying) {
+    if (!state.isPlaying) {
       showControls();
-      setTitleOpacity(1);
+      updateState({ titleOpacity: 1 });
       fullScreenTitle.classList.add("show");
       return;
     } else {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
       timeoutRef.current = setTimeout(() => {
-        if (!controls.length && !isHolding.current && !showSettings) {
+        if (!controls.length && !isHolding.current && !state.showSettings) {
           hideControls();
-          setTitleOpacity(0);
+          updateState({ titleOpacity: 0 });
           container
             .querySelector(".video-overlay")
             ?.classList.add("hide-cursor");
@@ -649,7 +639,7 @@ function VideoPlayer({
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [isPlaying, controlOpacity, isLongPress, isInside]);
+  }, [state.isPlaying, state.controlOpacity, state.isLongPress, isInside]);
 
   const handleMouseOut = () => {
     const container = containerRef.current;
@@ -659,14 +649,14 @@ function VideoPlayer({
       !container ||
       !video ||
       isFullscreen ||
-      !isPlaying ||
-      isReplay ||
-      showSettings
+      !state.isPlaying ||
+      state.isReplay ||
+      state.showSettings
     )
       return;
 
     hideControls();
-    setTitleOpacity(0);
+    updateState({ titleOpacity: 0 });
   };
 
   useEffect(() => {
@@ -678,18 +668,18 @@ function VideoPlayer({
     let progressCheckId;
 
     const handleBufferingStart = () => {
-      if (!isBufferingLocal) {
+      if (!state.isBufferingLocal) {
         console.log("Buffering started");
-        isBufferingLocal = true;
-        setIsBuffering(true);
+        state.isBufferingLocal = true;
+        updateState({ isBuffering: true });
       }
     };
 
     const handleBufferingEnd = () => {
-      if (isBufferingLocal) {
+      if (state.isBufferingLocal) {
         console.log("Buffering ended");
-        isBufferingLocal = false;
-        setIsBuffering(false);
+        state.isBufferingLocal = false;
+        updateState({ isBuffering: false });
       }
     };
 
@@ -709,43 +699,43 @@ function VideoPlayer({
       }
     };
 
-    progressCheckId = setInterval(checkProgress, 500);
+    state.progressCheckId = setInterval(checkProgress, 500);
 
     return () => {
       video.removeEventListener("waiting", handleBufferingStart);
       video.removeEventListener("stalled", handleBufferingStart);
       video.removeEventListener("playing", handleBufferingEnd);
       video.removeEventListener("canplay", handleBufferingEnd);
-      clearInterval(progressCheckId);
+      clearInterval(state.progressCheckId);
     };
   }, [data?.data?._id]);
 
   useEffect(() => {
     let timeout;
 
-    if (isBuffering && !isForwardSeek && !isBackwardSeek) {
+    if (state.isBuffering && !state.isForwardSeek && !state.isBackwardSeek) {
       timeout = setTimeout(() => {
-        setShowBufferingIndicator(true);
+        updateState({ showBufferingIndicator: true });
       }, 100);
     } else {
-      setShowBufferingIndicator(false);
+      updateState({ showBufferingIndicator: false });
     }
 
     return () => clearTimeout(timeout);
-  }, [isBuffering, isForwardSeek, isBackwardSeek, videoId]);
+  }, [state.isBuffering, state.isForwardSeek, state.isBackwardSeek, videoId]);
 
   const handleVolume = (key) => {
     const video = videoRef.current;
     if (!video) return;
     if (pressTimer.current) clearTimeout(pressTimer.current);
-    setIsFastPlayback(false);
-    setShowIcon(false);
+    updateState({ isFastPlayback: false });
+    updateState({ showIcon: false });
 
     const icon = volumeIconRef.current;
     flushSync(() => {
-      setShowIcon(false);
-      setShowVolumeIcon(true);
-      setIsVolumeChanged(true);
+      updateState({ showIcon: false });
+      updateState({ showVolumeIcon: true });
+      updateState({ isVolumeChanged: true });
     });
 
     if (icon) {
@@ -758,32 +748,32 @@ function VideoPlayer({
 
     const step = 0.05;
     if (key === "Up") {
-      setVolumeDown(false);
-      setIsMuted(false);
-      setVolumeUp(true);
+      updateState({ volumeDown: false });
+      updateState({ isMuted: false });
+      updateState({ volumeUp: true });
       const newVol = (video.volume = Math.min(1, video.volume + step));
-      setVolume(newVol * 40);
+      updateState({ volume: newVol * 40 });
     } else if (key === "Down") {
-      setVolumeUp(false);
+      updateState({ volumeUp: false });
       const newVol = (video.volume = Math.max(0, video.volume - step));
       if (newVol > 0) {
-        setVolumeDown(true);
-        setVolumeMuted(false);
+        updateState({ volumeDown: true });
+        updateState({ volumeMuted: false });
       } else {
-        setVolumeMuted(true);
-        setVolumeDown(false);
+        updateState({ volumeMuted: true });
+        updateState({ volumeDown: false });
       }
-      setVolume(newVol * 40);
+      updateState({ volume: newVol * 40 });
     }
 
-    if (customPlayback) {
+    if (state.customPlayback) {
       video.playbackRate = prevSliderSpeedRef.current;
     } else {
       video.playbackRate = prevSpeedRef.current;
     }
 
     setTimeout(() => {
-      setIsVolumeChanged(false);
+      updateState({ isVolumeChanged: false });
     }, 500);
   };
 
@@ -797,37 +787,40 @@ function VideoPlayer({
     const isMutedFromHigh = prev >= 0.5 && curr === 0;
 
     if (isUnmutedWithJump || isMutedFromHigh) {
-      setJumpedToMax(true);
-      setIsIncreased(false);
+      updateState({ jumpedToMax: true });
+      updateState({ isIncreased: false });
     }
 
     if (curr === 0) {
-      setIsMuted(true);
-      setIsIncreased(false);
-      animateTimeoutRef.current = setTimeout(() => setIsAnimating(true), 300);
+      updateState({ isMuted: true });
+      updateState({ isIncreased: false });
+      animateTimeoutRef.current = setTimeout(
+        () => updateState({ isAnimating: true }),
+        300
+      );
       return;
     }
 
     if (curr >= 0.5 && prev < 0.5) {
       clearTimeout(animateTimeoutRef.current);
-      setIsAnimating(false);
-      setIsMuted(false);
-      setIsIncreased(true);
+      updateState({ isAnimating: false });
+      updateState({ isMuted: false });
+      updateState({ isIncreased: true });
       return;
     }
 
     if (curr >= 0.5) {
       clearTimeout(animateTimeoutRef.current);
-      setIsMuted(false);
-      setIsAnimating(false);
+      updateState({ isMuted: false });
+      updateState({ isAnimating: false });
       return;
     }
 
     clearTimeout(animateTimeoutRef.current);
-    setIsMuted(false);
-    setIsAnimating(false);
-    setIsIncreased(false);
-    setJumpedToMax(false);
+    updateState({ isMuted: false });
+    updateState({ isAnimating: false });
+    updateState({ isIncreased: false });
+    updateState({ jumpedToMax: false });
   };
   const debouncedUpdateVolumeStates = useDebouncedCallback(
     (normalizedVolume) => {
@@ -839,23 +832,23 @@ function VideoPlayer({
   );
 
   useEffect(() => {
-    const normalizedVolume = volume / 40;
+    const normalizedVolume = state.volume / 40;
     debouncedUpdateVolumeStates(normalizedVolume);
     return () => {
       clearTimeout(animateTimeoutRef.current);
     };
-  }, [volume, debouncedUpdateVolumeStates]);
+  }, [state.volume, debouncedUpdateVolumeStates]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
       const isFullscreen = !!document.fullscreenElement;
 
       if (isFullscreen) {
-        if (prevTheatre) {
+        if (state.prevTheatre) {
           setIsTheatre(false);
         }
       } else {
-        if (prevTheatre) {
+        if (state.prevTheatre) {
           setIsTheatre(true);
         }
       }
@@ -865,7 +858,7 @@ function VideoPlayer({
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
     };
-  }, [prevTheatre]);
+  }, [state.prevTheatre]);
 
   const toggleFullScreen = () => {
     const el = containerRef.current;
@@ -893,7 +886,7 @@ function VideoPlayer({
     const video = videoRef.current;
     const container = containerRef.current;
     const tracker = trackerRef.current;
-    if (!video || !container || !canPlay) return;
+    if (!video || !container || !state.canPlay) return;
     setIsUserInteracted(true);
 
     container.querySelector(".video-overlay")?.classList.remove("hide-cursor");
@@ -908,10 +901,10 @@ function VideoPlayer({
     if (video.paused || video.ended) {
       video.play();
 
-      setIsPlaying(true);
+      updateState({ isPlaying: true });
     } else {
       video.pause();
-      setIsPlaying(false);
+      updateState({ isPlaying: false });
     }
     const newTime = video.currentTime || 0;
     if (tracker && video.currentTime !== 0) {
@@ -924,14 +917,18 @@ function VideoPlayer({
     if (!video) return;
 
     const handleLoadStart = () =>
-      !isForwardSeek && !isBackwardSeek && setLoadingVideo(true);
+      !state.isForwardSeek &&
+      !state.isBackwardSeek &&
+      updateState({ loadingVideo: true });
     const handleWaiting = () =>
-      !isForwardSeek && !isBackwardSeek && setLoadingVideo(true);
+      !state.isForwardSeek &&
+      !state.isBackwardSeek &&
+      updateState({ loadingVideo: true });
     const handleCanPlay = () => {
-      setLoadingVideo(false);
+      updateState({ loadingVideo: false });
     };
     const handlePlaying = () => {
-      setLoadingVideo(false);
+      updateState({ loadingVideo: false });
     };
 
     video.addEventListener("loadstart", handleLoadStart);
@@ -945,7 +942,7 @@ function VideoPlayer({
       video.removeEventListener("canplay", handleCanPlay);
       video.removeEventListener("playing", handlePlaying);
     };
-  }, [videoRef.current, videoId, isForwardSeek, isBackwardSeek]);
+  }, [videoRef.current, videoId, state.isForwardSeek, state.isBackwardSeek]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -968,17 +965,17 @@ function VideoPlayer({
           }
 
           const bufferProgress = bufferedEnd / video.duration;
-          setBufferedVal(bufferProgress);
+          updateState({ bufferedVal: bufferProgress });
         } else {
-          setBufferedVal(0);
+          updateState({ bufferedVal: 0 });
         }
       } catch (e) {
         console.warn("Buffered read error", e);
-        setBufferedVal(0);
+        updateState({ bufferedVal: 0 });
       }
     };
 
-    const events = ["progress", "timeupdate", "seeked"];
+    const events = ["state.progress", "timeupdate", "seeked"];
     events.forEach((event) => {
       video.addEventListener(event, updateBuffered);
     });
@@ -1012,16 +1009,20 @@ function VideoPlayer({
 
           const duration = refetchedVideo?.duration || 0;
           const time = refetchedVideo?.currentTime || 0;
-          setResumeTime(isFinite(time) && time < duration ? time : 0);
+          updateState({
+            resumeTime: isFinite(time) && time < duration ? time : 0,
+          });
         } catch (err) {
           console.error("Error fetching history:", err);
-          if (isMounted) setResumeTime(0);
+          if (isMounted) updateState({ resumeTime: 0 });
         }
       } else {
         const guestTime = getTimeStamp(videoId);
         console.log("guestTimeget", guestTime);
 
-        setResumeTime(isFinite(guestTime) && guestTime > 0 ? guestTime : 0);
+        updateState({
+          resumeTime: isFinite(guestTime) && guestTime > 0 ? guestTime : 0,
+        });
       }
     };
     fetchResumeTime();
@@ -1035,24 +1036,24 @@ function VideoPlayer({
     const video = videoRef?.current;
     if (!video) return;
 
-    video.currentTime = resumeTime;
+    video.currentTime = state.resumeTime;
     const value = (video.currentTime / video.duration) * 100;
-    setProgress(value);
+    updateState({ progress: value });
 
     if (!isUserInteracted) {
       showControls();
-      setTitleOpacity(1);
+      updateState({ titleOpacity: 1 });
     }
     try {
       if (isUserInteracted) {
         await video.play();
-        setIsPlaying(true);
+        updateState({ isPlaying: true });
       }
     } catch (err) {
-      setIsPlaying(false);
+      updateState({ isPlaying: false });
       console.warn("Video play failed:", err);
     }
-    setVideoReady(true);
+    updateState({ videoReady: true });
   };
 
   useEffect(() => {
@@ -1074,8 +1075,8 @@ function VideoPlayer({
     if (!video) return;
 
     const checkReplayReset = () => {
-      if (video.currentTime < video.duration && isReplay) {
-        setIsReplay(false);
+      if (video.currentTime < video.duration && state.isReplay) {
+        updateState({ isReplay: false });
         video.play();
       }
     };
@@ -1085,47 +1086,47 @@ function VideoPlayer({
     return () => {
       video.removeEventListener("timeupdate", checkReplayReset);
     };
-  }, [isReplay]);
+  }, [state.isReplay]);
 
   const handleForwardSeek = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
     if (pressTimer.current) clearTimeout(pressTimer.current);
-    setIsForwardSeek(true);
-    setIsFastPlayback(false);
+    updateState({ isForwardSeek: true });
+    updateState({ isFastPlayback: false });
 
     videoRef.current.currentTime += 5;
     if (!video.paused) {
       videoRef.current.play();
-      setIsPlaying(true);
+      updateState({ isPlaying: true });
     }
-    if (customPlayback) {
+    if (state.customPlayback) {
       video.playbackRate = prevSliderSpeedRef.current;
     } else {
       video.playbackRate = prevSpeedRef.current;
     }
 
-    setTimeout(() => setIsForwardSeek(false), 300);
+    setTimeout(() => updateState({ isForwardSeek: false }), 300);
   }, []);
 
   const handleBackwardSeek = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
     if (pressTimer.current) clearTimeout(pressTimer.current);
-    setIsFastPlayback(false);
+    updateState({ isFastPlayback: false });
 
     const wasEnded = video.ended;
 
-    if (isReplay && wasEnded) {
+    if (state.isReplay && wasEnded) {
       video.currentTime = Math.max(video.duration - 5, 0);
-      setIsReplay(false);
+      updateState({ isReplay: false });
       video.play();
-      setIsPlaying(true);
+      updateState({ isPlaying: true });
       return;
     }
-    setIsBackwardSeek(true);
+    updateState({ isBackwardSeek: true });
 
-    if (customPlayback) {
+    if (state.customPlayback) {
       video.playbackRate = prevSliderSpeedRef.current;
     } else {
       video.playbackRate = prevSpeedRef.current;
@@ -1133,11 +1134,11 @@ function VideoPlayer({
     video.currentTime = Math.max(video.currentTime - 5, 0);
 
     if (!video.paused) {
-      setIsPlaying(true);
+      updateState({ isPlaying: true });
     }
 
-    setTimeout(() => setIsBackwardSeek(false), 300);
-  }, [isReplay]);
+    setTimeout(() => updateState({ isBackwardSeek: false }), 300);
+  }, [state.isReplay]);
 
   const handleVolumeToggle = useCallback(() => {
     const video = videoRef.current;
@@ -1149,11 +1150,11 @@ function VideoPlayer({
     if (currentVolume > 0) {
       prevVolumeRef.current = currentVolume;
       video.muted = true;
-      setVolume(0);
+      updateState({ volume: 0 });
     } else {
       const restoreVol = prevVolumeRef.current || 1;
       video.volume = restoreVol;
-      setVolume(restoreVol * 40);
+      updateState({ volume: restoreVol * 40 });
       video.muted = false;
     }
 
@@ -1165,16 +1166,16 @@ function VideoPlayer({
   const updateVolumeIconState = () => {
     const currentVolume = videoRef.current?.volume ?? 0;
 
-    setVolumeMuted(false);
-    setVolumeUp(false);
-    setVolumeDown(false);
+    updateState({ volumeMuted: false });
+    updateState({ volumeUp: false });
+    updateState({ volumeDown: false });
 
     if (currentVolume === 0) {
-      setVolumeMuted(true);
+      updateState({ volumeMuted: true });
     } else if (currentVolume > 0.5) {
-      setVolumeUp(true);
+      updateState({ volumeUp: true });
     } else {
-      setVolumeDown(true);
+      updateState({ volumeDown: true });
     }
   };
 
@@ -1184,24 +1185,26 @@ function VideoPlayer({
     const updateSize = () => {
       const containerWidth = containerRef.current.offsetWidth;
       const containerHeight = containerRef.current.offsetHeight;
-      setVideoContainerWidth(containerWidth);
+      updateState({ videoContainerWidth: containerWidth });
       const targetAspectRatio = 16 / 9;
 
       let videoWidth = Math.floor(containerWidth);
-      let videoHeight = Math.ceil(videoWidth / targetAspectRatio);
-      setVideoHeight(videoHeight);
+      let videoHeightLocal = Math.ceil(videoWidth / targetAspectRatio);
+      updateState({ videoHeight: videoHeightLocal });
 
-      if (videoHeight > containerHeight) {
-        videoHeight = Math.floor(containerHeight);
-        videoWidth = Math.floor(videoHeight * targetAspectRatio);
+      if (videoHeightLocal > containerHeight) {
+        videoHeightLocal = Math.floor(containerHeight);
+        videoWidth = Math.floor(videoHeightLocal * targetAspectRatio);
       }
       const left = Math.floor(Math.max((containerWidth - videoWidth) / 2, 0));
-      const top = Math.ceil(Math.max((containerHeight - videoHeight) / 2, 0));
-      setPlayerWidth(`${videoWidth}px`);
-      setPlayerHeight(`${videoHeight}px`);
+      const top = Math.ceil(
+        Math.max((containerHeight - videoHeightLocal) / 2, 0)
+      );
+      updateState({ playerWidth: `${videoWidth}px` });
+      updateState({ playerHeight: `${videoHeightLocal}px` });
 
-      setLeftOffset(`${left}px`);
-      setTopOffset(`${top}px`);
+      updateState({ leftOffset: `${left}px` });
+      updateState({ topOffset: `${top}px` });
     };
     const raf = requestAnimationFrame(updateSize);
     const container = containerRef.current;
@@ -1222,9 +1225,9 @@ function VideoPlayer({
     const video = videoRef.current;
     if (!video) return;
 
-    const normalized = volume / 40;
+    const normalized = state.volume / 40;
     video.volume = normalized;
-  }, [volume, data?.data?._id, isMuted]);
+  }, [state.volume, data?.data?._id, state.isMuted]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -1249,15 +1252,15 @@ function VideoPlayer({
       } else if (e.key.toLowerCase() === "k") {
         e.preventDefault();
         flushSync(() => {
-          setShowIcon(true);
-          setShowVolumeIcon(false);
+          updateState({ showIcon: true });
+          updateState({ showVolumeIcon: false });
         });
         togglePlayPause();
       } else if (e.code === "Space") {
         e.preventDefault();
         if (isHolding.current) return;
-        setControlOpacity(1);
-        setTitleOpacity(1);
+        updateState({ controlOpacity: 1 });
+        updateState({ titleOpacity: 1 });
         if (overlay.classList.contains("hide-cursor")) {
           overlay.classList.remove("hide-cursor");
         }
@@ -1283,9 +1286,9 @@ function VideoPlayer({
         e.preventDefault();
         const icon = volumeIconRef.current;
         flushSync(() => {
-          setShowIcon(false);
-          setShowVolumeIcon(true);
-          setIsVolumeChanged(true);
+          updateState({ showIcon: false });
+          updateState({ showVolumeIcon: true });
+          updateState({ isVolumeChanged: true });
         });
 
         if (icon) {
@@ -1299,7 +1302,7 @@ function VideoPlayer({
         updateVolumeIconState();
 
         setTimeout(() => {
-          setIsVolumeChanged(false);
+          updateState({ isVolumeChanged: false });
         }, 400);
       } else if (e.key.toLowerCase() === "t") {
         e.preventDefault();
@@ -1307,7 +1310,7 @@ function VideoPlayer({
         if (!isFullscreen && videoRef.current) {
           setIsUserInteracted(true);
           startTransition(() => {
-            setIsTheatre((prev) => !prev);
+            setIsTheatre((prev) => !prev)
           });
         }
       }
@@ -1325,8 +1328,8 @@ function VideoPlayer({
           clearTimeout(holdTimer.current);
           holdTimer.current = null;
           flushSync(() => {
-            setShowIcon(true);
-            setShowVolumeIcon(false);
+            updateState({ showIcon: true });
+            updateState({ showVolumeIcon: false });
           });
           togglePlayPause();
         }
@@ -1349,13 +1352,13 @@ function VideoPlayer({
   ]);
 
   useEffect(() => {
-    setPrevTheatre(isTheatre);
+    updateState({ prevTheatre: isTheatre });
   }, [isTheatre]);
 
   const { mutate } = useMutation({
     mutationFn: () => videoView(videoId),
     onMutate: () => {
-      setViewCounted(true);
+      updateState({ viewCounted: true });
     },
   });
   if (isLoading) return <Typography>Loading...</Typography>;
@@ -1368,7 +1371,7 @@ function VideoPlayer({
 
     const value = (video.currentTime / video.duration) * 100;
 
-    setProgress(value);
+    updateState({ progress: value });
 
     const duration = video.duration;
     const watchTime = video.currentTime;
@@ -1383,15 +1386,15 @@ function VideoPlayer({
 
     const hasWatchedEnough =
       (duration < 30 && watchTime >= duration) || watchTime >= 30;
-    if (viewCounted) return;
+    if (state.viewCounted) return;
     if (hasWatchedEnough) {
       mutate();
     }
   };
 
   const handleVideoEnd = () => {
-    setCanPlay(false);
-    setIsReplay(true);
+    updateState({ canPlay: false });
+    updateState({ isReplay: true });
 
     if (!playlistVideos || index >= playlistVideos.length - 1) return;
 
@@ -1420,7 +1423,7 @@ function VideoPlayer({
           onMouseLeave={handleMouseOut}
           onMouseMove={handleContainerMouseMove}
           onMouseEnter={() => {
-            if (!isLongPress) {
+            if (!state.isLongPress) {
               isInside.current = true;
               showControls();
             }
@@ -1438,8 +1441,8 @@ function VideoPlayer({
           {!isTheatre && (
             <Box
               sx={{
-                display: isMini ? "none" : "block",
-                height: videoHeight,
+                display: state.isMini ? "none" : "block",
+                height: state.videoHeight,
               }}
               className="ambient-wrapper"
             >
@@ -1466,19 +1469,19 @@ function VideoPlayer({
           )}
           <Box
             sx={{
-              aspectRatio: isMini ? "1.7777777777777777 !important" : "",
+              aspectRatio: state.isMini ? "1.7777777777777777 !important" : "",
               position:
-                isTheatre && !isMini
+                isTheatre && !state.isMini
                   ? "relative"
-                  : isMini
+                  : state.isMini
                     ? "fixed"
                     : "absolute",
-              width: isMini ? "480px" : "100%",
-              height: isMini ? "auto" : "100%",
-              top: isMini ? "15px" : 0,
-              left: isMini ? "15px" : 0,
-              right: isMini ? "auto" : "",
-              zIndex: isMini ? 9999 : 0,
+              width: state.isMini ? "480px" : "100%",
+              height: state.isMini ? "auto" : "100%",
+              top: state.isMini ? "15px" : 0,
+              left: state.isMini ? "15px" : 0,
+              right: state.isMini ? "auto" : "",
+              zIndex: state.isMini ? 9999 : 0,
             }}
           >
             <Box
@@ -1507,16 +1510,16 @@ function VideoPlayer({
                   onPlay={handlePlay}
                   onLoadedMetadata={handleLoadedMetadata}
                   style={{
-                    visibility: videoReady ? "visible" : "hidden",
-                    aspectRatio: isMini ? "1.777" : "",
+                    visibility: state.videoReady ? "visible" : "hidden",
+                    aspectRatio: state.isMini ? "1.777" : "",
                     position: "absolute",
-                    width: isMini ? "480px" : playerWidth,
-                    height: isMini ? "auto" : playerHeight,
-                    left: isTheatre && !isMini ? leftOffset : 0,
-                    top: isTheatre && !isMini ? topOffset : 0,
-                    right: isMini ? "auto" : "",
+                    width: state.isMini ? "480px" : state.playerWidth,
+                    height: state.isMini ? "auto" : state.playerHeight,
+                    left: isTheatre && !state.isMini ? state.leftOffset : 0,
+                    top: isTheatre && !state.isMini ? state.topOffset : 0,
+                    right: state.isMini ? "auto" : "",
                     objectFit: "cover",
-                    borderRadius: isTheatre && !isMini ? "0" : "8px",
+                    borderRadius: isTheatre && !state.isMini ? "0" : "8px",
                   }}
                 >
                   <source src={data?.data?.videoFile.url} type="video/mp4" />
@@ -1529,33 +1532,14 @@ function VideoPlayer({
                 playlistId={playlistId}
                 shuffledVideos={shuffledVideos}
                 isLoading={isLoading}
-                isReplay={isReplay}
                 togglePlayPause={togglePlayPause}
-                videoReady={videoReady}
                 toggleFullScreen={toggleFullScreen}
-                setShowIcon={setShowIcon}
-                isPlaying={isPlaying}
-                setIsPlaying={setIsPlaying}
                 playlistVideos={playlistVideos}
-                isLongPress={isLongPress}
                 index={index}
-                volume={volume}
-                setVolume={setVolume}
                 handleVolumeToggle={handleVolumeToggle}
                 handleTogglePiP={handleTogglePiP}
-                isMuted={isMuted}
-                isIncreased={isIncreased}
-                jumpedToMax={jumpedToMax}
-                isAnimating={isAnimating}
-                isMini={isMini}
                 isTheatre={isTheatre}
-                isPiActive={isPiActive}
                 setIsTheatre={setIsTheatre}
-                setPrevTheatre={setPrevTheatre}
-                videoContainerWidth={videoContainerWidth}
-                controlOpacity={controlOpacity}
-                showSettings={showSettings}
-                setShowSettings={setShowSettings}
                 playbackSpeed={playbackSpeed}
                 setPlaybackSpeed={setPlaybackSpeed}
                 spriteUrl={data?.data?.sprite?.url}
@@ -1564,12 +1548,9 @@ function VideoPlayer({
                 setIsAmbient={setIsAmbient}
                 playbackSliderSpeed={playbackSliderSpeed}
                 setPlaybackSliderSpeed={setPlaybackSliderSpeed}
-                customPlayback={customPlayback}
-                setCustomPlayback={setCustomPlayback}
-                bufferedVal={bufferedVal}
-                setBufferedVal={setBufferedVal}
-                progress={progress}
-                setProgress={setProgress}
+                customPlayback={state.customPlayback}
+                {...state}
+                updateState={updateState}
               />
 
               <Box className="title-background-overlay"></Box>
@@ -1586,7 +1567,7 @@ function VideoPlayer({
                   pointerEvents: "all",
                 }}
               >
-                {isFastPlayback && (
+                {state.isFastPlayback && (
                   <Box
                     sx={{
                       position: "absolute",
@@ -1611,7 +1592,7 @@ function VideoPlayer({
                     />
                   </Box>
                 )}
-                {isVolumeChanged && (
+                {state.isVolumeChanged && (
                   <Box
                     sx={{
                       position: "absolute",
@@ -1627,11 +1608,11 @@ function VideoPlayer({
                     }}
                   >
                     <Typography fontWeight="500" variant="h6">
-                      {Math.round((volume / 40) * 100)}%
+                      {Math.round((state.volume / 40) * 100)}%
                     </Typography>
                   </Box>
                 )}
-                {isForwardSeek && (
+                {state.isForwardSeek && (
                   <Box
                     sx={{
                       position: "absolute",
@@ -1681,7 +1662,7 @@ function VideoPlayer({
                   </Box>
                 )}
 
-                {isBackwardSeek && (
+                {state.isBackwardSeek && (
                   <Box
                     sx={{
                       position: "absolute",
@@ -1736,12 +1717,12 @@ function VideoPlayer({
                     pointerEvents: "none",
                   }}
                 >
-                  {(showBufferingIndicator || loadingVideo) &&
-                    !isBackwardSeek &&
-                    !isForwardSeek && (
+                  {(state.showBufferingIndicator || state.loadingVideo) &&
+                    !state.isBackwardSeek &&
+                    !state.isForwardSeek && (
                       <IconButton
                         disableRipple
-                        className="buffering-progress"
+                        className="buffering-state.progress"
                         sx={{
                           position: "absolute",
                           left: "50%",
@@ -1771,15 +1752,17 @@ function VideoPlayer({
                         width: "52px",
                         height: "52px",
                         padding: 0,
-                        opacity: showIcon ? 1 : 0,
+                        opacity: state.showIcon ? 1 : 0,
                         visibility:
-                          showIcon && isUserInteracted ? "visible" : "hidden",
+                          state.showIcon && isUserInteracted
+                            ? "visible"
+                            : "hidden",
                         transition: "opacity 0.2s ease",
                         position: "absolute",
                       }}
                       ref={playIconRef}
                     >
-                      {isPlaying ? (
+                      {state.isPlaying ? (
                         <PlayArrowIcon
                           className="playback-icon"
                           sx={iconStyle}
@@ -1794,18 +1777,18 @@ function VideoPlayer({
                         width: "52px",
                         height: "52px",
                         padding: 0,
-                        opacity: showVolumeIcon ? 1 : 0,
-                        visibility: showVolumeIcon ? "visible" : "hidden",
+                        opacity: state.showVolumeIcon ? 1 : 0,
+                        visibility: state.showVolumeIcon ? "visible" : "hidden",
                         transition: "opacity 0.2s ease",
                         position: "absolute",
                       }}
                       ref={volumeIconRef}
                     >
-                      {volumeDown ? (
+                      {state.volumeDown ? (
                         <VolumeDownIcon className="vol-icon" sx={iconStyle} />
-                      ) : volumeUp ? (
+                      ) : state.volumeUp ? (
                         <VolumeUpIcon className="vol-icon" sx={iconStyle} />
-                      ) : volumeMuted ? (
+                      ) : state.volumeMuted ? (
                         <VolumeOffIcon className="vol-icon" sx={iconStyle} />
                       ) : null}
                     </IconButton>
@@ -1817,10 +1800,10 @@ function VideoPlayer({
                 sx={{ userSelect: "none" }}
                 onClick={handleClick}
                 onMouseDown={
-                  isUserInteracted && !isPiActive ? DoubleSpeed : null
+                  isUserInteracted && !state.isPipActive ? DoubleSpeed : null
                 }
                 onTouchStart={
-                  isUserInteracted && !isPiActive ? DoubleSpeed : null
+                  isUserInteracted && !state.isPipActive ? DoubleSpeed : null
                 }
                 className="video-overlay"
               >
@@ -1832,7 +1815,7 @@ function VideoPlayer({
 
                     justifyContent: "center",
                     alignItems: "center",
-                    display: isUserInteracted || isMini ? "none" : "flex",
+                    display: isUserInteracted || state.isMini ? "none" : "flex",
                     transition: "opacity .25s cubic-bezier(0,0,.2,1)",
                     color: "#fff",
                     userSelect: "none",
@@ -1850,7 +1833,9 @@ function VideoPlayer({
                       width: "100%",
                       height: "100%",
                       borderRadius: "8px",
-                      background: loadingVideo ? "rgba(0,0,0)" : "transparent",
+                      background: state.loadingVideo
+                        ? "rgba(0,0,0)"
+                        : "transparent",
                       backgroundImage: `url(${data?.data?.thumbnail.url})`,
                       backgroundRepeat: "no-repeat",
                       backgroundPosition: "center",
@@ -1891,10 +1876,10 @@ function VideoPlayer({
                 </Box>
               </Box>
               <IconButton
-                className={`cancel-mini-btn ${isMini ? "" : "hide"}`}
+                className={`cancel-mini-btn ${state.isMini ? "" : "hide"}`}
                 onClick={() => {
-                  setIsMini(false);
-                  setHideMini(true);
+                  updateState({ isMini: false });
+                  updateState({ hideMini: true });
                 }}
                 sx={{
                   position: "absolute",
@@ -1910,7 +1895,7 @@ function VideoPlayer({
                 ref={fullScreenTitleRef}
                 className="title-fullscreen"
                 sx={{
-                  opacity: !isFullscreen ? 0 : titleOpacity,
+                  opacity: !state.isFullscreen ? 0 : state.titleOpacity,
                   position: "absolute",
                   width: "100%",
                   top: "0",
