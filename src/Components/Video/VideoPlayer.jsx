@@ -78,33 +78,59 @@ function VideoPlayer({
   const userInteractionContext = useContext(UserInteractionContext);
   const { getTimeStamp, setTimeStamp } = useContext(TimeStampContext);
 
- const {
-  containerRef,
-  videoRef,
-  videoPauseStatus,
-  prevVolumeRef,
-  prevVolRef,
-  exitingPiPViaOurUIButtonRef,
-  timeoutRef,
-  fullScreenTitleRef,
-  isInside,
-  prevVideoRef,
-  playIconRef,
-  volumeIconRef,
-  pressTimer,
-  clickTimeout,
-  clickCount,
-  animateTimeoutRef,
-  captureCanvasRef,
-  prevHoverStateRef,
-  holdTimer,
-  trackerRef,
-  isHolding,
-  glowCanvasRef,
-  prevSpeedRef,
-  prevSliderSpeedRef,
-} = useRefReducer();
-
+  const {
+    isInside,
+    prevVideoRef,
+    videoPauseStatus,
+    playIconRef,
+    volumeIconRef,
+    containerRef,
+    videoRef,
+    savedVideoRef,
+    timeoutRef,
+    pressTimer,
+    fullScreenTitleRef,
+    clickTimeout,
+    clickCount,
+    animateTimeoutRef,
+    captureCanvasRef,
+    prevHoverStateRef,
+    prevVolRef,
+    prevVolumeRef,
+    exitingPiPViaOurUIButtonRef,
+    holdTimer,
+    trackerRef,
+    isHolding,
+    glowCanvasRef,
+    prevSpeedRef,
+    prevSliderSpeedRef,
+  } = useRefReducer({
+    isInside: null,
+    prevVideoRef: null,
+    videoPauseStatus: null,
+    playIconRef: null,
+    volumeIconRef: null,
+    containerRef: null,
+    videoRef: null,
+    savedVideoRef: null,
+    timeoutRef: null,
+    pressTimer: null,
+    fullScreenTitleRef: null,
+    clickTimeout: null,
+    clickCount: 0,
+    animateTimeoutRef: null,
+    captureCanvasRef: null,
+    prevHoverStateRef: null,
+    prevVolRef: null,
+    prevVolumeRef: null,
+    exitingPiPViaOurUIButtonRef: null,
+    holdTimer: null,
+    trackerRef: new VideoTelemetryTimer(),
+    isHolding: null,
+    glowCanvasRef: null,
+    prevSpeedRef: null,
+    prevSliderSpeedRef: null,
+  });
 
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
@@ -114,7 +140,6 @@ function VideoPlayer({
   const isAuthenticated = dataContext || null;
   const { isUserInteracted, setIsUserInteracted } =
     userInteractionContext ?? {};
-
 
   const [isAmbient, setIsAmbient] = usePlayerSetting("ambientMode", false);
   const [playbackSpeed, setPlaybackSpeed] = usePlayerSetting(
@@ -242,20 +267,32 @@ function VideoPlayer({
     updateState({ canPlay: true });
     updateState({ isPlaying: true });
   };
+useEffect(() => {
+  if (videoRef.current) {
+    savedVideoRef.current = videoRef.current;
+  }
+}, [videoRef.current]);
 
-  useEffect(() => {
-    console.log("useEffect triggered for pathname:", location.pathname);
-    const video = videoRef?.current;
-    const tracker = trackerRef?.current;
-    tracker.reset();
+useEffect(() => {
+  return () => {
+    const video = savedVideoRef.current;
+    const tracker = trackerRef.current;
+    
+    if (tracker) tracker.reset();
+    
+    if (!video || !tracker) {
+      console.log("No video or tracker at unmount");
+      return;
+    }
 
-    if (!video || !tracker) return;
     const telemetryData = tracker.end(video, isSubscribedTo ? 1 : 0);
     if (telemetryData) {
-      console.log("Sending telmetry");
+      console.log("Sending telemetry");
       sendYouTubeStyleTelemetry(videoId, video, telemetryData, setTimeStamp);
     }
-  }, [location.pathname]);
+  };
+}, []);
+
 
   useEffect(() => {
     const container = containerRef.current;
@@ -399,7 +436,6 @@ function VideoPlayer({
   const hideControls = () => {
     if (state.controlOpacity !== 0) updateState({ controlOpacity: 0 });
   };
-
 
   const handleEnterPiP = useCallback(() => {
     showControls();
@@ -652,7 +688,7 @@ function VideoPlayer({
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [state.isPlaying, state.controlOpacity, state.isLongPress, isInside]);
+  }, [state.isPlaying, state.controlOpacity, state.isLongPress]);
 
   const handleMouseOut = () => {
     const container = containerRef.current;
@@ -681,17 +717,17 @@ function VideoPlayer({
     let progressCheckId;
 
     const handleBufferingStart = () => {
-      if (!state.isBufferingLocal) {
+      if (!isBufferingLocal) {
         console.log("Buffering started");
-        state.isBufferingLocal = true;
+        isBufferingLocal = true;
         updateState({ isBuffering: true });
       }
     };
 
     const handleBufferingEnd = () => {
-      if (state.isBufferingLocal) {
+      if (isBufferingLocal) {
         console.log("Buffering ended");
-        state.isBufferingLocal = false;
+        isBufferingLocal = false;
         updateState({ isBuffering: false });
       }
     };
@@ -712,14 +748,14 @@ function VideoPlayer({
       }
     };
 
-    state.progressCheckId = setInterval(checkProgress, 500);
+    progressCheckId = setInterval(checkProgress, 500);
 
     return () => {
       video.removeEventListener("waiting", handleBufferingStart);
       video.removeEventListener("stalled", handleBufferingStart);
       video.removeEventListener("playing", handleBufferingEnd);
       video.removeEventListener("canplay", handleBufferingEnd);
-      clearInterval(state.progressCheckId);
+      clearInterval(progressCheckId);
     };
   }, [data?.data?._id]);
 
@@ -789,8 +825,6 @@ function VideoPlayer({
       updateState({ isVolumeChanged: false });
     }, 500);
   };
-
-
 
   const updateVolumeStates = (volume) => {
     const prev = prevVolRef.current;
