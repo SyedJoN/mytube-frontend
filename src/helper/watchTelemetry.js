@@ -5,7 +5,14 @@ let stArray = [];
 let etArray = [];
 let volumeArray = [];
 let mutedArray = [];
+let limit = 0;
 
+export function initializeTelemetryArrays() {
+  stArray = [];
+  etArray = [];
+  volumeArray = [];
+  mutedArray = [];
+}
 export function getNewCpn(length = 12) {
   const array = new Uint8Array(length);
   crypto.getRandomValues(array);
@@ -55,11 +62,17 @@ export class VideoTelemetryTimer {
       mutedArray: isMuted,
     });
   }
-  trackVideoState(video, fromTime) {
+  trackVideoState(video, fromTime, setTimeStamp) {
+     if (video.paused) {
+      limit = 0;
+      this.scheduleNext(setTimeStamp, true);
+      return;
+    }
     const currentTime = video.currentTime;
     this.closeCurrentSegment(video, fromTime, 1);
-    this.currentSegmentStart = currentTime;
 
+    this.currentSegmentStart = currentTime;
+   
     console.log("Video Status Tracked", {
       status: video.paused ? "paused" : "playing",
       fromTime: fromTime,
@@ -127,7 +140,7 @@ export class VideoTelemetryTimer {
     return telemetryData;
   }
 
-  scheduleNext(setTimeStamp) {
+  scheduleNext(setTimeStamp, final = false) {
     if (this.isStopped) return;
 
     if (this.telemetryTimer) {
@@ -139,7 +152,14 @@ export class VideoTelemetryTimer {
     this.telemetryTimer = setTimeout(() => {
       this.sendHeartbeat(setTimeStamp);
       this.count++;
-      this.scheduleNext();
+      console.log("limit", limit);
+      if (final && limit === 1) {
+        console.log("returned due to limit reached!");
+        limit = 0;
+        return;
+      }
+      limit++;
+      this.scheduleNext(setTimeStamp, final);
     }, this.currentInterval);
   }
 
@@ -200,10 +220,7 @@ export class VideoTelemetryTimer {
     };
     sendTelemetry([telemetryData], setTimeStamp);
 
-    stArray = [];
-    etArray = [];
-    volumeArray = [];
-    mutedArray = [];
+  initializeTelemetryArrays();
   }
 
   reschedule() {
@@ -248,7 +265,6 @@ export class VideoTelemetryTimer {
     etArray = [];
     volumeArray = [];
     mutedArray = [];
-    
   }
 }
 export function sendYouTubeStyleTelemetry(

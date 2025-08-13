@@ -76,7 +76,71 @@ function VideoPlayer({
   const userContext = useContext(UserContext);
   const drawerContext = useContext(DrawerContext);
   const userInteractionContext = useContext(UserInteractionContext);
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
+  const { open: isOpen } = drawerContext ?? {};
+  const { data: dataContext } = userContext ?? {};
+  const userId = dataContext?._id;
+  const isAuthenticated = dataContext || null;
+  const { isUserInteracted, setIsUserInteracted } =
+    userInteractionContext ?? {};
+
+  const [isAmbient, setIsAmbient] = usePlayerSetting("ambientMode", false);
+  const [playbackSpeed, setPlaybackSpeed] = usePlayerSetting(
+    "playbackSpeed",
+    1.0
+  );
+  const [playbackSliderSpeed, setPlaybackSliderSpeed] = usePlayerSetting(
+    "playbackSpeed",
+    1.0
+  );
+  const location = useLocation();
   const { getTimeStamp, setTimeStamp } = useContext(TimeStampContext);
+
+  const [progress, setProgress] = useState(0);
+  const [bufferedVal, setBufferedVal] = useState(0);
+  const { state, updateState } = useStateReducer({
+    isPlaying: false,
+    viewCounted: false,
+    isLongPress: false,
+    showIcon: false,
+    showVolumeIcon: false,
+    volumeUp: false,
+    leftOffset: "0px",
+    topOffset: "0px",
+    volumeSlider: 40,
+    volumeDown: false,
+    volumeMuted: false,
+    isBuffering: false,
+    showBufferingIndicator: false,
+    loadingVideo: false,
+    isForwardSeek: false,
+    isBackwardSeek: false,
+    volume: 40,
+    isVolumeChanged: false,
+    isMuted: false,
+    isIncreased: true,
+    isAnimating: false,
+    jumpedToMax: false,
+    isFullscreen: false,
+    isMini: false,
+    hideMini: false,
+    customPlayback: false,
+    isReplay: false,
+    videoContainerWidth: "0px",
+    isFastPlayback: false,
+    prevTheatre: false,
+    videoHeight: 0,
+    playerHeight: "0px",
+    resumeTime: 0,
+    playerWidth: "0px",
+    controlOpacity: 0,
+    titleOpacity: 0,
+    showSettings: false,
+    isPipActive: false,
+    videoReady: false,
+    canPlay: true,
+  });
 
   const {
     isInside,
@@ -104,6 +168,8 @@ function VideoPlayer({
     glowCanvasRef,
     prevSpeedRef,
     prevSliderSpeedRef,
+    volTimeoutRef,
+    lastKeyPress,
   } = useRefReducer({
     isInside: null,
     prevVideoRef: null,
@@ -130,71 +196,32 @@ function VideoPlayer({
     glowCanvasRef: null,
     prevSpeedRef: null,
     prevSliderSpeedRef: null,
+    volTimeoutRef: null,
+    lastKeyPress: null,
   });
+  const [previousVolume, setPreviousVolume] = useState(state.volume || 40);
 
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  useEffect(() => {
+    if (state.isMuted) {
+      updateState({ volumeSlider: 0 });
+    } else {
+      updateState({ volumeSlider: state.volume });
+    }
+  }, [state.isMuted, state.volume]);
 
-  const { open: isOpen } = drawerContext ?? {};
-  const { data: dataContext } = userContext ?? {};
-  const userId = dataContext?._id;
-  const isAuthenticated = dataContext || null;
-  const { isUserInteracted, setIsUserInteracted } =
-    userInteractionContext ?? {};
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
 
-  const [isAmbient, setIsAmbient] = usePlayerSetting("ambientMode", false);
-  const [playbackSpeed, setPlaybackSpeed] = usePlayerSetting(
-    "playbackSpeed",
-    1.0
-  );
-  const [playbackSliderSpeed, setPlaybackSliderSpeed] = usePlayerSetting(
-    "playbackSpeed",
-    1.0
-  );
-  const location = useLocation();
-  const [progress, setProgress] = useState(0);
-  const [bufferedVal, setBufferedVal] = useState(0);
-
-  const { state, updateState } = useStateReducer({
-    isPlaying: false,
-    viewCounted: false,
-    isLongPress: false,
-    showIcon: false,
-    showVolumeIcon: false,
-    volumeUp: false,
-    leftOffset: "0px",
-    topOffset: "0px",
-    volumeDown: false,
-    volumeMuted: false,
-    isBuffering: false,
-    showBufferingIndicator: false,
-    loadingVideo: false,
-    isForwardSeek: false,
-    isBackwardSeek: false,
-    volume: 40,
-    isVolumeChanged: false,
-    isMuted: false,
-    isIncreased: false,
-    isAnimating: false,
-    jumpedToMax: false,
-    isFullscreen: false,
-    isMini: false,
-    hideMini: false,
-    customPlayback: false,
-    isReplay: false,
-    videoContainerWidth: "0px",
-    isFastPlayback: false,
-    prevTheatre: false,
-    videoHeight: 0,
-    playerHeight: "0px",
-    resumeTime: 0,
-    playerWidth: "0px",
-    controlOpacity: 0,
-    titleOpacity: 0,
-    showSettings: false,
-    isPipActive: false,
-    videoReady: false,
-    canPlay: true,
-  });
+    if (state.isMuted) {
+      video.volume = 0;
+      video.muted = true;
+    } else {
+      const normalized = state.volume / 40;
+      video.volume = normalized;
+      video.muted = false;
+    }
+  }, [state.volume, state.isMuted]);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["video", videoId],
@@ -229,7 +256,7 @@ function VideoPlayer({
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    const onPause = () => flushSync(() => updateState({ isPlaying: false }));
+    const onPause = () => updateState({ isPlaying: false });
     video.addEventListener("pause", onPause);
     return () => video.removeEventListener("pause", onPause);
   }, []);
@@ -238,18 +265,14 @@ function VideoPlayer({
     const video = videoRef?.current;
     const tracker = trackerRef.current;
     if (!video || !tracker) return;
-    console.log("PLAYING");
+    tracker.start(video, videoId, setTimeStamp, userResumeTime);
+
     try {
       // await video.play();
-      if (tracker?.telemetryTimer) {
-        tracker.stop();
-        tracker.telemetryTimer = null;
-      }
       const userResumeTime = userId
         ? (userHistory?.data?.find((entry) => entry.video?._id === videoId)
             ?.currentTime ?? 0)
         : 0;
-      tracker.start(video, videoId, setTimeStamp, userResumeTime);
 
       clearTimeout(timeoutRef.current);
       timeoutRef.current = setTimeout(() => {
@@ -263,36 +286,33 @@ function VideoPlayer({
         tracker.telemetryTimer = null;
       }
     }
-    updateState({ isReplay: false });
-    updateState({ canPlay: true });
-    updateState({ isPlaying: true });
+    updateState({ isReplay: false, canPlay: true, isPlaying: true });
   };
-useEffect(() => {
-  if (videoRef.current) {
-    savedVideoRef.current = videoRef.current;
-  }
-}, [videoRef.current]);
-
-useEffect(() => {
-  return () => {
-    const video = savedVideoRef.current;
-    const tracker = trackerRef.current;
-    
-    if (tracker) tracker.reset();
-    
-    if (!video || !tracker) {
-      console.log("No video or tracker at unmount");
-      return;
+  useEffect(() => {
+    if (videoRef.current) {
+      savedVideoRef.current = videoRef.current;
     }
+  }, [videoRef.current]);
 
-    const telemetryData = tracker.end(video, isSubscribedTo ? 1 : 0);
-    if (telemetryData) {
-      console.log("Sending telemetry");
-      sendYouTubeStyleTelemetry(videoId, video, telemetryData, setTimeStamp);
-    }
-  };
-}, []);
+  useEffect(() => {
+    return () => {
+      const video = savedVideoRef.current;
+      const tracker = trackerRef.current;
 
+      if (tracker) tracker.reset();
+
+      if (!video || !tracker) {
+        console.log("No video or tracker at unmount");
+        return;
+      }
+
+      const telemetryData = tracker.end(video, isSubscribedTo ? 1 : 0);
+      if (telemetryData) {
+        console.log("Sending telemetry");
+        sendYouTubeStyleTelemetry(videoId, video, telemetryData, setTimeStamp);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -445,15 +465,13 @@ useEffect(() => {
   }, []);
 
   const handleLeavePiP = useCallback(() => {
-    updateState({ showIcon: false });
-
-    updateState({ isPipActive: false });
+    updateState({
+      showIcon: false,
+      isPipActive: false,
+      isPlaying: videoRef.current?.paused ? false : true,
+    });
 
     exitingPiPViaOurUIButtonRef.current = false;
-
-    requestAnimationFrame(() => {
-      updateState({ isPlaying: videoRef.current?.paused ? false : true });
-    });
   }, []);
 
   useEffect(() => {
@@ -497,10 +515,9 @@ useEffect(() => {
     if (clickCount.current === 1) {
       clickTimeout.current = setTimeout(() => {
         togglePlayPause();
-        flushSync(() => {
-          updateState({ showIcon: true });
-          updateState({ showVolumeIcon: false });
-        });
+
+        updateState({ showIcon: true, showVolumeIcon: false });
+
         console.log("Single Click");
         clickCount.current = 0;
         clearTimeout(clickTimeout.current);
@@ -538,10 +555,8 @@ useEffect(() => {
 
     pressTimer.current = setTimeout(() => {
       console.log("down");
-      updateState({ isLongPress: true });
+      updateState({ isLongPress: true, titleOpacity: 0, showIcon: false });
       hideControls();
-      updateState({ titleOpacity: 0 });
-      updateState({ showIcon: false });
       if (video.paused) {
         video.play();
         videoPauseStatus.current = true;
@@ -566,30 +581,25 @@ useEffect(() => {
 
     const video = videoRef.current;
     if (!video) return;
-    flushSync(() => {
-      updateState({ showIcon: true });
-      updateState({ showVolumeIcon: false });
-    });
+
+    updateState({ showIcon: true, showVolumeIcon: false });
+
     if (videoPauseStatus.current) {
       video.pause();
-      updateState({ isPlaying: false });
+      updateState({ isPlaying: false, titleOpacity: 1 });
       showControls();
-      updateState({ titleOpacity: 1 });
     }
-    flushSync(() => {
-      updateState({
-        controlOpacity:
-          isInside.current && prevHoverStateRef.current === 1
-            ? prevHoverStateRef.current
-            : 0,
-      });
-      updateState({
-        titleOpacity:
-          isInside.current && prevHoverStateRef.current === 1
-            ? prevHoverStateRef.current
-            : 0,
-      });
+    updateState({
+      controlOpacity:
+        isInside.current && prevHoverStateRef.current === 1
+          ? prevHoverStateRef.current
+          : 0,
+      titleOpacity:
+        isInside.current && prevHoverStateRef.current === 1
+          ? prevHoverStateRef.current
+          : 0,
     });
+
     clearTimeout(pressTimer.current);
     pressTimer.current = setTimeout(() => {
       updateState({ isLongPress: false });
@@ -612,9 +622,8 @@ useEffect(() => {
       console.log("move");
 
       container
-        .querySelector(".video-overlay")
-        ?.classList.remove("hide-cursor");
-      container.querySelector(".controls")?.classList.remove("hide-cursor");
+        .querySelectorAll(".video-overlay, .controls")
+        .forEach((el) => el.classList.remove("hide-cursor"));
       isInside.current = true;
       showControls();
       updateState({ titleOpacity: 1 });
@@ -635,8 +644,9 @@ useEffect(() => {
     if (videoPauseStatus.current) return;
     isInside.current = inside;
 
-    container.querySelector(".video-overlay")?.classList.remove("hide-cursor");
-    container.querySelector(".controls")?.classList.remove("hide-cursor");
+    container
+      .querySelectorAll(".video-overlay, .controls")
+      .forEach((el) => el.classList.remove("hide-cursor"));
 
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = null;
@@ -650,8 +660,9 @@ useEffect(() => {
       ) {
         hideControls();
         updateState({ titleOpacity: 0 });
-        container.querySelector(".video-overlay")?.classList.add("hide-cursor");
-        container.querySelector(".controls")?.classList.add("hide-cursor");
+        container
+          .querySelectorAll(".video-overlay, .hide-cursor")
+          .forEach((el) => el.classList.add("hide-cursor"));
       }
     }, 2000);
   };
@@ -679,9 +690,8 @@ useEffect(() => {
           hideControls();
           updateState({ titleOpacity: 0 });
           container
-            .querySelector(".video-overlay")
-            ?.classList.add("hide-cursor");
-          container.querySelector(".controls")?.classList.add("hide-cursor");
+            .querySelectorAll(".video-overlay, .controls")
+            .forEach((el) => el.classList.add("hide-cursor"));
         }
       }, 2000);
     }
@@ -776,43 +786,38 @@ useEffect(() => {
   const handleVolume = (key) => {
     const video = videoRef.current;
     if (!video) return;
+
     if (pressTimer.current) clearTimeout(pressTimer.current);
-    updateState({ isFastPlayback: false });
-    updateState({ showIcon: false });
+    updateState({ isFastPlayback: false, showIcon: false });
 
     const icon = volumeIconRef.current;
-    flushSync(() => {
-      updateState({ showIcon: false });
-      updateState({ showVolumeIcon: true });
-      updateState({ isVolumeChanged: true });
-    });
 
+    updateState({
+      showIcon: false,
+      showVolumeIcon: true,
+      isVolumeChanged: true,
+    });
     if (icon) {
       icon.classList.remove("pressed");
-      void icon.offsetWidth;
-      icon.classList.add("pressed");
-    } else {
-      console.warn("volumeIconRef is null");
+      requestAnimationFrame(() => {
+        icon.classList.add("pressed");
+      });
     }
 
     const step = 0.05;
     if (key === "Up") {
-      updateState({ volumeDown: false });
-      updateState({ isMuted: false });
-      updateState({ volumeUp: true });
+      updateState({ volumeDown: false, isMuted: false, volumeUp: true });
       const newVol = (video.volume = Math.min(1, video.volume + step));
-      updateState({ volume: newVol * 40 });
+      updateState({ volume: newVol * 40, volumeSlider: newVol * 40 });
     } else if (key === "Down") {
       updateState({ volumeUp: false });
       const newVol = (video.volume = Math.max(0, video.volume - step));
       if (newVol > 0) {
-        updateState({ volumeDown: true });
-        updateState({ volumeMuted: false });
+        updateState({ volumeDown: true, volumeMuted: false, isMuted: false });
       } else {
-        updateState({ volumeMuted: true });
-        updateState({ volumeDown: false });
+        updateState({ volumeMuted: true, volumeDown: false, isMuted: true });
       }
-      updateState({ volume: newVol * 40 });
+      updateState({ volume: newVol * 40, volumeSlider: newVol * 40 });
     }
 
     if (state.customPlayback) {
@@ -827,64 +832,75 @@ useEffect(() => {
   };
 
   const updateVolumeStates = (volume) => {
-    const prev = prevVolRef.current;
+    const video = videoRef.current;
+    if (!video) return;
+
+    const prev = prevVolumeRef.current;
     const curr = volume;
 
-    const isUnmutedWithJump = prev === 0 && curr >= 0.5;
-    const isMutedFromHigh = prev >= 0.5 && curr === 0;
+    updateState((prevState) => {
+      const isMutedFromHigh = prevState.isMuted && prev >= 0.5;
+      const isUnmutedWithJump =
+        !prevState.isMuted && Math.abs(curr - prev) > 0.2;
 
-    if (isUnmutedWithJump || isMutedFromHigh) {
-      updateState({ jumpedToMax: true });
-      updateState({ isIncreased: false });
-    }
+      let newState = { ...prevState };
 
-    if (curr === 0) {
-      updateState({ isMuted: true });
-      updateState({ isIncreased: false });
-      animateTimeoutRef.current = setTimeout(
-        () => updateState({ isAnimating: true }),
-        300
-      );
-      return;
-    }
+      if (isMutedFromHigh || isUnmutedWithJump) {
+        console.log("UNMUTED OR MUTED WITH JUMP");
+        console.log({
+          volume: prevState.volume,
+          currVolume: state.volume,
+          isMuted: prevState.isMuted,
+          volumeSlider: prevState.volumeSlider,
+          prev: prev,
+          curr: curr,
+        });
+        newState.jumpedToMax = true;
+        newState.isIncreased = false;
+        return newState;
+      }
 
-    if (curr >= 0.5 && prev < 0.5) {
+      if (curr >= 0.5 && prev < 0.5 && !isMutedFromHigh && !isUnmutedWithJump) {
+        clearTimeout(animateTimeoutRef.current);
+        console.log({
+          xd: "xd",
+        });
+
+        newState.isAnimating = false;
+        newState.isIncreased = true;
+        return newState;
+      }
+
+      if (curr >= 0.5) {
+        clearTimeout(animateTimeoutRef.current);
+        newState.isAnimating = false;
+        return newState;
+      }
+
       clearTimeout(animateTimeoutRef.current);
-      updateState({ isAnimating: false });
-      updateState({ isMuted: false });
-      updateState({ isIncreased: true });
-      return;
-    }
+      newState.isAnimating = false;
+      newState.isIncreased = false;
+      newState.jumpedToMax = false;
 
-    if (curr >= 0.5) {
-      clearTimeout(animateTimeoutRef.current);
-      updateState({ isMuted: false });
-      updateState({ isAnimating: false });
-      return;
-    }
+      return newState;
+    });
 
-    clearTimeout(animateTimeoutRef.current);
-    updateState({ isMuted: false });
-    updateState({ isAnimating: false });
-    updateState({ isIncreased: false });
-    updateState({ jumpedToMax: false });
+    prevVolumeRef.current = curr;
   };
-  const debouncedUpdateVolumeStates = useDebouncedCallback(
-    (normalizedVolume) => {
-      updateVolumeStates(normalizedVolume);
-      prevVolRef.current = normalizedVolume;
-    },
-    3,
-    0.04
-  );
+
+  const debouncedUpdateVolumeStates = (normalizedVolume) => {
+    updateVolumeStates(normalizedVolume);
+  };
 
   useEffect(() => {
-    const normalizedVolume = state.volume / 40;
+    const normalizedVolume = state.volumeSlider / 40;
     debouncedUpdateVolumeStates(normalizedVolume);
+    prevVolRef.current = normalizedVolume;
+
     return () => {
       clearTimeout(animateTimeoutRef.current);
     };
-  }, [state.volume, debouncedUpdateVolumeStates]);
+  }, [state.volumeSlider]);
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -936,8 +952,9 @@ useEffect(() => {
     if (!video || !container || !state.canPlay) return;
     setIsUserInteracted(true);
 
-    container.querySelector(".video-overlay")?.classList.remove("hide-cursor");
-    container.querySelector(".controls")?.classList.remove("hide-cursor");
+    container.querySelectorAll(".video-overlay, .controls").forEach((el) => {
+      el.classList.remove("hide-cursor");
+    });
     if (playIconRef.current?.classList) {
       playIconRef.current.classList.add("click");
     } else {
@@ -947,7 +964,6 @@ useEffect(() => {
 
     if (video.paused || video.ended) {
       video.play();
-
       updateState({ isPlaying: true });
     } else {
       video.pause();
@@ -955,7 +971,7 @@ useEffect(() => {
     }
     const newTime = video.currentTime || 0;
     if (tracker && video.currentTime !== 0) {
-      tracker.trackVideoState(video, fromTime, newTime);
+      tracker.trackVideoState(video, fromTime, setTimeStamp);
     }
   }, []);
 
@@ -1139,8 +1155,7 @@ useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
     if (pressTimer.current) clearTimeout(pressTimer.current);
-    updateState({ isForwardSeek: true });
-    updateState({ isFastPlayback: false });
+    updateState({ isForwardSeek: true, isFastPlayback: false });
 
     videoRef.current.currentTime += 5;
     if (!video.paused) {
@@ -1188,43 +1203,62 @@ useEffect(() => {
   }, [state.isReplay]);
 
   const handleVolumeToggle = useCallback(() => {
-    const video = videoRef.current;
-    const tracker = trackerRef.current;
-    if (!video) return;
-    const fromTime = parseFloat(video.currentTime.toFixed(3));
-    const currentVolume = video.volume;
+    updateState((prev) => {
+      const video = videoRef.current;
+      const tracker = trackerRef.current;
+      if (!video) return prev;
 
-    if (currentVolume > 0) {
-      prevVolumeRef.current = currentVolume;
-      video.muted = true;
-      updateState({ volume: 0 });
-    } else {
-      const restoreVol = prevVolumeRef.current || 1;
-      video.volume = restoreVol;
-      updateState({ volume: restoreVol * 40 });
-      video.muted = false;
-    }
+      const fromTime = parseFloat(video.currentTime.toFixed(3));
 
-    if (tracker && !video.paused) {
-      tracker.handleMuteToggle(video, fromTime);
-    }
-  }, []);
+      if (!prev.isMuted) {
+        console.log("Muting via toggle");
 
-  const updateVolumeIconState = () => {
+        setPreviousVolume(prev.volume);
+        video.muted = true;
+
+        if (tracker && !video.paused) {
+          tracker.handleMuteToggle(video, fromTime);
+        }
+
+        return { ...prev, isMuted: true };
+      } else {
+        console.log("Unmuting via toggle. Restoring volume:", previousVolume);
+
+        video.volume = previousVolume / 40;
+        video.muted = false;
+
+        if (tracker && !video.paused) {
+          tracker.handleMuteToggle(video, fromTime);
+        }
+
+        return { ...prev, isMuted: false, volume: previousVolume };
+      }
+    });
+  }, [previousVolume]);
+
+  const updateVolumeIconState = useCallback(() => {
     const currentVolume = videoRef.current?.volume ?? 0;
 
-    updateState({ volumeMuted: false });
-    updateState({ volumeUp: false });
-    updateState({ volumeDown: false });
-
     if (currentVolume === 0) {
-      updateState({ volumeMuted: true });
+      updateState({
+        volumeMuted: true,
+        volumeUp: false,
+        volumeDown: false,
+      });
     } else if (currentVolume > 0.5) {
-      updateState({ volumeUp: true });
+      updateState({
+        volumeMuted: false,
+        volumeUp: true,
+        volumeDown: false,
+      });
     } else {
-      updateState({ volumeDown: true });
+      updateState({
+        volumeMuted: false,
+        volumeUp: false,
+        volumeDown: true,
+      });
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (!containerRef.current || !videoRef.current) return;
@@ -1232,12 +1266,14 @@ useEffect(() => {
     const updateSize = () => {
       const containerWidth = containerRef.current.offsetWidth;
       const containerHeight = containerRef.current.offsetHeight;
-      updateState({ videoContainerWidth: containerWidth });
       const targetAspectRatio = 16 / 9;
 
       let videoWidth = Math.floor(containerWidth);
       let videoHeightLocal = Math.ceil(videoWidth / targetAspectRatio);
-      updateState({ videoHeight: videoHeightLocal });
+      updateState({
+        videoContainerWidth: containerWidth,
+        videoHeight: videoHeightLocal,
+      });
 
       if (videoHeightLocal > containerHeight) {
         videoHeightLocal = Math.floor(containerHeight);
@@ -1247,11 +1283,12 @@ useEffect(() => {
       const top = Math.ceil(
         Math.max((containerHeight - videoHeightLocal) / 2, 0)
       );
-      updateState({ playerWidth: `${videoWidth}px` });
-      updateState({ playerHeight: `${videoHeightLocal}px` });
+      updateState({
+        playerWidth: `${videoWidth}px`,
+        playerHeight: `${videoHeightLocal}px`,
+      });
 
-      updateState({ leftOffset: `${left}px` });
-      updateState({ topOffset: `${top}px` });
+      updateState({ topOffset: `${top}px`, leftOffset: `${left}px` });
     };
     const raf = requestAnimationFrame(updateSize);
     const container = containerRef.current;
@@ -1270,16 +1307,11 @@ useEffect(() => {
 
   useEffect(() => {
     const video = videoRef.current;
-    if (!video) return;
-
-    const normalized = state.volume / 40;
-    video.volume = normalized;
-  }, [state.volume, data?.data?._id, state.isMuted]);
-
-  useEffect(() => {
-    const video = videoRef.current;
     const container = containerRef.current;
     if (!video || !container) return;
+
+    let rafId = null;
+
     const handleKeyPress = (e) => {
       const overlay = container.querySelector(".video-overlay");
       const controls = container.querySelector(".controls");
@@ -1298,22 +1330,15 @@ useEffect(() => {
         handleBackwardSeek();
       } else if (e.key.toLowerCase() === "k") {
         e.preventDefault();
-        flushSync(() => {
-          updateState({ showIcon: true });
-          updateState({ showVolumeIcon: false });
-        });
+        updateState({ showIcon: true, showVolumeIcon: false });
         togglePlayPause();
       } else if (e.code === "Space") {
         e.preventDefault();
         if (isHolding.current) return;
-        updateState({ controlOpacity: 1 });
-        updateState({ titleOpacity: 1 });
-        if (overlay.classList.contains("hide-cursor")) {
-          overlay.classList.remove("hide-cursor");
-        }
-        if (controls.classList.contains("hide-cursor")) {
-          controls.classList.remove("hide-cursor");
-        }
+        updateState({ controlOpacity: 1, titleOpacity: 1 });
+        [overlay, controls].forEach((el) => {
+          el?.classList.remove("hide-cursor");
+        });
         holdTimer.current = setTimeout(() => {
           DoubleSpeed(e);
           isHolding.current = true;
@@ -1323,32 +1348,38 @@ useEffect(() => {
         handleNextVideo();
       } else if (e.key.toLowerCase() === "f") {
         toggleFullScreen();
-      } else if (e.key === "ArrowUp") {
+      } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
         e.preventDefault();
-        handleVolume("Up");
-      } else if (e.key === "ArrowDown") {
-        e.preventDefault();
-        handleVolume("Down");
+        if (rafId) return;
+        rafId = requestAnimationFrame(() => {
+          handleVolume(e.key === "ArrowUp" ? "Up" : "Down");
+          rafId = null;
+        });
       } else if (e.key.toLowerCase() === "m") {
         e.preventDefault();
+
+        const now = Date.now();
+        if (now - lastKeyPress.current < 100) return;
+        lastKeyPress.current = now;
         const icon = volumeIconRef.current;
-        flushSync(() => {
-          updateState({ showIcon: false });
-          updateState({ showVolumeIcon: true });
-          updateState({ isVolumeChanged: true });
+        updateState({
+          showIcon: false,
+          showVolumeIcon: true,
+          isVolumeChanged: true,
         });
 
-        if (icon) {
-          icon.classList.remove("pressed");
-          void icon.offsetWidth;
-          icon.classList.add("pressed");
-        } else {
-          console.warn("volumeIconRef is null");
-        }
+        icon.classList.remove("pressed");
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            icon.classList.add("pressed");
+          });
+        });
         handleVolumeToggle();
         updateVolumeIconState();
-
-        setTimeout(() => {
+        if (volTimeoutRef.current) {
+          clearTimeout(volTimeoutRef.current);
+        }
+        volTimeoutRef.current = setTimeout(() => {
           updateState({ isVolumeChanged: false });
         }, 400);
       } else if (e.key.toLowerCase() === "t") {
@@ -1374,10 +1405,9 @@ useEffect(() => {
         } else {
           clearTimeout(holdTimer.current);
           holdTimer.current = null;
-          flushSync(() => {
-            updateState({ showIcon: true });
-            updateState({ showVolumeIcon: false });
-          });
+
+          updateState({ showIcon: true, showVolumeIcon: false });
+
           togglePlayPause();
         }
       }
@@ -1385,9 +1415,13 @@ useEffect(() => {
 
     window.addEventListener("keydown", handleKeyPress);
     window.addEventListener("keyup", handleKeyUp);
+
     return () => {
       window.removeEventListener("keydown", handleKeyPress);
       window.removeEventListener("keyup", handleKeyUp);
+      if (rafId) cancelAnimationFrame(rafId);
+      clearTimeout(volTimeoutRef.current);
+      volTimeoutRef.current = null;
     };
   }, [
     handleForwardSeek,
@@ -1396,6 +1430,7 @@ useEffect(() => {
     handleNextVideo,
     playbackSliderSpeed,
     playbackSpeed,
+    handleVolumeToggle,
   ]);
 
   useEffect(() => {
@@ -1440,8 +1475,7 @@ useEffect(() => {
   };
 
   const handleVideoEnd = () => {
-    updateState({ canPlay: false });
-    updateState({ isReplay: true });
+    updateState({ canPlay: false, isReplay: true });
 
     if (!playlistVideos || index >= playlistVideos.length - 1) return;
 
@@ -1547,6 +1581,7 @@ useEffect(() => {
             >
               {data?.data?.videoFile.url && (
                 <video
+                  muted={state.isMuted}
                   key={data?.data?.videoFile.url}
                   ref={videoRef}
                   crossOrigin="anonymous"
@@ -1593,6 +1628,7 @@ useEffect(() => {
                 vttUrl={data?.data?.sprite?.vtt}
                 isAmbient={isAmbient}
                 setIsAmbient={setIsAmbient}
+                setPreviousVolume={setPreviousVolume}
                 playbackSliderSpeed={playbackSliderSpeed}
                 setPlaybackSliderSpeed={setPlaybackSliderSpeed}
                 customPlayback={state.customPlayback}
@@ -1929,8 +1965,7 @@ useEffect(() => {
               <IconButton
                 className={`cancel-mini-btn ${state.isMini ? "" : "hide"}`}
                 onClick={() => {
-                  updateState({ isMini: false });
-                  updateState({ hideMini: true });
+                  updateState({ isMini: false, hideMini: true });
                 }}
                 sx={{
                   position: "absolute",

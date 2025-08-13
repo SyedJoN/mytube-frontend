@@ -53,11 +53,13 @@ const VideoControls = ({
   shuffledVideos,
   isPlaying,
   togglePlayPause,
+  setPreviousVolume,
   playlistVideos,
   videoReady,
   index,
   toggleFullScreen,
   volume,
+  volumeSlider,
   handleVolumeToggle,
   isMuted,
   jumpedToMax,
@@ -347,19 +349,29 @@ const VideoControls = ({
   const handleVolumeMove = (e) => {
     e.preventDefault();
     if (!volumeSliderRef.current || !videoRef.current) return;
-
     setShowVolumePanel(true);
 
     const rect = volumeSliderRef.current.getBoundingClientRect();
     const offsetX = e.clientX - rect.left;
-    const newVolume = Math.min(Math.max(offsetX / rect.width, 0), 1);
+    const normalizedVolume = Math.min(Math.max(offsetX / rect.width, 0), 1);
+    const volumeValue = normalizedVolume * 40;
 
-    videoRef.current.volume = newVolume;
-
-    updateState({
-      volume: newVolume <= 0 ? 0 : Number(newVolume * 40).toFixed(1),
-    });
+    if (normalizedVolume === 0) {
+      setPreviousVolume(40);
+      updateState({ isMuted: true });
+      updateState({ volumeSlider: 0 });
+      updateState({ volume: 40 });
+    } else {
+      updateState({ isMuted: false });
+      updateState({ volume: volumeValue });
+      updateState({ volumeSlider: volumeValue });
+      setPreviousVolume(volumeValue);
+    }
   };
+
+  // updateState({
+  //   volume: newVolume <= 0 ? 0 : Number(newVolume * 40).toFixed(1),
+  // });
 
   const handleVolumeEnd = () => {
     window.removeEventListener("mousemove", handleVolumeMove);
@@ -393,7 +405,7 @@ const VideoControls = ({
   const handleTheatreToggle = () => {
     setIsUserInteracted(true);
     startTransition(() => {
-      setIsTheatre(prev => !prev)
+      setIsTheatre((prev) => !prev);
     });
   };
 
@@ -472,7 +484,7 @@ const VideoControls = ({
                   style={controlStyles}
                   onClick={() => {
                     togglePlayPause();
-                    updateState({showIcon: false});
+                    updateState({ showIcon: false });
                   }}
                 >
                   <ReplaySvg />
@@ -501,7 +513,7 @@ const VideoControls = ({
                   style={controlStyles}
                   onClick={() => {
                     togglePlayPause();
-                    updateState({showIcon: false});
+                    updateState({ showIcon: false });
                   }}
                 >
                   <PlayPauseSvg isPlaying={isPlaying} />
@@ -536,7 +548,7 @@ const VideoControls = ({
                 }}
                 search={nextSearch}
               >
-                <SkipNextSvg />
+                <SkipNextSvg />h
               </Link>
             </Tooltip>
 
@@ -625,7 +637,7 @@ const VideoControls = ({
                       sx={{
                         position: "absolute",
                         top: "50%",
-                        left: `${volume}px`,
+                        left: `${volumeSlider}px`,
                         marginTop: "-6px",
                         color: "#fff",
                         width: "12px",

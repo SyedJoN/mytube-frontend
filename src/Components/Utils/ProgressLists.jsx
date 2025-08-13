@@ -211,6 +211,7 @@ export const ProgressLists = ({
       Math.max((offsetX / rect.width) * 100, 0),
       100
     );
+    setProgress(newProgress)
     const newTime = (newProgress * videoRef.current?.duration) / 100;
 
     videoRef.current.currentTime = newTime;

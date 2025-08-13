@@ -2,18 +2,16 @@ import { useRef } from "react";
 
 export default function useRefReducer(initialState) {
   const refs = useRef({});
-  
+
   if (Object.keys(refs.current).length === 0) {
     Object.keys(initialState).forEach(key => {
       refs.current[key] = { current: initialState[key] };
     });
   }
-  
 
-  const refObject = {};
+  const refObj = {};
   Object.keys(initialState).forEach(key => {
-    refObject[key] = refs.current[key];
+    refObj[key] = refs.current[key];
   });
-  
-  return refObject;
+  return refObj;
 }
