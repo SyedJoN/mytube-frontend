@@ -103,7 +103,7 @@ export default function BasicTabs({ username, tabPaths }) {
               onClick={() =>
                 navigate({ to: `/@${username}/${tab.toLowerCase()}` })
               }
-              {...a11yProps(0)}
+              {...a11yProps(index)}
               sx={{
                 position: "relative",
                 textTransform: "none",
@@ -132,7 +132,7 @@ export default function BasicTabs({ username, tabPaths }) {
             />
           ))}
 
-          <ClickAwayListener onClickAway={() => setSearch(false)}>
+        
             <Tab
               disableRipple
               sx={{ padding: 0, opacity: 1, justifyContent: "start" }}
@@ -176,7 +176,7 @@ export default function BasicTabs({ username, tabPaths }) {
                 </>
               }
             />
-          </ClickAwayListener>
+         
         </Tabs>
       </Box>
     </Container>

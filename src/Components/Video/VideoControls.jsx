@@ -1300,6 +1300,7 @@ const VideoControls = ({
           isTheatre={isTheatre}
           isMini={isMini}
           vttUrl={vttUrl}
+          updateState={updateState}
         />
       </Box>
     </>

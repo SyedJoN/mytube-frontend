@@ -60,7 +60,7 @@ export default function ScrollableTabsButton({ shareUrl }) {
   return (
     <Box sx={{ maxWidth: { xs: 320, sm: 480 }, overflow: "hidden" }}>
       <Tabs
-        value={value}
+        value={false}
         onChange={(event, newValue) => setValue(newValue)}
         sx={{
           ".MuiTabs-flexContainer": {
@@ -80,6 +80,7 @@ export default function ScrollableTabsButton({ shareUrl }) {
             width: "40px",
             height: "40px",
           },
+    
           ".MuiTabs-scrollButtons:first-of-type": {
             left: "13px", // <-- LEFT arrow
           },
@@ -95,13 +96,13 @@ export default function ScrollableTabsButton({ shareUrl }) {
         allowScrollButtonsMobile
         aria-label="scrollable auto tabs example"
         indicatorColor="transparent"
-        textColor="#f1f1f1"
       >
         <Tab
           onClick={() => handleClick("whatsapp")}
           icon={<Whatsapp size={62} />}
           label="Whatsapp"
           sx={{
+            color: "#f1f1f1",
             minHeight: 72,
             minWidth: 72,
             padding: 1,
@@ -117,6 +118,7 @@ export default function ScrollableTabsButton({ shareUrl }) {
           icon={<Facebook size={62} />}
           label="Facebook"
           sx={{
+            color: "#f1f1f1",
             minHeight: 72,
             minWidth: 72,
             padding: 1,
@@ -132,6 +134,8 @@ export default function ScrollableTabsButton({ shareUrl }) {
           icon={<X size={62} />}
           label="X"
           sx={{
+            color: "#f1f1f1",
+
             minHeight: 72,
             minWidth: 72,
             padding: 1,
@@ -147,6 +151,8 @@ export default function ScrollableTabsButton({ shareUrl }) {
           icon={<Mail size={62} />}
           label="Mail"
           sx={{
+            color: "#f1f1f1",
+
             minHeight: 72,
             minWidth: 72,
             padding: 1,
@@ -162,6 +168,8 @@ export default function ScrollableTabsButton({ shareUrl }) {
           icon={<Reddit size={62} />}
           label="Reddit"
           sx={{
+            color: "#f1f1f1",
+
             minHeight: 72,
             minWidth: 72,
             padding: 1,
@@ -177,6 +185,8 @@ export default function ScrollableTabsButton({ shareUrl }) {
           icon={<LinkedIn size={62} />}
           label="LinkedIn"
           sx={{
+            color: "#f1f1f1",
+
             minHeight: 72,
             minWidth: 72,
             padding: 1,
@@ -192,6 +202,8 @@ export default function ScrollableTabsButton({ shareUrl }) {
           icon={<Pinterest size={62} />}
           label="Pinterest"
           sx={{
+            color: "#f1f1f1",
+
             minHeight: 72,
             minWidth: 72,
             padding: 1,

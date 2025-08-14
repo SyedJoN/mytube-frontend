@@ -274,6 +274,7 @@ function VideoCard({
       if (telemetryData) {
         sendYouTubeStyleTelemetry(videoId, video, telemetryData, setTimeStamp);
       }
+      setProgress(0)
     };
 
     if (isHoverPlay && document.visibilityState === "visible") {
@@ -502,10 +503,6 @@ function VideoCard({
                         onMouseMove={handleVideoMouseMove}
                         ref={hoverVideoRef}
                         onTimeUpdate={handleTimeUpdate}
-                        onPause={() => {
-                          setIsVideoPlaying(false);
-                          setIsHoverPlay(false);
-                        }}
                         onPlaying={handleVideoPlaying}
                         onEnded={handleVideoEnd}
                         id="video-player"
@@ -1187,10 +1184,6 @@ function VideoCard({
                       <video
                         muted={isVolumeMuted}
                         ref={hoverVideoRef}
-                        onPause={() => {
-                          setIsVideoPlaying(false);
-                          setIsHoverPlay(false);
-                        }}
                         onMouseMove={handleVideoMouseMove}
                         onTimeUpdate={handleTimeUpdate}
                         onPlaying={handleVideoPlaying}

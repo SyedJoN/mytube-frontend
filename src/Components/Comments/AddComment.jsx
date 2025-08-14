@@ -37,6 +37,7 @@ import {
 } from "@mui/material/colors";
 import IconButton from "@mui/material/IconButton";
 import { UserContext } from "../../Contexts/RootContexts";
+import { addComment } from "../../apis/commentFn";
 
 const preloadEmojiPicker = () => {
   import("emoji-picker-react");

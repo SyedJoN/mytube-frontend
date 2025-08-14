@@ -127,6 +127,7 @@ function VideoPlayer({
     hideMini: false,
     customPlayback: false,
     isReplay: false,
+    isSeeking: false,
     videoContainerWidth: "0px",
     isFastPlayback: false,
     prevTheatre: false,
@@ -216,14 +217,11 @@ function VideoPlayer({
     if (!video) return;
 
     if (state.isMuted) {
-      video.volume = 0;
       video.muted = true;
     } else {
-      const normalized = state.volume / 40;
-      video.volume = normalized;
       video.muted = false;
     }
-  }, [state.volume, state.isMuted]);
+  }, [state.isMuted]);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["video", videoId],
@@ -231,6 +229,7 @@ function VideoPlayer({
     refetchOnWindowFocus: false,
     enabled: !!videoId,
   });
+
 
   const {
     data: userHistory,
@@ -255,14 +254,6 @@ function VideoPlayer({
     hideControls();
   }, [videoId]);
 
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    const onPause = () => updateState({ isPlaying: false });
-    video.addEventListener("pause", onPause);
-    return () => video.removeEventListener("pause", onPause);
-  }, []);
-
   const handlePlay = async () => {
     const video = videoRef?.current;
     const tracker = trackerRef.current;
@@ -270,12 +261,6 @@ function VideoPlayer({
     tracker.start(video, videoId, setTimeStamp, userResumeTime);
 
     try {
-      // await video.play();
-      const userResumeTime = userId
-        ? (userHistory?.data?.find((entry) => entry.video?._id === videoId)
-            ?.currentTime ?? 0)
-        : 0;
-
       clearTimeout(timeoutRef.current);
       timeoutRef.current = setTimeout(() => {
         video.classList.add("hide-cursor");
@@ -730,7 +715,6 @@ function VideoPlayer({
 
     const handleBufferingStart = () => {
       if (!isBufferingLocal) {
-        console.log("Buffering started");
         isBufferingLocal = true;
         updateState({ isBuffering: true });
       }
@@ -738,7 +722,6 @@ function VideoPlayer({
 
     const handleBufferingEnd = () => {
       if (isBufferingLocal) {
-        console.log("Buffering ended");
         isBufferingLocal = false;
         updateState({ isBuffering: false });
       }
@@ -799,6 +782,10 @@ function VideoPlayer({
 
     requestAnimationFrame(() => {
       updateState((prev) => {
+        newVol =
+          key === "Up"
+            ? Math.min(1, video.volume + step)
+            : Math.max(0, video.volume - step);
         const newState = {
           ...prev,
           isFastPlayback: false,
@@ -810,25 +797,22 @@ function VideoPlayer({
         if (key === "Up") {
           newState.volumeUp = true;
           newState.volumeDown = false;
-          newState.isMuted = false;
-          newVol = Math.min(1, video.volume + step);
         } else if (key === "Down") {
           newState.volumeUp = false;
-          newVol = Math.max(0, video.volume - step);
           if (newVol > 0) {
             newState.volumeDown = true;
             newState.volumeMuted = false;
-            newState.isMuted = false;
           } else {
             newState.volumeDown = false;
             newState.volumeMuted = true;
-            newState.isMuted = true;
           }
         }
 
         video.volume = newVol;
         newState.volume = newVol * 40;
-        newState.volumeSlider = newVol * 40;
+        newState.volumeSlider = !prev.isMuted ? newVol * 40 : 0;
+        setPreviousVolume((p) => (!prev.isMuted ? prev.volume : p));
+        console.log("prev.vol", prev.volume);
 
         if (state.customPlayback) {
           video.playbackRate = prevSliderSpeedRef.current;
@@ -1053,7 +1037,7 @@ function VideoPlayer({
       }
     };
 
-    const events = ["state.progress", "timeupdate", "seeked"];
+    const events = ["progress", "timeupdate", "seeked"];
     events.forEach((event) => {
       video.addEventListener(event, updateBuffered);
     });
@@ -1153,7 +1137,11 @@ function VideoPlayer({
     if (!video) return;
 
     const checkReplayReset = () => {
-      if (video.currentTime < video.duration && state.isReplay) {
+      if (
+        video.currentTime < video.duration &&
+        state.isReplay &&
+        !state.isSeeking
+      ) {
         updateState({ isReplay: false });
         video.play();
       }
@@ -1655,7 +1643,6 @@ function VideoPlayer({
                 {...state}
                 updateState={updateState}
               />
-
               <Box className="title-background-overlay"></Box>
               <Box
                 component={"video-cover"}
@@ -1676,6 +1663,8 @@ function VideoPlayer({
                       position: "absolute",
                       top: "20px",
                       width: "72px",
+                      left: "50%",
+                      transform: "translateX(-50%)",
                       height: "34px",
                       display: "flex",
                       justifyContent: "center",
@@ -1701,6 +1690,8 @@ function VideoPlayer({
                       position: "absolute",
                       top: "60px",
                       display: "flex",
+                      left: "50%",
+                      transform: "translateX(-50%)",
                       justifyContent: "center",
                       alignItems: "center",
                       fontSize: "1rem",
@@ -1898,7 +1889,6 @@ function VideoPlayer({
                   </>
                 </Box>
               </Box>
-
               <Box
                 sx={{ userSelect: "none" }}
                 onClick={handleClick}
