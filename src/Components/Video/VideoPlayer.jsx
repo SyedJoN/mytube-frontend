@@ -170,6 +170,7 @@ function VideoPlayer({
     prevSliderSpeedRef,
     volTimeoutRef,
     lastKeyPress,
+    hideVolumeTimer,
   } = useRefReducer({
     isInside: null,
     prevVideoRef: null,
@@ -188,7 +189,7 @@ function VideoPlayer({
     captureCanvasRef: null,
     prevHoverStateRef: null,
     prevVolRef: null,
-    prevVolumeRef: null,
+    prevVolumeRef: 0.5,
     exitingPiPViaOurUIButtonRef: null,
     holdTimer: null,
     trackerRef: new VideoTelemetryTimer(),
@@ -198,6 +199,7 @@ function VideoPlayer({
     prevSliderSpeedRef: null,
     volTimeoutRef: null,
     lastKeyPress: null,
+    hideVolumeTimer: null,
   });
   const [previousVolume, setPreviousVolume] = useState(state.volume || 40);
 
@@ -788,50 +790,68 @@ function VideoPlayer({
     if (!video) return;
 
     if (pressTimer.current) clearTimeout(pressTimer.current);
-    updateState({ isFastPlayback: false, showIcon: false });
-
-    const icon = volumeIconRef.current;
-
-    updateState({
-      showIcon: false,
-      showVolumeIcon: true,
-      isVolumeChanged: true,
-    });
-    if (icon) {
-      icon.classList.remove("pressed");
-      requestAnimationFrame(() => {
-        icon.classList.add("pressed");
-      });
-    }
+    if (hideVolumeTimer.current) clearTimeout(hideVolumeTimer.current);
 
     const step = 0.05;
-    if (key === "Up") {
-      updateState({ volumeDown: false, isMuted: false, volumeUp: true });
-      const newVol = (video.volume = Math.min(1, video.volume + step));
-      updateState({ volume: newVol * 40, volumeSlider: newVol * 40 });
-    } else if (key === "Down") {
-      updateState({ volumeUp: false });
-      const newVol = (video.volume = Math.max(0, video.volume - step));
-      if (newVol > 0) {
-        updateState({ volumeDown: true, volumeMuted: false, isMuted: false });
-      } else {
-        updateState({ volumeMuted: true, volumeDown: false, isMuted: true });
+    let newVol = video.volume;
+
+    updateState((prev) => ({ ...prev, isVolumeChanged: false }));
+
+    requestAnimationFrame(() => {
+      updateState((prev) => {
+        const newState = {
+          ...prev,
+          isFastPlayback: false,
+          showIcon: false,
+          showVolumeIcon: true,
+          isVolumeChanged: true,
+        };
+
+        if (key === "Up") {
+          newState.volumeUp = true;
+          newState.volumeDown = false;
+          newState.isMuted = false;
+          newVol = Math.min(1, video.volume + step);
+        } else if (key === "Down") {
+          newState.volumeUp = false;
+          newVol = Math.max(0, video.volume - step);
+          if (newVol > 0) {
+            newState.volumeDown = true;
+            newState.volumeMuted = false;
+            newState.isMuted = false;
+          } else {
+            newState.volumeDown = false;
+            newState.volumeMuted = true;
+            newState.isMuted = true;
+          }
+        }
+
+        video.volume = newVol;
+        newState.volume = newVol * 40;
+        newState.volumeSlider = newVol * 40;
+
+        if (state.customPlayback) {
+          video.playbackRate = prevSliderSpeedRef.current;
+        } else {
+          video.playbackRate = prevSpeedRef.current;
+        }
+
+        return newState;
+      });
+
+      const icon = volumeIconRef.current;
+      if (icon) {
+        icon.classList.remove("pressed");
+        requestAnimationFrame(() => icon.classList.add("pressed"));
       }
-      updateState({ volume: newVol * 40, volumeSlider: newVol * 40 });
-    }
+    });
 
-    if (state.customPlayback) {
-      video.playbackRate = prevSliderSpeedRef.current;
-    } else {
-      video.playbackRate = prevSpeedRef.current;
-    }
-
-    setTimeout(() => {
-      updateState({ isVolumeChanged: false });
+    hideVolumeTimer.current = setTimeout(() => {
+      updateState((prev) => ({ ...prev, isVolumeChanged: false }));
     }, 500);
   };
 
-  const updateVolumeStates = (volume) => {
+  const updateVolumeIconStates = (volume) => {
     const video = videoRef.current;
     if (!video) return;
 
@@ -840,8 +860,7 @@ function VideoPlayer({
 
     updateState((prevState) => {
       const isMutedFromHigh = prevState.isMuted && prev >= 0.5;
-      const isUnmutedWithJump =
-        !prevState.isMuted && Math.abs(curr - prev) > 0.2;
+      const isUnmutedWithJump = !prevState.isMuted && curr > 0.5 && prev === 0;
 
       let newState = { ...prevState };
 
@@ -888,13 +907,9 @@ function VideoPlayer({
     prevVolumeRef.current = curr;
   };
 
-  const debouncedUpdateVolumeStates = (normalizedVolume) => {
-    updateVolumeStates(normalizedVolume);
-  };
-
   useEffect(() => {
     const normalizedVolume = state.volumeSlider / 40;
-    debouncedUpdateVolumeStates(normalizedVolume);
+    updateVolumeIconStates(normalizedVolume);
     prevVolRef.current = normalizedVolume;
 
     return () => {
@@ -1463,6 +1478,7 @@ function VideoPlayer({
     //   console.log("🎯 10 seconds passed, telemetry sending...");
     //   const data = getCurrentVideoTelemetryData(userId, videoId, video);
     //   sendTelemetry([data]);
+    //   return;
     //   return;
     // }
 

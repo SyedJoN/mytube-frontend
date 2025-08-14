@@ -426,14 +426,16 @@ vt-interaction.animate:not(.down) .stroke {
   opacity: 1;
 }
 .svg-volume-animation-mover {
-  transition: transform 0.3s cubic-bezier(0.5, 0.2, 0.8, 0.6);
+   will-change: transform;
+  transform: translateZ(0);
+  vector-effect: non-scaling-stroke;
 }
 .svg-volume-animation-mover.muted {
-  animation: slash 0.3s cubic-bezier(0.5, 0.2, 0.8, 0.6);
+  animation: slash 0.3s cubic-bezier(0.5, 0.2, 0.8, 0.6) forwards;
 }
 
 .svg-volume-animation-mover.unmuted {
-  animation: removeSlash 0.3s cubic-bezier(0.5, 0.2, 0.8, 0.6);
+  animation: removeSlash 0.3s cubic-bezier(0.5, 0.2, 0.8, 0.6) forwards;
 }
 
 .full-screen-btn:hover .fullscreen-btn-corner-0 {
@@ -473,23 +475,13 @@ vt-interaction.animate:not(.down) .stroke {
 }
 }
 @keyframes removeSlash {
-    0% {
- transform: translate(20px, 20px);
-    }
-    100% {
-    transform: translate(0, 0);
-
-    }
+  0% { transform: translate3d(20px, 20px, 0); }
+  100% { transform: translate3d(0, 0, 0); }
 }
 
 @keyframes slash {
-    0% {
- transform: translate(0, 0);
-    }
-    100% {
-    transform: translate(20px, 20px);
-
-    }
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(20px, 20px, 0); }
 }
 .MuiAppBar-root,
 .MuiDrawer-root,
