@@ -1,23 +1,14 @@
-import React, {
-  useState,
-  useEffect,
-  useRef,
-  useContext,
-  useCallback,
-} from "react";
+import React, { useEffect, useCallback } from "react";
 import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
 import { WebVTT } from "vtt.js";
 import formatDuration from "../../utils/formatDuration";
-import { useLocation } from "@tanstack/react-router";
-import { transform } from "lodash";
-import { sendTelemetry } from "../../apis/sendTelemetry";
+import useRefReducer from "./useRefReducer";
 
-import { flushSync } from "react-dom";
 import throttle from "lodash/throttle";
-import {
-  UserContext,
-  UserInteractionContext,
-} from "../../Contexts/RootContexts";
+import { UserInteractionContext } from "../../Contexts/RootContexts";
+import useStateReducer from "./useStateReducer";
+
+var thumbWidth = 13;
 
 export const ProgressLists = ({
   videoRef,
@@ -30,28 +21,34 @@ export const ProgressLists = ({
   tracker,
   setBufferedVal,
   setProgress,
-  updateState,
+  updateState: updateVideoState,
 }) => {
-  var thumbWidth = 13;
   const theme = useTheme();
+
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
   const { isUserInteracted, setIsUserInteracted } = React.useContext(
     UserInteractionContext
   );
 
-  const [hoverTime, setHoverTime] = useState(0);
-  const [cueMap, setCueMap] = useState([]);
-  const [hoveredCue, setHoveredCue] = useState(null);
-  const [hoverX, setHoverX] = useState(0);
-  const [isProgressEntered, setIsProgressEnter] = useState(false);
-  const [hoveredProgress, setHoveredProgress] = useState(0);
-  const [BarWidth, setBarWidth] = useState(0);
-  const [isSeeking, setIsSeeking] = useState(false);
-  const thumbRef = useRef(progress || null);
-  const prevVideoStateRef = useRef(null);
-
-  const sliderRef = useRef(null);
-  const rafId = useRef(null);
+  const { state, updateState } = useStateReducer({
+    hoverTime: 0,
+    cueMap: [],
+    hoveredCue: null,
+    hoverX: 0,
+    isProgressEntered: false,
+    hoveredProgress: 0,
+    BarWidth: 0,
+    isSeeking: false,
+    playerWidth: 528,
+    playerHeight: 297,
+  });
+  const { thumbRef, prevVideoStateRef, sliderRef, rafId } = useRefReducer({
+    thumbRef: progress || null,
+    prevVideoStateRef: null,
+    sliderRef: null,
+    rafId: null,
+  });
 
   const ariaValueNow = videoRef.current
     ? Math.round(videoRef.current.currentTime)
@@ -61,6 +58,10 @@ export const ProgressLists = ({
     : 0;
 
   useEffect(() => {
+    console.log("isSeeking", state.isSeeking);
+  }, [state.isSeeking]);
+
+  useEffect(() => {
     const slider = sliderRef.current;
     const video = videoRef.current;
     if (!slider || !video) return;
@@ -68,7 +69,13 @@ export const ProgressLists = ({
     const updateSizes = () => {
       if (!slider) return;
       const rect = slider.getBoundingClientRect();
-      setBarWidth(rect.width);
+      const { width, height } = videoRef.current.getBoundingClientRect();
+
+      updateState({
+        BarWidth: rect.width,
+        playerWidth: width,
+        playerHeight: height,
+      });
     };
 
     updateSizes();
@@ -155,7 +162,9 @@ export const ProgressLists = ({
         parser.parse(cleanedVtt);
         parser.flush();
 
-        setCueMap(cues);
+        updateState({
+          cueMap: cues,
+        });
       })
       .catch((err) => {
         console.error("Error loading or parsing VTT:", err);
@@ -165,36 +174,38 @@ export const ProgressLists = ({
   useEffect(() => {
     const video = videoRef.current;
     if (!playsInline || !video) return;
-    if (!isSeeking) {
+    if (!state.isSeeking) {
       rafId.current = requestAnimationFrame(() => {
         if (thumbRef.current) {
-          const x = (progress / 100) * BarWidth;
+          const x = (progress / 100) * state.BarWidth;
           thumbRef.current.style.transform = `translate3d(${x}px, 0, 0)`;
         }
       });
     }
 
     return () => cancelAnimationFrame(rafId.current);
-  }, [progress, isSeeking, BarWidth]);
+  }, [progress, state.isSeeking, state.BarWidth, playsInline]);
 
   const handleMouseMove = (e) => {
     const rect = sliderRef.current.getBoundingClientRect();
     const offsetX = e.clientX - rect.left;
-    setHoverX(offsetX);
 
     const progress = Math.min(Math.max((offsetX / rect.width) * 100, 0), 100);
-    setHoveredProgress(progress);
 
     const timeOnHover = (offsetX / rect.width) * videoRef.current.duration;
-    setHoverTime(timeOnHover);
-    const foundCue = cueMap.find(
+    const foundCue = state.cueMap.find(
       (cue) => timeOnHover >= cue.startTime && timeOnHover <= cue.endTime
     );
 
-    setHoveredCue(foundCue || null);
+    updateState({
+      hoveredProgress: progress,
+      hoverTime: timeOnHover,
+      hoverX: offsetX,
+      hoveredCue: foundCue || null,
+    });
   };
   const handleMouseLeave = () => {
-    setHoveredCue(null);
+    updateState({ hoveredCue: null });
   };
 
   const handleInlineSeekMove = (e) => {
@@ -206,26 +217,26 @@ export const ProgressLists = ({
       100
     );
 
-    setIsSeeking(true);
-
     requestAnimationFrame(
       () =>
         thumbRef.current &&
-        (thumbRef.current.style.transform = `translate3d(${(newProgress / 100) * BarWidth}px, 0, 0)`)
+        (thumbRef.current.style.transform = `translate3d(${(newProgress / 100) * state.BarWidth}px, 0, 0)`)
     );
 
-    setHoverX(offsetX);
-
     const progress = Math.min(Math.max((offsetX / rect.width) * 100, 0), 100);
-    setHoveredProgress(progress);
 
     const timeOnHover = (offsetX / rect.width) * videoRef.current.duration;
-    setHoverTime(timeOnHover);
-    const foundCue = cueMap.find(
+    const foundCue = state.cueMap.find(
       (cue) => timeOnHover >= cue.startTime && timeOnHover <= cue.endTime
     );
 
-    setHoveredCue(foundCue || null);
+    updateState({
+      isSeeking: true,
+      hoverX: offsetX,
+      hoveredProgress: progress,
+      hoverTime: timeOnHover,
+      hoveredCue: foundCue || null,
+    });
   };
   const handleSeekMove = (e) => {
     if (!sliderRef.current || !videoRef.current || !thumbRef.current) return;
@@ -238,14 +249,29 @@ export const ProgressLists = ({
 
     const newTime = (videoRef.current?.duration * newProgress) / 100;
     setProgress(newProgress);
-    videoRef.current.currentTime = newTime;
+    // videoRef.current.currentTime = newTime;
+
+    const timeOnHover = (offsetX / rect.width) * videoRef.current.duration;
+    const foundCue = state.cueMap.find(
+      (cue) => timeOnHover >= cue.startTime && timeOnHover <= cue.endTime
+    );
+
+    updateState({
+      isSeeking: true,
+      hoverX: offsetX,
+      hoveredProgress: progress,
+      hoverTime: timeOnHover,
+      hoveredCue: foundCue || null,
+    });
   };
   const handleInlineSeekEnd = (e) => {
     const video = videoRef.current;
     if (!video) return;
     handleClickSeek(e);
-    setIsSeeking(false);
-    setHoveredCue(null);
+    updateState({
+      isSeeking: false,
+      hoveredCue: null,
+    });
 
     window.removeEventListener("mousemove", handleInlineSeekMove);
     window.removeEventListener("mouseup", handleInlineSeekEnd);
@@ -257,8 +283,12 @@ export const ProgressLists = ({
       requestAnimationFrame(() =>
         video.play()?.catch((err) => console.log(err))
       );
+      handleClickSeek(e);
     }
-
+    updateState({
+      isSeeking: false,
+      hoveredCue: null,
+    });
     window.removeEventListener("mousemove", handleSeekMove);
     window.removeEventListener("mouseup", handleSeekEnd);
   };
@@ -320,7 +350,7 @@ export const ProgressLists = ({
     videoRef.current.currentTime = newTime;
     if (!playsInline) {
       videoRef.current?.pause();
-      updateState({ showIcon: false, isPlaying: false });
+      updateVideoState({ showIcon: false, isPlaying: false });
     }
 
     if (!isUserInteracted) {
@@ -330,18 +360,67 @@ export const ProgressLists = ({
       tracker.trackSeek(videoRef.current, fromTime, newTime);
     }
   };
-  const previewStyle = getBackgroundPosition(hoveredCue?.text);
+  const isHoverDefault = playsInline && !state.isSeeking;
+  const isHoverSeeking = playsInline && state.isSeeking;
+  const isWatchDefault = !playsInline && !state.isSeeking;
+  const isWatchSeeking = !playsInline && state.isSeeking;
+
+  const customFrameWidth = isHoverDefault
+    ? 168
+    : isHoverSeeking
+      ? state.playerWidth
+      : isWatchSeeking
+        ? state.playerWidth
+        : 240;
+
+  const customFrameHeight = isHoverDefault
+    ? 93
+    : isHoverSeeking
+      ? state.playerHeight
+      : isWatchSeeking
+        ? state.playerHeight
+        : 135;
+
+  const previewStyle = getBackgroundPosition(state.hoveredCue?.text);
 
   const previewWidth = parseInt(previewStyle.width, 10) || 0;
   const half = previewWidth / 2;
   const clampedLeft = Math.max(
     0,
-    Math.min(hoverX - half, BarWidth - previewWidth)
+    Math.min(state.hoverX - half, state.BarWidth - previewWidth)
   );
+
+
   function getBackgroundPosition(
     cueText,
-    previewWidth = playsInline && !isSeeking ? 168 : isSeeking ? 528 : 240,
-    previewHeight = playsInline && !isSeeking ? 93 : isSeeking ? 297 : 135
+    previewWidth = customFrameWidth,
+  ) {
+    if (typeof cueText !== "string") return {};
+    const [urlPart = "", frag = ""] = cueText.split("#");
+    if (typeof frag !== "string" || !frag.startsWith("xywh=")) return {};
+    const nums = frag.slice(5).split(",").map(Number);
+    if (nums.length !== 4 || nums.some(Number.isNaN)) return {};
+
+    const [x, y, w, h] = nums;
+
+    const scale = previewWidth / w;
+    const previewHeight = h * scale;
+    return {
+      width: `${previewWidth}px`,
+      height: `${previewHeight}px`,
+      backgroundImage: `url(${urlPart})`,
+      backgroundPosition: `-${x * scale}px -${y * scale}px`,
+      backgroundRepeat: "no-repeat",
+      backgroundSize: `${10 * w * scale}px auto`,
+      border: state.isSeeking ? "none" : "2px solid #fff",
+      borderRadius: state.isSeeking ? 0 : "8px",
+    };
+  }
+
+  function getBackgroundPositionDefault(
+    cueText,
+    previewWidth = 240,
+    previewHeight = 135
   ) {
     if (typeof cueText !== "string") return {};
     const [urlPart = "", frag = ""] = cueText.split("#");
@@ -359,10 +438,22 @@ export const ProgressLists = ({
       backgroundPosition: `-${x * scale}px -${y * scale}px`,
       backgroundRepeat: "no-repeat",
       backgroundSize: `${10 * w * scale}px auto`,
-      border: isSeeking ? "none" : "2px solid #fff",
-      borderRadius: isSeeking ? 0 : "8px",
+      border: "2px solid #fff",
+      borderRadius: "8px",
     };
   }
+
+  const previewStyle_default = getBackgroundPositionDefault(
+    state.hoveredCue?.text
+  );
+
+  const previewWidth_default = parseInt(previewStyle_default.width, 10) || 0;
+  const half_default = previewWidth_default / 2;
+  const clampedLeft_default = Math.max(
+    0,
+    Math.min(state.hoverX - half_default, state.BarWidth - previewWidth_default)
+  );
+
   return (
     <Box
       className={`progress-bar-container control`}
@@ -383,8 +474,8 @@ export const ProgressLists = ({
       }}
     >
       <Box
-        onMouseMove={isSeeking ? undefined : handleMouseMove}
-        onMouseLeave={isSeeking ? undefined : handleMouseLeave}
+        onMouseMove={state.isSeeking ? undefined : handleMouseMove}
+        onMouseLeave={state.isSeeking ? undefined : handleMouseLeave}
         onMouseDown={playsInline ? handleInlineClickSeek : handleClickSeek}
         ref={sliderRef}
         component={"div"}
@@ -402,31 +493,34 @@ export const ProgressLists = ({
         }}
       >
         <Box
-          className={`${!hoveredCue || showSettings ? "hide" : "MuiPopper-root "}`}
+          className={`${!state.hoveredCue || showSettings ? "hide" : "MuiPopper-root "}`}
           sx={{
+            zIndex: isWatchSeeking ? -1 : "",
             position: "absolute",
-            bottom: isSeeking ? "2px" : "45px",
-            left: `${clampedLeft}px`,
+            bottom: isHoverSeeking ? "2px" : isWatchSeeking ? "-46px" : "45px",
+            left: isWatchSeeking ? "-12px" : `${clampedLeft}px`,
             pointerEvents: "none",
             ...previewStyle,
           }}
         >
-          {" "}
-          <Box
+           <Box
+            className={`${isWatchSeeking ? "hide" : ""}`}
             sx={{
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
               opacity: 1,
               position: "absolute",
-              bottom: isSeeking ? "40px" : "-45px",
-              background: isSeeking ? "rgba(0, 0, 0, 0.5)" : "transparent",
+              bottom: isHoverSeeking ? "40px" : "-45px",
+              background: isHoverSeeking ? "rgba(0, 0, 0, 0.5)" : "transparent",
               borderRadius: "50px",
               height: "24px",
               width: "52px",
               left: "50%",
               pointerEvents: "none",
-              transform: isSeeking ? "translate(-50%, 0%)" : "translate(-50%, -50%)",
+              transform: isHoverSeeking
+                ? "translate(-50%, 0%)"
+                : "translate(-50%, -50%)",
             }}
           >
             <Typography
@@ -436,18 +530,65 @@ export const ProgressLists = ({
                 fontWeight: "600",
                 textShadow: "1px 0px 16px rgba(0, 0, 0, 1)",
               }}
-              fontSize={isSeeking ? "0.75rem" : "0.95rem"}
+              fontSize={isHoverSeeking ? "0.75rem" : "0.95rem"}
             >
-              {formatDuration(hoverTime)}
+              {formatDuration(state.hoverTime)}
             </Typography>
           </Box>
         </Box>
+        <Box
+          className={`${!state.hoveredCue || showSettings || playsInline ? "hide" : "MuiPopper-root defaultVtt"}`}
+          sx={{
+            zIndex: 10,
+            position: "absolute",
+            bottom: "45px",
+            left: `${clampedLeft_default}px`,
+            pointerEvents: "none",
+            ...previewStyle_default,
+          }}
+        >
+          <Box
+            className={`${isWatchSeeking ? "" : ""}`}
+            sx={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: 1,
+              position: "absolute",
+              bottom: isHoverSeeking ? "40px" : "-45px",
+              background: isHoverSeeking ? "rgba(0, 0, 0, 0.5)" : "transparent",
+              borderRadius: "50px",
+              height: "24px",
+              width: "52px",
+              left: "50%",
+              pointerEvents: "none",
+              transform: isHoverSeeking
+                ? "translate(-50%, 0%)"
+                : "translate(-50%, -50%)",
+            }}
+          >
+            <Typography
+              sx={{
+                color: "#fff",
+                textAlign: "center",
+                fontWeight: "600",
+                textShadow: "1px 0px 16px rgba(0, 0, 0, 1)",
+              }}
+              fontSize={isHoverSeeking ? "0.75rem" : "0.95rem"}
+            >
+              {formatDuration(state.hoverTime)}
+            </Typography>
+          </Box>
+        </Box>
+
         <Box
           className="progress-list"
           sx={{
             position: "relative",
             transform:
-              isProgressEntered && !playsInline ? "scaleY(1.2)" : "scaleY(.6)",
+              state.isProgressEntered && !playsInline
+                ? "scaleY(1.2)"
+                : "scaleY(.6)",
             height: "100%",
             background: isMini ? "rgb(51,51,51)" : "rgba(255,255,255,0.2)",
             transition: "transform .1s cubic-bezier(0.4, 0, 1, 1)",
@@ -472,10 +613,10 @@ export const ProgressLists = ({
               position: "absolute",
               bottom: 0,
               left: 0,
-              opacity: hoveredCue ? 1 : 0,
+              opacity: state.hoveredCue ? 1 : 0,
               width: "100%",
               height: "100%",
-              transform: `scaleX(${hoveredProgress / 100})`,
+              transform: `scaleX(${state.hoveredProgress / 100})`,
               transformOrigin: "0 0",
               zIndex: 2,
             }}
@@ -505,7 +646,7 @@ export const ProgressLists = ({
             position: "absolute",
             left: `-${thumbWidth / 2}px`,
             top: "-4px",
-            transform: `translateX(${(progress / 100) * BarWidth}px)`,
+            transform: `translateX(${(progress / 100) * state.BarWidth}px)`,
             zIndex: 260,
             transition: "none",
             pointerEvents: "none",
@@ -517,7 +658,7 @@ export const ProgressLists = ({
               width: `${thumbWidth}px`,
               height: `${thumbWidth}px`,
               transform: playsInline
-                ? isProgressEntered || isSeeking
+                ? state.isProgressEntered || state.isSeeking
                   ? "scale(1)"
                   : "scale(0)"
                 : "scale(1)",
@@ -531,8 +672,8 @@ export const ProgressLists = ({
 
         <Box
           onMouseDown={handleSeekStart}
-          onMouseMove={() => setIsProgressEnter(true)}
-          onMouseLeave={() => setIsProgressEnter(false)}
+          onMouseMove={() => updateState({ isProgressEnter: true })}
+          onMouseLeave={() => updateState({ isProgressEnter: false })}
           className="progress-offset"
           sx={{
             position: "absolute",

@@ -50,6 +50,7 @@ import {
   startTelemetry,
 } from "../../helper/Telemetry";
 import { getWatchHistory } from "../../apis/userFn";
+import useRefReducer from "../Utils/useRefReducer";
 
 const tooltipStyles = {
   whiteSpace: "nowrap",
@@ -132,39 +133,16 @@ function VideoCard({
   activeOptionsId,
   setActiveOptionsId,
   videoMd,
-  ...props
 }) {
   const navigate = useNavigate();
-  const interactionRef = React.useRef(null);
-  const hoverTrackerRef = React.useRef(new HoverTelemetryTracker());
-  const timeoutRef = React.useRef(null);
-  const context = React.useContext(UserInteractionContext);
-  const userContext = React.useContext(UserContext);
-  const { getTimeStamp, setTimeStamp } = React.useContext(TimeStampContext);
-  const { data: dataContext } = userContext ?? {};
-  const isAuthenticated = dataContext || null;
-  const userId = dataContext?.data?._id || null;
-  const { setIsUserInteracted } = context ?? {};
-  const hoverVideoRef = React.useRef(null);
-  const previewRef = React.useRef(null);
+
   const theme = useTheme();
-  const imgRef = React.useRef(null);
   const [fetchedTime, setFetchedTime] = React.useState(0);
   const [bgColor, setBgColor] = React.useState("rgba(0,0,0,0.6)");
   const [bufferedVal, setBufferedVal] = React.useState(0);
   const [viewVideo, setViewVideo] = React.useState(false);
   const [progress, setProgress] = React.useState(0);
   const [isVolumeMuted, setIsVolumeMuted] = React.useState(true);
-  const playlistVideoId = playlist?.videos?.map((video) => {
-    return video._id;
-  });
-  const searchParams = React.useMemo(() => ({ v: videoId }), [videoId]);
-  const { refetch: refetchHistory } = useQuery({
-    queryKey: ["userHistory"],
-    refetchOnWindowFocus: false,
-    queryFn: getWatchHistory,
-    enabled: !!userId,
-  });
 
   const {
     isHoverPlay,
@@ -175,6 +153,42 @@ function VideoCard({
     onMouseLeave,
   } = useHoverPreview({
     delay: 1000,
+  });
+
+  const {
+    interactionRef,
+    hoverTrackerRef,
+    timeoutRef,
+    imgRef,
+    hoverVideoRef,
+    previewRef,
+  } = useRefReducer({
+    interactionRef: null,
+    hoverTrackerRef: new HoverTelemetryTracker(),
+    timeoutRef: null,
+    imgRef: null,
+    hoverVideoRef: null,
+    previewRef: null,
+  });
+
+  const context = React.useContext(UserInteractionContext);
+  const userContext = React.useContext(UserContext);
+  const { getTimeStamp, setTimeStamp } = React.useContext(TimeStampContext);
+  const { data: dataContext } = userContext ?? {};
+  const isAuthenticated = dataContext || null;
+  const userId = dataContext?.data?._id || null;
+  const { setIsUserInteracted } = context ?? {};
+
+  const playlistVideoId = playlist?.videos?.map((video) => {
+    return video._id;
+  });
+  const searchParams = React.useMemo(() => ({ v: videoId }), [videoId]);
+
+  const { refetch: refetchHistory } = useQuery({
+    queryKey: ["userHistory"],
+    refetchOnWindowFocus: false,
+    queryFn: getWatchHistory,
+    enabled: !!userId,
   });
 
   React.useEffect(() => {
@@ -274,7 +288,7 @@ function VideoCard({
       if (telemetryData) {
         sendYouTubeStyleTelemetry(videoId, video, telemetryData, setTimeStamp);
       }
-      setProgress(0)
+      setProgress(0);
     };
 
     if (isHoverPlay && document.visibilityState === "visible") {

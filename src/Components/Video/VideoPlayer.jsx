@@ -1589,6 +1589,7 @@ function VideoPlayer({
                   key={data?.data?.videoFile.url}
                   ref={videoRef}
                   crossOrigin="anonymous"
+                  controlsList="nodownload"
                   id="video-player"
                   preload="auto"
                   onTimeUpdate={handleTimeUpdate}
