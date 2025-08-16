@@ -70,7 +70,9 @@ function VideoPlayer({
   shuffledVideos,
   handleNextVideo,
   isTheatre,
+  fsRef,
   setIsTheatre,
+  playerMinHeight,
 }) {
   const theme = useTheme();
   const userContext = useContext(UserContext);
@@ -203,6 +205,7 @@ function VideoPlayer({
     hideVolumeTimer: null,
   });
   const [previousVolume, setPreviousVolume] = useState(state.volume || 40);
+  const isCustomWidth = useMediaQuery("(max-width:1014px)");
 
   useEffect(() => {
     if (state.isMuted) {
@@ -229,7 +232,6 @@ function VideoPlayer({
     refetchOnWindowFocus: false,
     enabled: !!videoId,
   });
-
 
   const {
     data: userHistory,
@@ -923,7 +925,7 @@ function VideoPlayer({
   }, [state.prevTheatre]);
 
   const toggleFullScreen = () => {
-    const el = containerRef.current;
+    const el = fsRef.current;
     if (!el) return;
 
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -1268,43 +1270,50 @@ function VideoPlayer({
 
     const updateSize = () => {
       const containerWidth = containerRef.current.offsetWidth;
-      const containerHeight = containerRef.current.offsetHeight;
-      const targetAspectRatio = 16 / 9;
+      let containerHeight = containerRef.current.offsetHeight;
 
-      let videoWidth = Math.floor(containerWidth);
+      const video = videoRef.current;
+      if (!video.videoWidth || !video.videoHeight) return;
+
+      const targetAspectRatio = video.videoWidth / video.videoHeight;
+
+      let videoWidth = video.videoWidth;
       let videoHeightLocal = Math.ceil(videoWidth / targetAspectRatio);
+
+      if (videoHeightLocal > containerHeight) {
+        videoHeightLocal = containerHeight;
+        videoWidth = Math.floor(videoHeightLocal * targetAspectRatio);
+      }
+
+      const left = Math.floor((containerWidth - videoWidth) / 2);
+      const top = Math.floor((containerHeight - videoHeightLocal) / 2);
+      const isFullscreen = !!document.fullscreenElement;
+
       updateState({
         videoContainerWidth: containerWidth,
         videoHeight: videoHeightLocal,
-      });
-
-      if (videoHeightLocal > containerHeight) {
-        videoHeightLocal = Math.floor(containerHeight);
-        videoWidth = Math.floor(videoHeightLocal * targetAspectRatio);
-      }
-      const left = Math.floor(Math.max((containerWidth - videoWidth) / 2, 0));
-      const top = Math.ceil(
-        Math.max((containerHeight - videoHeightLocal) / 2, 0)
-      );
-      updateState({
         playerWidth: `${videoWidth}px`,
         playerHeight: `${videoHeightLocal}px`,
+        leftOffset: `${left}px`,
+        topOffset: `${top}px`,
       });
-
-      updateState({ topOffset: `${top}px`, leftOffset: `${left}px` });
     };
-    const raf = requestAnimationFrame(updateSize);
+
     const container = containerRef.current;
-    const observer = new ResizeObserver(() => {
-      requestAnimationFrame(updateSize);
-    });
+    const observer = new ResizeObserver(updateSize);
     if (container) observer.observe(container);
+
     window.addEventListener("resize", updateSize);
 
+    const video = videoRef.current;
+    video.addEventListener("loadedmetadata", updateSize);
+
+    updateSize(); // run once immediately
+
     return () => {
-      cancelAnimationFrame(raf);
       observer.disconnect();
       window.removeEventListener("resize", updateSize);
+      video.removeEventListener("loadedmetadata", updateSize);
     };
   }, [isTheatre, data?.data?._id]);
 
@@ -1498,12 +1507,16 @@ function VideoPlayer({
       <Box
         sx={{
           position: "relative",
-          paddingTop: isTheatre ? "" : "calc(9 / 16 * 100%)",
+          paddingTop:
+            isTheatre || isCustomWidth || isMobile
+              ? ""
+              : state.isFullscreen ? "calc(9/16 * 100%)" : "calc(0.75 / 1 * 100%)",
         }}
         className="video-inner"
       >
         <Box
           data-theatre={isTheatre}
+          data-fullBleed={isCustomWidth}
           ref={containerRef}
           onMouseLeave={handleMouseOut}
           onMouseMove={handleContainerMouseMove}
@@ -1516,7 +1529,8 @@ function VideoPlayer({
           id="video-container"
           component="div"
           sx={{
-            position: isTheatre ? "relative" : "absolute",
+            position: isTheatre || isCustomWidth ? "relative" : "absolute",
+            minHeight: isMobile ? "240px" : isCustomWidth ? "480px" : "360px",
             width: "100%",
             height: "100%",
             top: 0,
@@ -1569,6 +1583,7 @@ function VideoPlayer({
               zIndex: state.isMini ? 9999 : 0,
             }}
           >
+            {" "}
             <Box
               className="html5-video-container"
               sx={{
@@ -1602,10 +1617,9 @@ function VideoPlayer({
                     position: "absolute",
                     width: state.isMini ? "480px" : state.playerWidth,
                     height: state.isMini ? "auto" : state.playerHeight,
-                    left: isTheatre && !state.isMini ? state.leftOffset : 0,
-                    top: isTheatre && !state.isMini ? state.topOffset : 0,
+                    left: state.leftOffset,
+                    top: state.topOffset,
                     right: state.isMini ? "auto" : "",
-                    objectFit: "cover",
                     borderRadius: isTheatre && !state.isMini ? "0" : "8px",
                   }}
                 >
@@ -1644,381 +1658,369 @@ function VideoPlayer({
                 {...state}
                 updateState={updateState}
               />
-              <Box className="title-background-overlay"></Box>
-              <Box
-                component={"video-cover"}
-                sx={{
-                  position: "absolute",
-                  display: "flex",
-                  justifyContent: "center",
-                  inset: 0,
-                  width: "100%",
-                  height: "100%",
-                  cursor: "pointer",
-                  pointerEvents: "all",
-                }}
-              >
-                {state.isFastPlayback && (
-                  <Box
-                    sx={{
-                      position: "absolute",
-                      top: "20px",
-                      width: "72px",
-                      left: "50%",
-                      transform: "translateX(-50%)",
-                      height: "34px",
-                      display: "flex",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      fontSize: "1rem",
-                      color: "#f1f1f1",
-                      borderRadius: "50px",
-                      background: "rgba(0, 0, 0, 0.5)",
-                    }}
-                  >
-                    <Typography variant="subtitle2" sx={{ pr: 1 }}>
-                      2x
-                    </Typography>
-
-                    <FastForwardIcon
-                      sx={{ width: "1.1rem", height: "1.1rem" }}
-                    />
-                  </Box>
-                )}
-                {state.isVolumeChanged && (
-                  <Box
-                    sx={{
-                      position: "absolute",
-                      top: "60px",
-                      display: "flex",
-                      left: "50%",
-                      transform: "translateX(-50%)",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      fontSize: "1rem",
-                      borderRadius: "4px",
-                      color: "#f1f1f1",
-                      background: "rgba(0, 0, 0, 0.5)",
-                      padding: "6px 20px",
-                    }}
-                  >
-                    <Typography fontWeight="500" variant="h6">
-                      {Math.round((state.volume / 40) * 100)}%
-                    </Typography>
-                  </Box>
-                )}
-                {state.isForwardSeek && (
-                  <Box
-                    sx={{
-                      position: "absolute",
-                      top: "50%",
-                      marginTop: "-55px",
-                      right: "10%",
-                      width: "110px",
-                      height: "110px",
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      fontSize: "1rem",
-                      color: "#f1f1f1",
-                      borderRadius: "50%",
-                      background: "rgba(0, 0, 0, 0.5)",
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        display: "flex",
-                        position: "relative",
-                        left: "6px",
-                        justifyContent: "center",
-                        alignItems: "center",
-                      }}
-                    >
-                      <Box
-                        className="forwardSeek-arrow"
-                        component={"span"}
-                      ></Box>
-                      <Box
-                        className="forwardSeek-arrow"
-                        component={"span"}
-                      ></Box>
-                      <Box
-                        className="forwardSeek-arrow"
-                        component={"span"}
-                      ></Box>
-                    </Box>
-                    <Typography
-                      variant="caption"
-                      sx={{ margin: "0 auto", pt: 1 }}
-                    >
-                      5 seconds{" "}
-                    </Typography>
-                  </Box>
-                )}
-
-                {state.isBackwardSeek && (
-                  <Box
-                    sx={{
-                      position: "absolute",
-                      top: "50%",
-                      marginTop: "-55px",
-                      left: "10%",
-                      width: "110px",
-                      height: "110px",
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      fontSize: "1rem",
-                      color: "#f1f1f1",
-                      borderRadius: "50%",
-                      background: "rgba(0, 0, 0, 0.5)",
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        display: "flex",
-                        position: "relative",
-                        right: "6px",
-                        justifyContent: "center",
-                        alignItems: "center",
-                      }}
-                    >
-                      <Box className="rewind-arrow" component={"span"}></Box>
-                      <Box className="rewind-arrow" component={"span"}></Box>
-                      <Box className="rewind-arrow" component={"span"}></Box>
-                    </Box>
-                    <Typography
-                      variant="caption"
-                      sx={{ margin: "0 auto", pt: 1 }}
-                    >
-                      5 seconds{" "}
-                    </Typography>
-                  </Box>
-                )}
-
+            </Box>
+            <Box
+              className={`${state.isFullscreen ? "title-background-overlay" : "hide"}`}
+            ></Box>
+            <Box
+              className="video-cover"
+              sx={{
+                position: "absolute",
+                display: "flex",
+                justifyContent: "center",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                cursor: "pointer",
+                pointerEvents: "all",
+              }}
+            >
+              {state.isFastPlayback && (
                 <Box
-                  className="status-overlay"
                   sx={{
                     position: "absolute",
-                    inset: 0,
+                    top: "20px",
+                    width: "72px",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    height: "34px",
                     display: "flex",
                     justifyContent: "center",
                     alignItems: "center",
-                    opacity: 1,
-                    color: "#fff",
-                    userSelect: "none",
-                    pointerEvents: "none",
+                    fontSize: "1rem",
+                    color: "#f1f1f1",
+                    borderRadius: "50px",
+                    background: "rgba(0, 0, 0, 0.5)",
                   }}
                 >
-                  {(state.showBufferingIndicator || state.loadingVideo) &&
-                    !state.isBackwardSeek &&
-                    !state.isForwardSeek && (
-                      <IconButton
-                        disableRipple
-                        className="buffering-state.progress"
-                        sx={{
-                          position: "absolute",
-                          left: "50%",
-                          top: "50%",
-                          width: "68px",
-                          height: "48px",
-                          marginLeft: "-34px",
-                          marginTop: "-24px",
-                          padding: "0",
-                          opacity: 1,
-                        }}
-                      >
-                        <CircularProgress
-                          sx={{
-                            mx: "auto",
-                            textAlign: "center",
-                            color: "rgb(255, 255, 255)",
-                          }}
-                          size={50}
-                        />
-                      </IconButton>
-                    )}
+                  <Typography variant="subtitle2" sx={{ pr: 1 }}>
+                    2x
+                  </Typography>
 
-                  <>
-                    <IconButton
-                      sx={{
-                        width: "52px",
-                        height: "52px",
-                        padding: 0,
-                        opacity: state.showIcon ? 1 : 0,
-                        visibility:
-                          state.showIcon && isUserInteracted
-                            ? "visible"
-                            : "hidden",
-                        transition: "opacity 0.2s ease",
-                        position: "absolute",
-                      }}
-                      ref={playIconRef}
-                    >
-                      {state.isPlaying ? (
-                        <PlayArrowIcon
-                          className="playback-icon"
-                          sx={iconStyle}
-                        />
-                      ) : (
-                        <PauseIcon className="playback-icon" sx={iconStyle} />
-                      )}
-                    </IconButton>
-
-                    <IconButton
-                      sx={{
-                        width: "52px",
-                        height: "52px",
-                        padding: 0,
-                        opacity: state.showVolumeIcon ? 1 : 0,
-                        visibility: state.showVolumeIcon ? "visible" : "hidden",
-                        transition: "opacity 0.2s ease",
-                        position: "absolute",
-                      }}
-                      ref={volumeIconRef}
-                    >
-                      {state.volumeDown ? (
-                        <VolumeDownIcon className="vol-icon" sx={iconStyle} />
-                      ) : state.volumeUp ? (
-                        <VolumeUpIcon className="vol-icon" sx={iconStyle} />
-                      ) : state.volumeMuted ? (
-                        <VolumeOffIcon className="vol-icon" sx={iconStyle} />
-                      ) : null}
-                    </IconButton>
-                  </>
+                  <FastForwardIcon sx={{ width: "1.1rem", height: "1.1rem" }} />
                 </Box>
-              </Box>
-              <Box
-                sx={{ userSelect: "none" }}
-                onClick={handleClick}
-                onMouseDown={
-                  isUserInteracted && !state.isPipActive ? DoubleSpeed : null
-                }
-                onTouchStart={
-                  isUserInteracted && !state.isPipActive ? DoubleSpeed : null
-                }
-                className="video-overlay"
-              >
+              )}
+              {state.isVolumeChanged && (
                 <Box
-                  className="thumbnail-overlay"
                   sx={{
                     position: "absolute",
-                    inset: 0,
-
+                    top: "60px",
+                    display: "flex",
+                    left: "50%",
+                    transform: "translateX(-50%)",
                     justifyContent: "center",
                     alignItems: "center",
-                    display: isUserInteracted || state.isMini ? "none" : "flex",
-                    transition: "opacity .25s cubic-bezier(0,0,.2,1)",
-                    color: "#fff",
-                    userSelect: "none",
-                    pointerEvents: "all",
-                    "&:hover .large-play-btn": {
-                      fill: "#f03",
-                      fillOpacity: "1",
-                    },
+                    fontSize: "1rem",
+                    borderRadius: "4px",
+                    color: "#f1f1f1",
+                    background: "rgba(0, 0, 0, 0.5)",
+                    padding: "6px 20px",
+                  }}
+                >
+                  <Typography fontWeight="500" variant="h6">
+                    {Math.round((state.volume / 40) * 100)}%
+                  </Typography>
+                </Box>
+              )}
+              {state.isForwardSeek && (
+                <Box
+                  sx={{
+                    position: "absolute",
+                    top: "50%",
+                    marginTop: "-55px",
+                    right: "10%",
+                    width: "110px",
+                    height: "110px",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    fontSize: "1rem",
+                    color: "#f1f1f1",
+                    borderRadius: "50%",
+                    background: "rgba(0, 0, 0, 0.5)",
                   }}
                 >
                   <Box
-                    className="thumbnail-overlay-image"
                     sx={{
-                      position: "absolute",
-                      width: "100%",
-                      height: "100%",
-                      borderRadius: "8px",
-                      background: state.loadingVideo
-                        ? "rgba(0,0,0)"
-                        : "transparent",
-                      backgroundImage: `url(${data?.data?.thumbnail.url})`,
-                      backgroundRepeat: "no-repeat",
-                      backgroundPosition: "center",
-                      backgroundSize: "cover",
-                    }}
-                  ></Box>
-                  <IconButton
-                    disableRipple
-                    className="large-play-btn-container"
-                    sx={{
-                      position: "absolute",
-                      left: "50%",
-                      top: "50%",
-                      width: "68px",
-                      height: "48px",
-                      marginLeft: "-34px",
-                      marginTop: "-24px",
-                      padding: "0",
-                      display: isUserInteracted ? "none" : "inline-flex",
-                      opacity: 1,
+                      display: "flex",
+                      position: "relative",
+                      left: "6px",
+                      justifyContent: "center",
+                      alignItems: "center",
                     }}
                   >
-                    <svg
-                      height="100%"
-                      version="1.1"
-                      viewBox="0 0 68 48"
-                      width="100%"
-                    >
-                      <path
-                        className="large-play-btn"
-                        d="M66.52,7.74c-0.78-2.93-2.49-5.41-5.42-6.19C55.79,.13,34,0,34,0S12.21,.13,6.9,1.55 C3.97,2.33,2.27,4.81,1.48,7.74C0.06,13.05,0,24,0,24s0.06,10.95,1.48,16.26c0.78,2.93,2.49,5.41,5.42,6.19 C12.21,47.87,34,48,34,48s21.79-0.13,27.1-1.55c2.93-0.78,4.64-3.26,5.42-6.19C67.94,34.95,68,24,68,24S67.94,13.05,66.52,7.74z"
-                        fill="#212121"
-                        fillOpacity=".8"
-                      ></path>
-                      <path d="M 45,24 27,14 27,34" fill="#f1f1f1"></path>
-                    </svg>
-                  </IconButton>
+                    <Box className="forwardSeek-arrow" component={"span"}></Box>
+                    <Box className="forwardSeek-arrow" component={"span"}></Box>
+                    <Box className="forwardSeek-arrow" component={"span"}></Box>
+                  </Box>
+                  <Typography
+                    variant="caption"
+                    sx={{ margin: "0 auto", pt: 1 }}
+                  >
+                    5 seconds{" "}
+                  </Typography>
                 </Box>
-              </Box>
-              <IconButton
-                className={`cancel-mini-btn ${state.isMini ? "" : "hide"}`}
-                onClick={() => {
-                  updateState({ isMini: false, hideMini: true });
-                }}
-                sx={{
-                  position: "absolute",
-                  top: "-2px",
-                  left: "-2px",
-                  cursor: "pointer",
-                  zIndex: 3,
-                }}
-              >
-                <CancelIcon sx={{ color: "#fff" }} />
-              </IconButton>
-              <Box
-                ref={fullScreenTitleRef}
-                className="title-fullscreen"
-                sx={{
-                  opacity: !state.isFullscreen ? 0 : state.titleOpacity,
-                  position: "absolute",
-                  width: "100%",
-                  top: "0",
-                  padding: 2,
-                }}
-              >
-                <Typography
-                  className="title-text"
+              )}
+
+              {state.isBackwardSeek && (
+                <Box
                   sx={{
                     position: "absolute",
-                    zIndex: 4,
-                    left: "12px",
-                    display: "-webkit-box",
-                    textOverflow: "ellipsis",
-                    maxHeight: "5.6rem",
-                    WebkitLineClamp: "2",
-                    WebkitBoxOrient: "vertical",
-                    overflow: "hidden",
-                    color: "#eee",
-                    cursor: "default",
-                    "&:hover": {
-                      color: "#fff",
-                    },
+                    top: "50%",
+                    marginTop: "-55px",
+                    left: "10%",
+                    width: "110px",
+                    height: "110px",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    fontSize: "1rem",
+                    color: "#f1f1f1",
+                    borderRadius: "50%",
+                    background: "rgba(0, 0, 0, 0.5)",
                   }}
-                  variant="h3"
-                  color="#fff"
                 >
-                  {data?.data?.title}
-                </Typography>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      position: "relative",
+                      right: "6px",
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Box className="rewind-arrow" component={"span"}></Box>
+                    <Box className="rewind-arrow" component={"span"}></Box>
+                    <Box className="rewind-arrow" component={"span"}></Box>
+                  </Box>
+                  <Typography
+                    variant="caption"
+                    sx={{ margin: "0 auto", pt: 1 }}
+                  >
+                    5 seconds{" "}
+                  </Typography>
+                </Box>
+              )}
+
+              <Box
+                className="status-overlay"
+                sx={{
+                  position: "absolute",
+                  inset: 0,
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  opacity: 1,
+                  color: "#fff",
+                  userSelect: "none",
+                  pointerEvents: "none",
+                }}
+              >
+                {(state.showBufferingIndicator || state.loadingVideo) &&
+                  !state.isBackwardSeek &&
+                  !state.isForwardSeek && (
+                    <IconButton
+                      disableRipple
+                      className="buffering-state.progress"
+                      sx={{
+                        position: "absolute",
+                        left: "50%",
+                        top: "50%",
+                        width: "68px",
+                        height: "48px",
+                        marginLeft: "-34px",
+                        marginTop: "-24px",
+                        padding: "0",
+                        opacity: 1,
+                      }}
+                    >
+                      <CircularProgress
+                        sx={{
+                          mx: "auto",
+                          textAlign: "center",
+                          color: "rgb(255, 255, 255)",
+                        }}
+                        size={50}
+                      />
+                    </IconButton>
+                  )}
+
+                <>
+                  <IconButton
+                    sx={{
+                      width: "52px",
+                      height: "52px",
+                      padding: 0,
+                      opacity: state.showIcon ? 1 : 0,
+                      visibility:
+                        state.showIcon && isUserInteracted
+                          ? "visible"
+                          : "hidden",
+                      transition: "opacity 0.2s ease",
+                      position: "absolute",
+                    }}
+                    ref={playIconRef}
+                  >
+                    {state.isPlaying ? (
+                      <PlayArrowIcon className="playback-icon" sx={iconStyle} />
+                    ) : (
+                      <PauseIcon className="playback-icon" sx={iconStyle} />
+                    )}
+                  </IconButton>
+
+                  <IconButton
+                    sx={{
+                      width: "52px",
+                      height: "52px",
+                      padding: 0,
+                      opacity: state.showVolumeIcon ? 1 : 0,
+                      visibility: state.showVolumeIcon ? "visible" : "hidden",
+                      transition: "opacity 0.2s ease",
+                      position: "absolute",
+                    }}
+                    ref={volumeIconRef}
+                  >
+                    {state.volumeDown ? (
+                      <VolumeDownIcon className="vol-icon" sx={iconStyle} />
+                    ) : state.volumeUp ? (
+                      <VolumeUpIcon className="vol-icon" sx={iconStyle} />
+                    ) : state.volumeMuted ? (
+                      <VolumeOffIcon className="vol-icon" sx={iconStyle} />
+                    ) : null}
+                  </IconButton>
+                </>
               </Box>
+            </Box>
+            <Box
+              sx={{ userSelect: "none" }}
+              onClick={handleClick}
+              onMouseDown={
+                isUserInteracted && !state.isPipActive ? DoubleSpeed : null
+              }
+              onTouchStart={
+                isUserInteracted && !state.isPipActive ? DoubleSpeed : null
+              }
+              className="video-overlay"
+            >
+              <Box
+                className="thumbnail-overlay"
+                sx={{
+                  position: "absolute",
+                  inset: 0,
+
+                  justifyContent: "center",
+                  alignItems: "center",
+                  display: isUserInteracted || state.isMini ? "none" : "flex",
+                  transition: "opacity .25s cubic-bezier(0,0,.2,1)",
+                  color: "#fff",
+                  userSelect: "none",
+                  pointerEvents: "all",
+                  "&:hover .large-play-btn": {
+                    fill: "#f03",
+                    fillOpacity: "1",
+                  },
+                }}
+              >
+                <Box
+                  className="thumbnail-overlay-image"
+                  sx={{
+                    position: "absolute",
+                    width: "100%",
+                    height: "100%",
+                    borderRadius: "8px",
+                    background: state.loadingVideo
+                      ? "rgba(0,0,0)"
+                      : "transparent",
+                    backgroundImage: `url(${data?.data?.thumbnail.url})`,
+                    backgroundRepeat: "no-repeat",
+                    backgroundPosition: "center",
+                    backgroundSize: "cover",
+                  }}
+                ></Box>
+                <IconButton
+                  disableRipple
+                  className="large-play-btn-container"
+                  sx={{
+                    position: "absolute",
+                    left: "50%",
+                    top: "50%",
+                    width: "68px",
+                    height: "48px",
+                    marginLeft: "-34px",
+                    marginTop: "-24px",
+                    padding: "0",
+                    display: isUserInteracted ? "none" : "inline-flex",
+                    opacity: 1,
+                  }}
+                >
+                  <svg
+                    height="100%"
+                    version="1.1"
+                    viewBox="0 0 68 48"
+                    width="100%"
+                  >
+                    <path
+                      className="large-play-btn"
+                      d="M66.52,7.74c-0.78-2.93-2.49-5.41-5.42-6.19C55.79,.13,34,0,34,0S12.21,.13,6.9,1.55 C3.97,2.33,2.27,4.81,1.48,7.74C0.06,13.05,0,24,0,24s0.06,10.95,1.48,16.26c0.78,2.93,2.49,5.41,5.42,6.19 C12.21,47.87,34,48,34,48s21.79-0.13,27.1-1.55c2.93-0.78,4.64-3.26,5.42-6.19C67.94,34.95,68,24,68,24S67.94,13.05,66.52,7.74z"
+                      fill="#212121"
+                      fillOpacity=".8"
+                    ></path>
+                    <path d="M 45,24 27,14 27,34" fill="#f1f1f1"></path>
+                  </svg>
+                </IconButton>
+              </Box>
+            </Box>
+            <IconButton
+              className={`cancel-mini-btn ${state.isMini ? "" : "hide"}`}
+              onClick={() => {
+                updateState({ isMini: false, hideMini: true });
+              }}
+              sx={{
+                position: "absolute",
+                top: "-2px",
+                left: "-2px",
+                cursor: "pointer",
+                zIndex: 3,
+              }}
+            >
+              <CancelIcon sx={{ color: "#fff" }} />
+            </IconButton>
+            <Box
+              ref={fullScreenTitleRef}
+              className="title-fullscreen"
+              sx={{
+                opacity: !state.isFullscreen ? 0 : state.titleOpacity,
+                position: "absolute",
+                width: "100%",
+                top: "0",
+                padding: 2,
+              }}
+            >
+              <Typography
+                className="title-text"
+                sx={{
+                  position: "absolute",
+                  zIndex: 4,
+                  left: "12px",
+                  display: "-webkit-box",
+                  textOverflow: "ellipsis",
+                  maxHeight: "5.6rem",
+                  WebkitLineClamp: "2",
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                  color: "#eee",
+                  cursor: "default",
+                  "&:hover": {
+                    color: "#fff",
+                  },
+                }}
+                variant="h3"
+                color="#fff"
+              >
+                {data?.data?.title}
+              </Typography>
             </Box>
           </Box>
         </Box>

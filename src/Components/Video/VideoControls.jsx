@@ -661,7 +661,6 @@ const VideoControls = ({
                   Math.min(
                     Math.max(
                       0,
-                      videoRef?.current?.duration -
                         videoRef?.current?.currentTime
                     ) || 0,
                     videoRef?.current?.duration || 0

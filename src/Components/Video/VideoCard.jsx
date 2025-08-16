@@ -456,7 +456,7 @@ function VideoCard({
             <Link draggable="false" to="/watch" search={searchParams}>
               <Box height="100%" position="absolute" top="0" left="0">
                 {videoMd ? (
-                  <LazyLoad height={200} offset={100} once>
+                  <LazyLoad >
                     <CardMedia
                       sx={{
                         flexGrow: "1!important",

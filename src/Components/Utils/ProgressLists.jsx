@@ -390,10 +390,14 @@ export const ProgressLists = ({
     Math.min(state.hoverX - half, state.BarWidth - previewWidth)
   );
 
-
+  console.log({
+    width: customFrameWidth,
+    height: customFrameHeight,
+  });
   function getBackgroundPosition(
     cueText,
     previewWidth = customFrameWidth,
+    previewHeight = customFrameHeight
   ) {
     if (typeof cueText !== "string") return {};
     const [urlPart = "", frag = ""] = cueText.split("#");
@@ -404,7 +408,7 @@ export const ProgressLists = ({
     const [x, y, w, h] = nums;
 
     const scale = previewWidth / w;
-    const previewHeight = h * scale;
+    // const previewHeight = h * scale;
     return {
       width: `${previewWidth}px`,
       height: `${previewHeight}px`,

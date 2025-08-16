@@ -197,16 +197,22 @@ video {
   inset: 0;
   z-index: 3;
 }
-#video-container {
-    display: flex;
-}
+
 
 #video-container[data-theatre="true"] {
     width: 100%;
     height: 56.25vw;
     max-height: calc(100vh - 169px);
-    min-height: 480px;
     overflow-x: clip;
+    flex-direction: row;
+    background: #000;
+}
+#video-container[data-fullBleed="true"] {
+    width: 100%;
+    height: 56.25vw;
+    max-height: calc(100vh - 169px);
+    overflow-x: clip;
+    min-height: 240px;
     flex-direction: row;
     background: #000;
 }
@@ -226,6 +232,7 @@ video {
   display: flex;
   height: 100%;
 }
+
 .title-background-overlay {
     position: absolute;
     height: 80px;
