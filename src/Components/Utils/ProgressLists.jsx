@@ -39,6 +39,7 @@ export const ProgressLists = ({
     isSeeking: false,
     playerWidth: 528,
     playerHeight: 297,
+    left: 0
   });
   const { thumbRef, prevVideoStateRef, sliderRef, rafId } = useRefReducer({
     thumbRef: state.progress || null,
@@ -163,6 +164,8 @@ export const ProgressLists = ({
     };
   }, [throttledUpdate]);
 
+
+
   useEffect(() => {
     if (!vttUrl) return;
 
@@ -280,7 +283,7 @@ export const ProgressLists = ({
     updateState({
       isSeeking: true,
       hoverX: offsetX,
-      hoveredProgress: progress,
+      hoveredProgress: state.progress,
       hoverTime: timeOnHover,
       hoveredCue: foundCue || null,
     });
@@ -416,7 +419,7 @@ export const ProgressLists = ({
   function getBackgroundPosition(
     cueText,
     previewWidth = customFrameWidth,
-    previewHeight = customFrameHeight
+  
   ) {
     if (typeof cueText !== "string") return {};
     const [urlPart = "", frag = ""] = cueText.split("#");
@@ -427,7 +430,7 @@ export const ProgressLists = ({
     const [x, y, w, h] = nums;
 
     const scale = previewWidth / w;
-    // const previewHeight = h * scale;
+    const previewHeight = h * scale;
     return {
       width: `${previewWidth}px`,
       height: `${previewHeight}px`,
@@ -443,7 +446,7 @@ export const ProgressLists = ({
   function getBackgroundPositionDefault(
     cueText,
     previewWidth = 240,
-    previewHeight = 135
+
   ) {
     if (typeof cueText !== "string") return {};
     const [urlPart = "", frag = ""] = cueText.split("#");
@@ -454,6 +457,8 @@ export const ProgressLists = ({
     const [x, y, w, h] = nums;
 
     const scale = previewWidth / w;
+    const previewHeight = h * scale;
+
     return {
       width: `${previewWidth}px`,
       height: `${previewHeight}px`,
@@ -477,6 +482,17 @@ export const ProgressLists = ({
     Math.min(state.hoverX - half_default, state.BarWidth - previewWidth_default)
   );
 
+  useEffect(() => {
+  if (videoRef.current) {
+    const rect = videoRef.current.getBoundingClientRect();
+  console.log(rect?.left)
+
+    updateState({
+      left: rect.left
+    }) // px from viewport left
+  }
+}, [vttUrl]);
+
   return (
     <Box
       className={`progress-bar-container control`}
@@ -488,7 +504,7 @@ export const ProgressLists = ({
           isMobile && !isMini && !playsInline
             ? "36px"
             : isMini
-              ? "-2px"
+              ? "-3px"
               : playsInline
                 ? "-2px"
                 : "48px",
@@ -516,12 +532,12 @@ export const ProgressLists = ({
         }}
       >
         <Box
-          className={`${!state.hoveredCue || showSettings ? "hide" : "MuiPopper-root "}`}
+          className={`${!state.hoveredCue || showSettings || isMini ? "hide" : "MuiPopper-root "}`}
           sx={{
             zIndex: isWatchSeeking ? -1 : "",
             position: "absolute",
             bottom: isHoverSeeking ? "2px" : isWatchSeeking ? "-46px" : "45px",
-            left: isWatchSeeking ? "-12px" : `${clampedLeft}px`,
+            left: isWatchSeeking ? `${state.left}px` : `${clampedLeft}px`,
             pointerEvents: "none",
             ...previewStyle,
           }}
@@ -560,7 +576,7 @@ export const ProgressLists = ({
           </Box>
         </Box>
         <Box
-          className={`${!state.hoveredCue || showSettings || playsInline ? "hide" : "MuiPopper-root defaultVtt"}`}
+          className={`${!state.hoveredCue || showSettings || playsInline || isMini ? "hide" : "MuiPopper-root defaultVtt"}`}
           sx={{
             zIndex: 10,
             position: "absolute",
@@ -609,12 +625,13 @@ export const ProgressLists = ({
           sx={{
             position: "relative",
             transform:
-              state.isProgressEntered && !playsInline
-                ? "scaleY(1.2)"
+              state.isProgressEntered && !playsInline && isMini 
+                ? "scaleY(1.5)" :
+                state.isProgressEntered && !playsInline && !isMini ? "scaleY(1.2)"
                 : "scaleY(.6)",
             height: "100%",
             background: isMini ? "rgb(51,51,51)" : "rgba(255,255,255,0.2)",
-            transition: "transform .1s cubic-bezier(0.4, 0, 1, 1)",
+            transition: "transform .3s cubic-bezier(1, 0, 0.4, 0.4)",
           }}
         >
           <div
@@ -636,7 +653,7 @@ export const ProgressLists = ({
               position: "absolute",
               bottom: 0,
               left: 0,
-              opacity: state.hoveredCue ? 1 : 0,
+              opacity: state.hoveredCue && !isMini ? 1 : 0,
               width: "100%",
               height: "100%",
               transform: `scaleX(${state.hoveredProgress / 100})`,
@@ -662,7 +679,7 @@ export const ProgressLists = ({
         </Box>
 
         <Box
-          onMouseDown={handleSeekStart}
+          onMouseDown={isMini ? undefined : handleSeekStart}
           ref={thumbRef}
           className={`thumb-container ${isMini ? "hide" : ""}`}
           sx={{
@@ -694,16 +711,15 @@ export const ProgressLists = ({
         </Box>
 
         <Box
-          onMouseDown={handleSeekStart}
-          onMouseMove={() => updateState({ isProgressEnter: true })}
-          onMouseLeave={() => updateState({ isProgressEnter: false })}
+          onMouseDown={isMini ? undefined : handleSeekStart}
+          onMouseMove={() => updateState({ isProgressEntered: true })}
+          onMouseLeave={() => updateState({ isProgressEntered: false })}
           className="progress-offset"
           sx={{
             position: "absolute",
             width: "100%",
             height: "16px",
             bottom: 0,
-            userSelect: "none",
             zIndex: 250,
           }}
         ></Box>
@@ -714,5 +730,7 @@ export const ProgressLists = ({
 
 export default React.memo(
   ProgressLists,
-  (prev, next) => prev.vttUrl === next.vttUrl 
+  (prev, next) => prev.vttUrl === next.vttUrl &&
+  prev.isMini === next.isMini &&
+  prev.playsInline === next.playsInline
 );

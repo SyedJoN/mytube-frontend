@@ -81,8 +81,6 @@ const VideoControls = ({
   customPlayback,
   isAmbient,
   setIsAmbient,
-  progress,
-  setProgress,
   updateState,
   playerWidth,
   playerHeight
@@ -1293,14 +1291,12 @@ const VideoControls = ({
           videoRef={videoRef}
           tracker={tracker}
           videoId={videoId}
-          progress={progress}
-          setProgress={setProgress}
           isTheatre={isTheatre}
           isMini={isMini}
           vttUrl={vttUrl}
           updateState={updateState}
-          playerWidth={playerWidth} // pass explicitly
-          playerHeight={playerHeight} //
+          playerWidth={playerWidth} 
+          playerHeight={playerHeight}
         />
       </Box>
     </>
