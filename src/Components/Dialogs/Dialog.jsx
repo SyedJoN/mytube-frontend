@@ -7,6 +7,7 @@ import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
 import { Box, IconButton } from "@mui/material";
 import CloseIcon from '@mui/icons-material/Close';
+import { useFullscreen } from "../Utils/useFullScreen";
 
 export default function AlertDialog({
   title,
@@ -20,8 +21,11 @@ export default function AlertDialog({
     setDialogOpen(false);
   };
 
+  const isFullscreen = useFullscreen();
+
   return (
     <Dialog
+    disablePortal={isFullscreen}
     disableScrollLock
     disableEnforceFocus
     disableAutoFocus

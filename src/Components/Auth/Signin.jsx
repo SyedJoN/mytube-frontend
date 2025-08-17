@@ -12,6 +12,7 @@ import * as yup from "yup";
 import { TextField, Button, Typography } from "@mui/material";
 import Signup from "./Signup";
 import LinearProgress from "@mui/material/LinearProgress";
+import { useFullscreen } from "../Utils/useFullScreen";
 
 function Signin(props) {
   const { onClose, open } = props;
@@ -58,11 +59,14 @@ function Signin(props) {
     console.log("User Data:", data);
   };
 
+  const isFullscreen = useFullscreen()
+
   const handleClose = () => {
     onClose();
   };
   return (
     <Dialog
+      disablePortal={isFullscreen}
       disableScrollLock
       maxWidth="sm"
       sx={{

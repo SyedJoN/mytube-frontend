@@ -19,6 +19,7 @@ function VideoSideBar({
   isLoadingList,
   isErrorList,
   errorList,
+  scrollContainerRef
 }) {
   const [activeOptionsId, setActiveOptionsId] = React.useState(null);
   const isCustomWidth = useMediaQuery("(max-width:1014px)");
@@ -60,6 +61,7 @@ function VideoSideBar({
                     createdAt={formatDate(video.createdAt)}
                     activeOptionsId={activeOptionsId}
                     setActiveOptionsId={setActiveOptionsId}
+                    scrollContainerRef={scrollContainerRef}
                   />
                 </Grid>
               ) : (
@@ -85,6 +87,7 @@ function VideoSideBar({
                     createdAt={formatDate(video.createdAt)}
                     activeOptionsId={activeOptionsId}
                     setActiveOptionsId={setActiveOptionsId}
+                    scrollContainerRef={scrollContainerRef}
                   />
                 </Box>
               )}

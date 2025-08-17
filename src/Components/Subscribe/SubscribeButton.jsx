@@ -165,7 +165,7 @@ export const SubscribeButton = React.memo(
       setSubscriberCount(newCount);
 
       if (!hasLoaded) {
-        setHasLoaded(true); // ✅ Ready to render now
+        setHasLoaded(true);
       }
     }, [userData]);
 

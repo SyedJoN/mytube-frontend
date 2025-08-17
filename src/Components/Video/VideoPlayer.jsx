@@ -5,6 +5,7 @@ import React, {
   useContext,
   useCallback,
   startTransition,
+  useImperativeHandle,
 } from "react";
 import { keyframes, useMediaQuery, useTheme } from "@mui/system";
 import { fetchVideoById } from "../../apis/videoFn";
@@ -60,26 +61,34 @@ import {
 } from "../../helper/watchTelemetry";
 import useStateReducer from "../Utils/useStateReducer";
 import useRefReducer from "../Utils/useRefReducer";
+import { useFullscreen } from "../Utils/useFullScreen";
 
-function VideoPlayer({
-  videoId,
-  isSubscribedTo,
-  playlistId,
-  playlistVideos,
-  index,
-  shuffledVideos,
-  handleNextVideo,
-  isTheatre,
-  fsRef,
-  setIsTheatre,
-  playerMinHeight,
-}) {
+function VideoPlayer(
+  {
+    videoId,
+    isSubscribedTo,
+    playlistId,
+    playlistVideos,
+    index,
+    shuffledVideos,
+    handleNextVideo,
+    isTheatre,
+    fsRef,
+    setIsTheatre,
+    data,
+    isLoading,
+    isError,
+    error,
+    aspectRatio,
+  },
+  ref
+) {
+
   const theme = useTheme();
   const userContext = useContext(UserContext);
   const drawerContext = useContext(DrawerContext);
   const userInteractionContext = useContext(UserInteractionContext);
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-
   const { open: isOpen } = drawerContext ?? {};
   const { data: dataContext } = userContext ?? {};
   const userId = dataContext?._id;
@@ -98,9 +107,8 @@ function VideoPlayer({
   );
   const location = useLocation();
   const { getTimeStamp, setTimeStamp } = useContext(TimeStampContext);
+  const isFullscreen = useFullscreen();
 
-  const [progress, setProgress] = useState(0);
-  const [bufferedVal, setBufferedVal] = useState(0);
   const { state, updateState } = useStateReducer({
     isPlaying: false,
     viewCounted: false,
@@ -124,7 +132,6 @@ function VideoPlayer({
     isIncreased: true,
     isAnimating: false,
     jumpedToMax: false,
-    isFullscreen: false,
     isMini: false,
     hideMini: false,
     customPlayback: false,
@@ -143,6 +150,7 @@ function VideoPlayer({
     isPipActive: false,
     videoReady: false,
     canPlay: true,
+    aspectRatio: 0.75,
   });
 
   const {
@@ -204,8 +212,37 @@ function VideoPlayer({
     lastKeyPress: null,
     hideVolumeTimer: null,
   });
+  useImperativeHandle(ref, () => videoRef.current);
+
   const [previousVolume, setPreviousVolume] = useState(state.volume || 40);
   const isCustomWidth = useMediaQuery("(max-width:1014px)");
+
+// Conditional Constants
+
+  /* HTML 5 Container */
+  const containerAspectRatio = state.isMini ? aspectRatio : "";
+  const containerPosition =
+    isTheatre && !state.isMini
+      ? "relative"
+      : state.isMini
+        ? "fixed"
+        : "absolute";
+  const containerWidth = state.isMini ? "480px" : "100%";
+  const containerHeight = state.isMini ? "auto" : "100%";
+  const containerTopOffset = state.isMini ? "15px" : 0;
+  const containerLeftOffset = state.isMini ? "15px" : 0;
+  const containerRightOffset = state.isMini ? "auto" : "";
+  const containerZindex = state.isMini ? 9999 : 0;
+
+  /* HTML 5 VideoPlayer */
+  const playerVisiblity = state.videoReady ? "visible" : "hidden";
+  const playerAspectRatio = state.isMini ? aspectRatio : "";
+  const playerWidth = state.isMini ? "480px" : state.playerWidth;
+  const playerHeight = state.isMini ? "auto" : state.playerHeight;
+  const playerTopOffset = state.topOffset;
+  const playerLeftOffset = state.isMini ? 0 : state.leftOffset;
+  const playerRightOffset = state.isMini ? "auto" : "";
+  const playerBorderRadius = isTheatre && !state.isMini ? "0" : "8px";
 
   useEffect(() => {
     if (state.isMuted) {
@@ -226,12 +263,12 @@ function VideoPlayer({
     }
   }, [state.isMuted]);
 
-  const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["video", videoId],
-    queryFn: () => fetchVideoById(videoId),
-    refetchOnWindowFocus: false,
-    enabled: !!videoId,
-  });
+  // const { data, isLoading, isError, error } = useQuery({
+  //   queryKey: ["video", videoId],
+  //   queryFn: () => fetchVideoById(videoId),
+  //   refetchOnWindowFocus: false,
+  //   enabled: !!videoId,
+  // });
 
   const {
     data: userHistory,
@@ -348,18 +385,6 @@ function VideoPlayer({
       window.removeEventListener("orientationchange", handleResize);
     };
   }, [isTheatre, data?.data?._id, state.hideMini, state.canPlay, isOpen]);
-
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      updateState({ isFullscreen: !!document.fullscreenElement });
-    };
-
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-
-    return () => {
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
-    };
-  }, []);
 
   useEffect(() => {
     const width = 110;
@@ -1007,50 +1032,7 @@ function VideoPlayer({
       video.removeEventListener("playing", handlePlaying);
     };
   }, [videoRef.current, videoId, state.isForwardSeek, state.isBackwardSeek]);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const updateBuffered = () => {
-      try {
-        if (video.buffered.length > 0 && video.duration > 0) {
-          const currentTime = video.currentTime;
-          let bufferedEnd = video.buffered.end(0);
-
-          for (let i = 0; i < video.buffered.length; i++) {
-            if (
-              video.buffered.start(i) <= currentTime &&
-              video.buffered.end(i) > currentTime
-            ) {
-              bufferedEnd = video.buffered.end(i);
-              break;
-            }
-          }
-
-          const bufferProgress = bufferedEnd / video.duration;
-          setBufferedVal(bufferProgress);
-        } else {
-          setBufferedVal(0);
-        }
-      } catch (e) {
-        console.warn("Buffered read error", e);
-        setBufferedVal(0);
-      }
-    };
-
-    const events = ["progress", "timeupdate", "seeked"];
-    events.forEach((event) => {
-      video.addEventListener(event, updateBuffered);
-    });
-
-    return () => {
-      events.forEach((event) => {
-        video.removeEventListener(event, updateBuffered);
-      });
-    };
-  }, [data?.data?._id]);
-
+  
   useEffect(() => {
     const video = videoRef.current;
     if (!video || video.readyState < 2) return;
@@ -1102,7 +1084,6 @@ function VideoPlayer({
 
     video.currentTime = state.resumeTime;
     const value = (video.currentTime / video.duration) * 100;
-    setProgress(value);
 
     if (!isUserInteracted) {
       showControls();
@@ -1270,12 +1251,14 @@ function VideoPlayer({
 
     const updateSize = () => {
       const containerWidth = containerRef.current.offsetWidth;
-      let containerHeight = containerRef.current.offsetHeight;
+      const containerHeight = containerRef.current.offsetHeight;
 
       const video = videoRef.current;
       if (!video.videoWidth || !video.videoHeight) return;
 
-      const targetAspectRatio = video.videoWidth / video.videoHeight;
+      const targetAspectRatio = isFullscreen
+        ? containerWidth / containerHeight
+        : video.videoWidth / video.videoHeight;
 
       let videoWidth = video.videoWidth;
       let videoHeightLocal = Math.ceil(videoWidth / targetAspectRatio);
@@ -1284,18 +1267,27 @@ function VideoPlayer({
         videoHeightLocal = containerHeight;
         videoWidth = Math.floor(videoHeightLocal * targetAspectRatio);
       }
+      const fsWidth = containerHeight * targetAspectRatio;
 
-      const left = Math.floor((containerWidth - videoWidth) / 2);
-      const top = Math.floor((containerHeight - videoHeightLocal) / 2);
-      const isFullscreen = !!document.fullscreenElement;
+      const left = isFullscreen
+        ? Math.floor((containerWidth - fsWidth) / 2)
+        : Math.floor((containerWidth - videoWidth) / 2);
+      const top = isFullscreen
+        ? 0
+        : Math.floor((containerHeight - videoHeightLocal) / 2);
 
       updateState({
         videoContainerWidth: containerWidth,
         videoHeight: videoHeightLocal,
-        playerWidth: `${videoWidth}px`,
-        playerHeight: `${videoHeightLocal}px`,
+        playerWidth: isFullscreen
+          ? `${containerHeight * targetAspectRatio}px`
+          : `${videoWidth}px`,
+        playerHeight: isFullscreen
+          ? `${containerHeight}px`
+          : `${videoHeightLocal}px`,
         leftOffset: `${left}px`,
-        topOffset: `${top}px`,
+        topOffset: isFullscreen ? 0 : `${top}px`,
+        aspectRatio: video.videoHeight / video.videoWidth,
       });
     };
 
@@ -1308,14 +1300,14 @@ function VideoPlayer({
     const video = videoRef.current;
     video.addEventListener("loadedmetadata", updateSize);
 
-    updateSize(); // run once immediately
+    updateSize();
 
     return () => {
       observer.disconnect();
       window.removeEventListener("resize", updateSize);
       video.removeEventListener("loadedmetadata", updateSize);
     };
-  }, [isTheatre, data?.data?._id]);
+  }, [isTheatre, data?.data?._id, isFullscreen]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -1463,9 +1455,6 @@ function VideoPlayer({
 
     if (!video || isNaN(video.duration) || video.duration === 0) return;
 
-    const value = (video.currentTime / video.duration) * 100;
-
-    setProgress(value);
 
     const duration = video.duration;
     const watchTime = video.currentTime;
@@ -1510,13 +1499,15 @@ function VideoPlayer({
           paddingTop:
             isTheatre || isCustomWidth || isMobile
               ? ""
-              : state.isFullscreen ? "calc(9/16 * 100%)" : "calc(0.75 / 1 * 100%)",
+              : isFullscreen
+                ? "calc(9/16 * 100%)"
+                : `calc(${state.aspectRatio} * 100%)`,
         }}
         className="video-inner"
       >
         <Box
           data-theatre={isTheatre}
-          data-fullBleed={isCustomWidth}
+          data-fullbleed={isCustomWidth}
           ref={containerRef}
           onMouseLeave={handleMouseOut}
           onMouseMove={handleContainerMouseMove}
@@ -1568,19 +1559,14 @@ function VideoPlayer({
           )}
           <Box
             sx={{
-              aspectRatio: state.isMini ? "1.7777777777777777 !important" : "",
-              position:
-                isTheatre && !state.isMini
-                  ? "relative"
-                  : state.isMini
-                    ? "fixed"
-                    : "absolute",
-              width: state.isMini ? "480px" : "100%",
-              height: state.isMini ? "auto" : "100%",
-              top: state.isMini ? "15px" : 0,
-              left: state.isMini ? "15px" : 0,
-              right: state.isMini ? "auto" : "",
-              zIndex: state.isMini ? 9999 : 0,
+              aspectRatio: containerAspectRatio,
+              position: containerPosition,
+              width: containerWidth,
+              height: containerHeight,
+              top: containerTopOffset,
+              left: containerLeftOffset,
+              right: containerRightOffset,
+              zIndex: containerZindex,
             }}
           >
             {" "}
@@ -1612,15 +1598,15 @@ function VideoPlayer({
                   onPlay={handlePlay}
                   onLoadedMetadata={handleLoadedMetadata}
                   style={{
-                    visibility: state.videoReady ? "visible" : "hidden",
-                    aspectRatio: state.isMini ? "1.777" : "",
                     position: "absolute",
-                    width: state.isMini ? "480px" : state.playerWidth,
-                    height: state.isMini ? "auto" : state.playerHeight,
-                    left: state.leftOffset,
-                    top: state.topOffset,
-                    right: state.isMini ? "auto" : "",
-                    borderRadius: isTheatre && !state.isMini ? "0" : "8px",
+                    visibility: playerVisiblity,
+                    aspectRatio: playerAspectRatio,
+                    width: playerWidth,
+                    height: playerHeight,
+                    left: playerLeftOffset,
+                    top: playerTopOffset,
+                    right: playerRightOffset,
+                    borderRadius: playerBorderRadius,
                   }}
                 >
                   <source src={data?.data?.videoFile.url} type="video/mp4" />
@@ -1651,16 +1637,12 @@ function VideoPlayer({
                 playbackSliderSpeed={playbackSliderSpeed}
                 setPlaybackSliderSpeed={setPlaybackSliderSpeed}
                 customPlayback={state.customPlayback}
-                progress={progress}
-                setProgress={setProgress}
-                bufferedVal={bufferedVal}
-                setBufferedVal={setBufferedVal}
                 {...state}
                 updateState={updateState}
               />
             </Box>
             <Box
-              className={`${state.isFullscreen ? "title-background-overlay" : "hide"}`}
+              className={`${isFullscreen ? "title-background-overlay" : "hide"}`}
             ></Box>
             <Box
               className="video-cover"
@@ -1991,7 +1973,7 @@ function VideoPlayer({
               ref={fullScreenTitleRef}
               className="title-fullscreen"
               sx={{
-                opacity: !state.isFullscreen ? 0 : state.titleOpacity,
+                opacity: !isFullscreen ? 0 : state.titleOpacity,
                 position: "absolute",
                 width: "100%",
                 top: "0",
@@ -2029,4 +2011,4 @@ function VideoPlayer({
   );
 }
 
-export default React.memo(VideoPlayer);
+export default React.forwardRef(VideoPlayer);

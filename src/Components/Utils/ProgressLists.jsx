@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from "react";
+import React, { useEffect, useCallback, useState } from "react";
 import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
 import { WebVTT } from "vtt.js";
 import formatDuration from "../../utils/formatDuration";
@@ -12,19 +12,14 @@ var thumbWidth = 13;
 
 export const ProgressLists = ({
   videoRef,
-  progress,
-  bufferedVal,
   isMini,
   showSettings,
   vttUrl,
   playsInline,
   tracker,
-  setBufferedVal,
-  setProgress,
   updateState: updateVideoState,
 }) => {
   const theme = useTheme();
-
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const { isUserInteracted, setIsUserInteracted } = React.useContext(
@@ -32,6 +27,8 @@ export const ProgressLists = ({
   );
 
   const { state, updateState } = useStateReducer({
+    progress: 0,
+    bufferedVal: 0,
     hoverTime: 0,
     cueMap: [],
     hoveredCue: null,
@@ -44,7 +41,7 @@ export const ProgressLists = ({
     playerHeight: 297,
   });
   const { thumbRef, prevVideoStateRef, sliderRef, rafId } = useRefReducer({
-    thumbRef: progress || null,
+    thumbRef: state.progress || null,
     prevVideoStateRef: null,
     sliderRef: null,
     rafId: null,
@@ -57,9 +54,29 @@ export const ProgressLists = ({
     ? Math.round(videoRef.current.duration)
     : 0;
 
+  const progressUpdate = useCallback(() => {
+    const video = videoRef.current;
+
+    if (!video || isNaN(video.duration) || video.duration === 0) return;
+
+    const value = (video.currentTime / video.duration) * 100;
+    updateState({
+      progress: value,
+    });
+  }, []);
+
   useEffect(() => {
-    console.log("isSeeking", state.isSeeking);
-  }, [state.isSeeking]);
+    const video = videoRef.current;
+    if (!video) return;
+    const events = ["loadeddata", "progress", "seek", "timeupdate"];
+
+    events.forEach((event) => video.addEventListener(event, progressUpdate));
+    return () => {
+      events.forEach((event) =>
+        video.removeEventListener(event, progressUpdate)
+      );
+    };
+  }, [progressUpdate]);
 
   useEffect(() => {
     const slider = sliderRef.current;
@@ -91,6 +108,7 @@ export const ProgressLists = ({
       window.removeEventListener("resize", updateSizes);
     };
   }, []);
+
   const updateBuffered = useCallback(() => {
     const video = videoRef?.current;
     if (!video) return;
@@ -112,15 +130,15 @@ export const ProgressLists = ({
 
         const bufferProgress = bufferedEnd / video.duration;
 
-        setBufferedVal(bufferProgress);
+        updateState({ bufferedVal: bufferProgress });
       } else {
-        setBufferedVal(0);
+        updateState({ bufferedVal: 0 });
       }
     } catch (e) {
       console.warn("Buffered read error", e);
-      setBufferedVal(0);
+      updateState({ bufferedVal: 0 });
     }
-  }, [videoRef]);
+  }, []);
 
   const throttledUpdate = useCallback(throttle(updateBuffered, 200), [
     updateBuffered,
@@ -143,7 +161,8 @@ export const ProgressLists = ({
         video.removeEventListener(event, throttledUpdate);
       });
     };
-  }, [videoRef, throttledUpdate]);
+  }, [throttledUpdate]);
+
   useEffect(() => {
     if (!vttUrl) return;
 
@@ -184,7 +203,7 @@ export const ProgressLists = ({
     }
 
     return () => cancelAnimationFrame(rafId.current);
-  }, [progress, state.isSeeking, state.BarWidth, playsInline]);
+  }, [state.progress, state.isSeeking, state.BarWidth, playsInline]);
 
   const handleMouseMove = (e) => {
     const rect = sliderRef.current.getBoundingClientRect();
@@ -248,7 +267,9 @@ export const ProgressLists = ({
     );
 
     const newTime = (videoRef.current?.duration * newProgress) / 100;
-    setProgress(newProgress);
+    updateState({
+      progress: newProgress,
+    });
     // videoRef.current.currentTime = newTime;
 
     const timeOnHover = (offsetX / rect.width) * videoRef.current.duration;
@@ -344,7 +365,9 @@ export const ProgressLists = ({
       Math.max((offsetX / rect.width) * 100, 0),
       100
     );
-    setProgress(newProgress);
+    updateState({
+      progress: newProgress,
+    });
     const newTime = (newProgress * videoRef.current?.duration) / 100;
 
     videoRef.current.currentTime = newTime;
@@ -390,10 +413,6 @@ export const ProgressLists = ({
     Math.min(state.hoverX - half, state.BarWidth - previewWidth)
   );
 
-  console.log({
-    width: customFrameWidth,
-    height: customFrameHeight,
-  });
   function getBackgroundPosition(
     cueText,
     previewWidth = customFrameWidth,
@@ -507,7 +526,7 @@ export const ProgressLists = ({
             ...previewStyle,
           }}
         >
-           <Box
+          <Box
             className={`${isWatchSeeking ? "hide" : ""}`}
             sx={{
               display: "inline-flex",
@@ -606,7 +625,7 @@ export const ProgressLists = ({
               left: 0,
               width: "100%",
               height: "100%",
-              transform: `scaleX(${progress / 100})`,
+              transform: `scaleX(${state.progress / 100})`,
               transformOrigin: "0 0",
               zIndex: 3,
             }}
@@ -633,7 +652,7 @@ export const ProgressLists = ({
               left: 0,
               height: "100%",
               width: "100%",
-              transform: `scaleX(${bufferedVal})`,
+              transform: `scaleX(${state.bufferedVal})`,
               transformOrigin: "0 0",
               borderRadius: "3px",
               zIndex: 1,
@@ -650,7 +669,7 @@ export const ProgressLists = ({
             position: "absolute",
             left: `-${thumbWidth / 2}px`,
             top: "-4px",
-            transform: `translateX(${(progress / 100) * state.BarWidth}px)`,
+            transform: `translateX(${(state.progress / 100) * state.BarWidth}px)`,
             zIndex: 260,
             transition: "none",
             pointerEvents: "none",
@@ -693,4 +712,7 @@ export const ProgressLists = ({
   );
 };
 
-export default ProgressLists;
+export default React.memo(
+  ProgressLists,
+  (prev, next) => prev.vttUrl === next.vttUrl 
+);

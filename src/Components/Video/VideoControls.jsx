@@ -83,8 +83,6 @@ const VideoControls = ({
   setIsAmbient,
   progress,
   setProgress,
-  bufferedVal,
-  setBufferedVal,
   updateState,
   playerWidth,
   playerHeight
@@ -1295,9 +1293,7 @@ const VideoControls = ({
           videoRef={videoRef}
           tracker={tracker}
           videoId={videoId}
-          bufferedVal={bufferedVal}
           progress={progress}
-          setBufferedVal={setBufferedVal}
           setProgress={setProgress}
           isTheatre={isTheatre}
           isMini={isMini}

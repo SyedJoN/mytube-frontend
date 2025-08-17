@@ -207,7 +207,7 @@ video {
     flex-direction: row;
     background: #000;
 }
-#video-container[data-fullBleed="true"] {
+#video-container[data-fullbleed="true"] {
     width: 100%;
     height: 56.25vw;
     max-height: calc(100vh - 169px);

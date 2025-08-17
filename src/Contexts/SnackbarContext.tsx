@@ -6,25 +6,44 @@ import React, {
   ReactNode,
 } from "react";
 import Snackbar from "@mui/material/Snackbar";
-
+import { useFullscreen } from "../Components/Utils/useFullScreen";
+import { createPortal } from "react-dom";
 
 type SnackbarContextType = {
   showMessage: (msg: string) => void;
 };
 
-
-const SnackbarContext = createContext<SnackbarContextType | undefined>(undefined);
-
+const SnackbarContext = createContext<SnackbarContextType | undefined>(
+  undefined
+);
 
 type SnackbarProviderProps = {
   children: ReactNode;
 };
 
-
 export const SnackbarProvider = ({ children }: SnackbarProviderProps) => {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
 
+  const renderSnackbar = () => (
+  <Snackbar
+    slotProps={{
+      content: {
+        sx: {
+          backgroundColor: "#f1f1f1",
+          color: "#0f0f0f",
+          borderRadius: "8px",
+          px: 2,
+        },
+      },
+    }}
+    open={open}
+    onClose={handleClose}
+    autoHideDuration={3000}
+    message={message}
+    anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+  />
+  )
   const showMessage = useCallback((msg: string) => {
     setMessage(msg);
     setOpen(true);
@@ -33,27 +52,16 @@ export const SnackbarProvider = ({ children }: SnackbarProviderProps) => {
   const handleClose = () => {
     setOpen(false);
   };
+  const isFullscreen = useFullscreen()
 
   return (
     <SnackbarContext.Provider value={{ showMessage }}>
       {children}
-      <Snackbar
-        slotProps={{
-          content: {
-            sx: {
-              backgroundColor: "#f1f1f1",
-              color: "#0f0f0f",
-              borderRadius: "8px",
-              px: 2,
-            },
-          },
-        }}
-        open={open}
-        onClose={handleClose}
-        autoHideDuration={3000}
-        message={message}
-        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
-      />
+ 
+      {isFullscreen && document.fullscreenElement
+      ? createPortal(renderSnackbar(), document.fullscreenElement)
+      : renderSnackbar()
+    }
     </SnackbarContext.Provider>
   );
 };

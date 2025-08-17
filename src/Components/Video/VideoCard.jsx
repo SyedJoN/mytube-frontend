@@ -133,15 +133,14 @@ function VideoCard({
   activeOptionsId,
   setActiveOptionsId,
   videoMd,
+  scrollContainerRef,
 }) {
   const navigate = useNavigate();
 
   const theme = useTheme();
   const [fetchedTime, setFetchedTime] = React.useState(0);
   const [bgColor, setBgColor] = React.useState("rgba(0,0,0,0.6)");
-  const [bufferedVal, setBufferedVal] = React.useState(0);
-  const [viewVideo, setViewVideo] = React.useState(false);
-  const [progress, setProgress] = React.useState(0);
+  const [viewVideo, setViewVideo] = React.useState(false)
   const [isVolumeMuted, setIsVolumeMuted] = React.useState(true);
 
   const {
@@ -288,7 +287,6 @@ function VideoCard({
       if (telemetryData) {
         sendYouTubeStyleTelemetry(videoId, video, telemetryData, setTimeStamp);
       }
-      setProgress(0);
     };
 
     if (isHoverPlay && document.visibilityState === "visible") {
@@ -413,13 +411,6 @@ function VideoCard({
     }
   };
 
-  const handleTimeUpdate = (event) => {
-    const video = event.target;
-    if (video?.duration && !isNaN(video.duration)) {
-      const value = (video.currentTime / video.duration) * 100;
-      setProgress(value);
-    }
-  };
   return (
     <>
       {home ? (
@@ -456,7 +447,7 @@ function VideoCard({
             <Link draggable="false" to="/watch" search={searchParams}>
               <Box height="100%" position="absolute" top="0" left="0">
                 {videoMd ? (
-                  <LazyLoad >
+                  <LazyLoad height={200} offset={200} once>
                     <CardMedia
                       sx={{
                         flexGrow: "1!important",
@@ -496,7 +487,7 @@ function VideoCard({
                     )}
                   </LazyLoad>
                 ) : (
-                  <LazyLoad once>
+                  <LazyLoad height={200} offset={200} once>
                     <CardMedia
                       sx={{
                         flexGrow: "1!important",
@@ -516,7 +507,6 @@ function VideoCard({
                         muted={isVolumeMuted}
                         onMouseMove={handleVideoMouseMove}
                         ref={hoverVideoRef}
-                        onTimeUpdate={handleTimeUpdate}
                         onPlaying={handleVideoPlaying}
                         onEnded={handleVideoEnd}
                         id="video-player"
@@ -666,11 +656,7 @@ function VideoCard({
             </Box>
             {isHoverPlay && isVideoPlaying && (
               <ProgressLists
-                bufferedVal={bufferedVal}
                 userId={userId}
-                setBufferedVal={setBufferedVal}
-                progress={progress}
-                setProgress={setProgress}
                 videoId={videoId}
                 viewVideo={viewVideo}
                 videoRef={hoverVideoRef}
@@ -855,44 +841,42 @@ function VideoCard({
                   style={{ ...linkStyles }}
                   onDragEnd={handleDragEnd}
                 >
-                  <LazyLoad height={200} once offset={100}>
-                    <CardMedia
-                      loading="lazy"
-                      sx={{
+                  <CardMedia
+                    loading="lazy"
+                    sx={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      userSelect: "none",
+                    }}
+                    component="img"
+                    draggable="false"
+                    image={thumbnail}
+                  />
+                  {previewUrl && (
+                    <video
+                      loop
+                      ref={previewRef}
+                      muted
+                      onPlaying={() => setIsVideoPlaying(true)}
+                      id="video-player"
+                      preload="none"
+                      className={`hover-interaction ${isHoverPlay ? "" : "hide"}`}
+                      crossOrigin="anonymous"
+                      src={isHoverPlay ? previewUrl : undefined}
+                      style={{
+                        position: "absolute",
                         width: "100%",
                         height: "100%",
+                        left: 0,
+                        top: 0,
                         objectFit: "cover",
-                        userSelect: "none",
+                        borderRadius: "8px",
+                        opacity: isHoverPlay && isVideoPlaying ? 1 : 0,
+                        transition: "opacity 0.3s ease",
                       }}
-                      component="img"
-                      draggable="false"
-                      image={thumbnail}
-                    />
-                    {previewUrl && (
-                      <video
-                        loop
-                        ref={previewRef}
-                        muted
-                        onPlaying={() => setIsVideoPlaying(true)}
-                        id="video-player"
-                        preload="none"
-                        className={`hover-interaction ${isHoverPlay ? "" : "hide"}`}
-                        crossOrigin="anonymous"
-                        src={isHoverPlay ? previewUrl : undefined}
-                        style={{
-                          position: "absolute",
-                          width: "100%",
-                          height: "100%",
-                          left: 0,
-                          top: 0,
-                          objectFit: "cover",
-                          borderRadius: "8px",
-                          opacity: isHoverPlay && isVideoPlaying ? 1 : 0,
-                          transition: "opacity 0.3s ease",
-                        }}
-                      ></video>
-                    )}
-                  </LazyLoad>
+                    ></video>
+                  )}
 
                   <Box
                     className={`${isHoverPlay && isVideoPlaying ? "hidden" : ""}`}
@@ -1199,7 +1183,6 @@ function VideoCard({
                         muted={isVolumeMuted}
                         ref={hoverVideoRef}
                         onMouseMove={handleVideoMouseMove}
-                        onTimeUpdate={handleTimeUpdate}
                         onPlaying={handleVideoPlaying}
                         onEnded={handleVideoEnd}
                         id="video-player"
@@ -1326,11 +1309,7 @@ function VideoCard({
                 </Box>
                 {isHoverPlay && isVideoPlaying && (
                   <ProgressLists
-                    bufferedVal={bufferedVal}
                     userId={userId}
-                    setBufferedVal={setBufferedVal}
-                    progress={progress}
-                    setProgress={setProgress}
                     videoId={videoId}
                     viewVideo={viewVideo}
                     setViewVideo={setViewVideo}
