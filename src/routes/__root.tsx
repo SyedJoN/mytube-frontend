@@ -21,6 +21,7 @@ import {
 } from "../Contexts/RootContexts";
 import { getCurrentUserWithAutoRefresh } from "../helper/getCurrentUserWithAutoRefresh";
 import { TimeStampProvider } from "../Contexts/TimeStampProvider";
+import { useExitFullscreenOnRouteChange } from "../Components/Utils/ExitFs";
 
 const NotFoundComponent = () => (
   <Box sx={{ textAlign: "center", mt: 5 }}>
@@ -112,10 +113,10 @@ function RouteComponent() {
     retry: false,
   });
 
-  useEffect(()=> {
-    console.log(data)
-  }, [data])
-  
+  useEffect(() => {
+    console.log(data);
+  }, [data]);
+
   useEffect(() => {
     if (queryData !== undefined) {
       setData(queryData);
@@ -135,13 +136,13 @@ function RouteComponent() {
 
     channel.onmessage = (event) => {
       if (event.data.type === "LOGIN") {
-        setAuthenticated(true)
+        setAuthenticated(true);
         refetch();
       }
       if (event.data.type === "LOGOUT") {
         setData(null);
         queryClient.setQueryData(["user"], null);
-        setAuthenticated(false)
+        setAuthenticated(false);
         refetch();
       }
     };
@@ -151,7 +152,7 @@ function RouteComponent() {
     };
   }, [refetch]);
 
-   const silentRefresh = async () => {
+  const silentRefresh = async () => {
     try {
       await refreshToken();
       const userData = await getCurrentUser();
@@ -159,15 +160,17 @@ function RouteComponent() {
     } catch (e) {
       setData(null);
       channel.postMessage({ type: "LOGOUT" });
-
     }
   };
-   useEffect(() => {
+  useEffect(() => {
     if (!isAuthenticated) return;
-  
-    const interval = setInterval(() => {
-      silentRefresh();
-    }, 15 * 60 * 1000); 
+
+    const interval = setInterval(
+      () => {
+        silentRefresh();
+      },
+      15 * 60 * 1000
+    );
 
     return () => clearInterval(interval);
   }, [silentRefresh, isAuthenticated]);
@@ -200,6 +203,8 @@ function RouteComponent() {
       backgroundColor: theme.palette.primary.main,
     };
   }, [isTablet, watch, isLaptop, open, home, search, userProfile]);
+  // Exiting Fullscreen on route change
+  useExitFullscreenOnRouteChange();
 
   return (
     <SnackbarProvider>
@@ -207,12 +212,12 @@ function RouteComponent() {
         <UserContext.Provider value={userValue}>
           <DrawerContext.Provider value={drawerValue}>
             <TimeStampProvider>
-            <CssBaseline />
-            <Header />
-            <Box component="main" sx={rootStyles}>
-              <ProgressBar />
-              <Outlet />
-            </Box>
+              <CssBaseline />
+              <Header />
+              <Box component="main" sx={rootStyles}>
+                <ProgressBar />
+                <Outlet />
+              </Box>
             </TimeStampProvider>
           </DrawerContext.Provider>
         </UserContext.Provider>

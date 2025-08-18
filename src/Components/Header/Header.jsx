@@ -39,6 +39,7 @@ import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
 import { throttle } from "lodash";
 import CustomSlide from "./Slide";
 import { DrawerContext, UserContext } from "../../Contexts/RootContexts";
+import { useFullscreen } from "../Utils/useFullScreen";
 
 const getListItemButtonStyles = (isExpanded, isUserMenu = false) => {
   return {
@@ -78,7 +79,6 @@ const getListItemIconStyles = () => ({
   justifyContent: "center",
 });
 
-
 const DrawerContent = React.memo(
   ({
     isExpanded,
@@ -89,60 +89,58 @@ const DrawerContent = React.memo(
   }) => {
     return (
       <Box className="drawer-content" sx={{ flex: 1 }}>
-          <Toolbar
-            sx={{
+        <Toolbar
+          sx={{
+            paddingLeft: "16px",
+            paddingRight: "16px",
+            minHeight: "var(--toolbar-height)",
+            "@media (min-width:600px)": {
               paddingLeft: "16px",
               paddingRight: "16px",
               minHeight: "var(--toolbar-height)",
-              "@media (min-width:600px)": {
-                paddingLeft: "16px",
-                paddingRight: "16px",
-                minHeight: "var(--toolbar-height)",
-              },
+            },
+          }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
             }}
+            className="start"
           >
-      
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-                className="start"
-              >
-                <IconButton
-                  disableRipple
-                  size="medium"
-                  edge="start"
-                  color="inherit"
-                  aria-label="menu"
-                  onClick={toggleDrawer}
-                  sx={{
-                    width: "40px",
-                    height: "40px",
-                    m: 0,
-                  }}
-                >
-                  <MenuIcon sx={{color: "#fff"}}/>
-                </IconButton>
-                <Link
-                  style={{
-                    display: "inline-block",
-                    verticalAlign: "middle",
-                    color: "#fff",
-                    textDecoration: "none",
-                    paddingLeft: "8px",
-                    flexGrow: 1,
-                  }}
-                  to="/"
-                >
-                  <Typography variant="h6" noWrap component="div">
-                    VTube
-                  </Typography>
-                </Link>
-              </Box>
-                </Toolbar>
-          
+            <IconButton
+              disableRipple
+              size="medium"
+              edge="start"
+              color="inherit"
+              aria-label="menu"
+              onClick={toggleDrawer}
+              sx={{
+                width: "40px",
+                height: "40px",
+                m: 0,
+              }}
+            >
+              <MenuIcon sx={{ color: "#fff" }} />
+            </IconButton>
+            <Link
+              style={{
+                display: "inline-block",
+                verticalAlign: "middle",
+                color: "#fff",
+                textDecoration: "none",
+                paddingLeft: "8px",
+                flexGrow: 1,
+              }}
+              to="/"
+            >
+              <Typography variant="h6" noWrap component="div">
+                VTube
+              </Typography>
+            </Link>
+          </Box>
+        </Toolbar>
 
         <List sx={{ color: "#fff" }}>
           {mainMenuItems.map(({ text, path, icon, iconOutlined }) => {
@@ -248,13 +246,14 @@ DrawerContent.propTypes = {
   toggleDrawer: PropTypes.func.isRequired,
 };
 
-function Header({...props }) {
-    const location = useLocation();
-    const home = location.pathname === "/";
-    const search = location.pathname.startsWith("/search");
-    const watch = location.pathname.startsWith("/watch");
-    const userProfile = location.pathname.startsWith("/@");
+function Header({ ...props }) {
+  const location = useLocation();
+  const home = location.pathname === "/";
+  const search = location.pathname.startsWith("/search");
+  const watch = location.pathname.startsWith("/watch");
+  const userProfile = location.pathname.startsWith("/@");
   const theme = useTheme();
+  const isFullscreen = useFullscreen();
   const context = React.useContext(DrawerContext);
   const userContext = React.useContext(UserContext);
   const { open, setOpen } = context ?? {};
@@ -297,12 +296,12 @@ function Header({...props }) {
   }, [open]);
 
   React.useEffect(() => {
-    if (home || search || userProfile) return;
+    if (home || search || userProfile || isFullscreen) return;
 
     const throttledHandleScroll = throttle(handleScroll, 100);
     window.addEventListener("scroll", throttledHandleScroll);
     return () => window.removeEventListener("scroll", throttledHandleScroll);
-  }, [home, search, userProfile, handleScroll]);
+  }, [home, search, userProfile, handleScroll, isFullscreen]);
 
   const handleSearch = useCallback(
     (e) => {
@@ -430,7 +429,15 @@ function Header({...props }) {
     <>
       <CssBaseline />
 
-      <AppBar position="fixed" sx={{ boxShadow: "none", background: "none" }}>
+      <AppBar
+      data-fullscreen={isFullscreen}
+        id="header"
+        position="fixed"
+        sx={{
+          boxShadow: "none",
+          background: isFullscreen ? "#0f0f0f" : "none",
+        }}
+      >
         {!searchMenu ? (
           <Toolbar
             sx={{
@@ -578,6 +585,7 @@ function Header({...props }) {
           sx={{
             background: "#0f0f0f",
             opacity: watch ? `${opacity}!important` : 1,
+            visibility: isFullscreen ? "hidden" : "visible",
             position: "absolute",
             zIndex: -1,
             inset: 0,

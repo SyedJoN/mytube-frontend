@@ -26,13 +26,18 @@ import { fetchPlaylistById } from "../apis/playlistFn";
 import { getUserChannelProfile } from "../apis/userFn";
 import { shuffleArray } from "../helper/shuffle";
 import { usePlayerSetting } from "../helper/usePlayerSettings";
-import { UserContext, UserInteractionContext } from "../Contexts/RootContexts";
+import {
+  DrawerContext,
+  UserContext,
+  UserInteractionContext,
+} from "../Contexts/RootContexts";
 import { useFullscreen } from "../Components/Utils/useFullScreen";
 
 function WatchVideo({ videoId, playlistId }) {
   // Hooks and Context
   const navigate = useNavigate();
   const userContext = useContext(UserContext);
+  const { open } = useContext(DrawerContext);
   const theme = useTheme();
   const queryClient = useQueryClient();
   const fsRef = useRef(null);
@@ -50,11 +55,64 @@ function WatchVideo({ videoId, playlistId }) {
   const [shuffledVideos, setShuffledVideos] = useState([]);
   const [aspectRatio, setAspectRatio] = useState(1);
   const [isTheatre, setIsTheatre] = usePlayerSetting("theatreMode", false);
-  const isFullscreen = useFullscreen();
-  const [playerMinHeight, setPlayerMinHeight] = useState(
-    isCustomWidth ? 480 : 360
-  );
+  const [playerMinHeight, setPlayerMinHeight] = useState(360);
   const [subscriberCount, setSubscriberCount] = useState(0);
+  const isFullscreen = useFullscreen();
+
+  useEffect(() => {
+    const fullScreenEl = fsRef.current;
+    if (!fullScreenEl) return;
+    if (isFullscreen) {
+      document.documentElement.scrollTop = 0;
+      document.body.setAttribute("fullscreen-mode", "");
+    } else {
+      document.body.removeAttribute("fullscreen-mode");
+    }
+    return () => document.body.removeAttribute("fullscreen-mode");
+  }, [isFullscreen]);
+
+  useEffect(() => {
+    const fullScreenEl = fsRef.current;
+    const headerEl = document.querySelector("#header");
+
+    if (!headerEl) return;
+
+    if (!isFullscreen) {
+      // 🔹 When fullscreen is OFF → reset to normal
+      requestAnimationFrame(() => {
+        headerEl.style.transform = "none";
+      });
+      return;
+    }
+
+    // 🔹 When fullscreen is ON → start hidden
+    headerEl.style.transform = "translateY(calc(-100% - 5px))";
+
+    if (!fullScreenEl) return;
+
+    const onScroll = () => {
+      const headerHeight = headerEl.offsetHeight || 56;
+      const y = Math.min(fullScreenEl.scrollTop, headerHeight);
+
+      const percent = -100 + (y / headerHeight) * 100;
+      const px = -5 + 5 * (y / headerHeight);
+
+      requestAnimationFrame(() => {
+        headerEl.style.transform = `translateY(calc(${percent}% + ${px}px))`;
+      });
+    };
+
+    fullScreenEl.addEventListener("scroll", onScroll);
+
+    return () => {
+      fullScreenEl.removeEventListener("scroll", onScroll);
+      // no need to reset here — already handled by !isFullscreen branch
+    };
+  }, [isFullscreen]);
+
+  useEffect(() => {
+    setPlayerMinHeight(isCustomWidth ? 480 : 360);
+  }, [isCustomWidth]);
 
   // Memoized layout calculations to prevent re-renders
   const isWideLayout = useMemo(
@@ -62,10 +120,7 @@ function WatchVideo({ videoId, playlistId }) {
     [isCustomWidth, isTheatre, isFullscreen]
   );
 
-  const showMainSidebar = useMemo(
-    () => !(isTheatre && !isCustomWidth),
-    [isTheatre, isCustomWidth]
-  );
+  const showMainSidebar = () => !(isTheatre && !isCustomWidth && isFullscreen);
 
   // Stable keys to prevent component re-mounting
   const sidebarKey = useMemo(
@@ -84,27 +139,28 @@ function WatchVideo({ videoId, playlistId }) {
 
   // Storing aspect-ratio
 
-useEffect(() => {
-  const video = videoRef.current;
-  if (!video) return;
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    const root = document.documentElement;
+    const updateAspectRatio = () => {
+      if (video.videoWidth && video.videoHeight) {
+        setAspectRatio(video.videoWidth / video.videoHeight);
+        root.style.setProperty("--flexy-vt-player-width", video.videoWidth);
+        root.style.setProperty("--flexy-vt-player-height", video.videoHeight);
+      }
+    };
 
-  const updateAspectRatio = () => {
-    if (video.videoWidth && video.videoHeight) {
-      setAspectRatio(video.videoWidth / video.videoHeight);
-    }
-  };
+    // Listen for when metadata is loaded
+    video.addEventListener("loadedmetadata", updateAspectRatio);
 
-  // Listen for when metadata is loaded
-  video.addEventListener('loadedmetadata', updateAspectRatio);
+    // In case metadata is already loaded (cached video)
+    updateAspectRatio();
 
-  // In case metadata is already loaded (cached video)
-  updateAspectRatio();
-
-  return () => {
-    video.removeEventListener('loadedmetadata', updateAspectRatio);
-  };
-}, [isTheatre, data?.data?._id, isFullscreen]);
-
+    return () => {
+      video.removeEventListener("loadedmetadata", updateAspectRatio);
+    };
+  }, [isTheatre, data?.data?._id, isFullscreen]);
 
   // Data fetching - Videos list
   const {
@@ -216,23 +272,23 @@ useEffect(() => {
 
   // Memoized props objects to prevent unnecessary re-renders
   const videoPlayerProps = {
-      index,
-      data,
-      isLoading,
-      isError,
-      error,
-      isSubscribedTo: userData?.data?.isSubscribedTo,
-      videoId,
-      playlistId,
-      playlistVideos,
-      shuffledVideos,
-      handleNextVideo,
-      isTheatre,
-      setIsTheatre,
-      fsRef,
-      aspectRatio,
-      playerMinHeight,
-    }
+    index,
+    data,
+    isLoading,
+    isError,
+    error,
+    isSubscribedTo: userData?.data?.isSubscribedTo,
+    videoId,
+    playlistId,
+    playlistVideos,
+    shuffledVideos,
+    handleNextVideo,
+    isTheatre,
+    setIsTheatre,
+    fsRef,
+    aspectRatio,
+    playerMinHeight,
+  };
 
   const videoDetailsPanelProps = useMemo(
     () => ({
@@ -406,6 +462,9 @@ useEffect(() => {
         ref={fsRef}
         size={{ xs: 12, sm: 11.5, md: 7 }}
         sx={{
+          position: "relative",
+          zIndex: 0,
+          top: isFullscreen ? "-56px" : "0",
           maxWidth: isWideLayout
             ? "100%"
             : `calc((100vh - 56px - 24px - 136px) * (${aspectRatio}))`,
@@ -413,8 +472,8 @@ useEffect(() => {
             ? "100%"
             : `calc(${playerMinHeight}px * (${aspectRatio}))`,
           p: isWideLayout ? 0 : 3,
-          overflowY: isFullscreen ? "scroll" : "hidden",
-          overflowX: isFullscreen ? "hidden" : "",
+          overflowY: isFullscreen ? "auto" : "visible",
+          overflowX: "visible",
           width: isWideLayout ? "100%!important" : "",
           flex: 1,
           background: "#0f0f0f",
@@ -481,6 +540,7 @@ useEffect(() => {
         <Grid
           size={{ xs: 12, sm: 12, md: 4 }}
           sx={{
+            display: isFullscreen ? "none" : "flex",
             flexGrow: isCustomWidth ? "1" : "0",
             maxWidth: "426px!important",
             flex: 1,

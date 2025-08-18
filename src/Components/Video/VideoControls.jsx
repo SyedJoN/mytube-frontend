@@ -44,6 +44,7 @@ import AmbientSvg from "../Utils/AmbientSvg";
 import PlaybackSvg from "../Utils/PlaybackSvg";
 import ProgressLists from "../Utils/ProgressLists";
 import { UserInteractionContext } from "../../Contexts/RootContexts";
+import { useFullscreen } from "../Utils/useFullScreen";
 
 const VideoControls = ({
   videoRef,
@@ -90,7 +91,7 @@ const VideoControls = ({
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
   const isDesktop = useMediaQuery(theme.breakpoints.down("xl"));
-
+const isFullscreen = useFullscreen();
   const context = useContext(UserInteractionContext);
   const pipSupported = !!document.pictureInPictureEnabled;
 
@@ -188,7 +189,6 @@ const VideoControls = ({
     [controlOpacity, isMini, videoContainerWidth, isMobile, videoReady]
   );
 
-  const isFullscreen = !!document.fullscreenElement;
   const theatreTitle = isTheatre ? "Default view (t)" : "Theatre mode (t)";
   const pipTitle = isPipActive
     ? "Exit picture-in-picture"

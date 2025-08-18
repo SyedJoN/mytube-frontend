@@ -83,8 +83,9 @@ function VideoPlayer(
   },
   ref
 ) {
-
   const theme = useTheme();
+  const isFullscreen = useFullscreen();
+
   const userContext = useContext(UserContext);
   const drawerContext = useContext(DrawerContext);
   const userInteractionContext = useContext(UserInteractionContext);
@@ -107,7 +108,6 @@ function VideoPlayer(
   );
   const location = useLocation();
   const { getTimeStamp, setTimeStamp } = useContext(TimeStampContext);
-  const isFullscreen = useFullscreen();
 
   const { state, updateState } = useStateReducer({
     isPlaying: false,
@@ -217,7 +217,7 @@ function VideoPlayer(
   const [previousVolume, setPreviousVolume] = useState(state.volume || 40);
   const isCustomWidth = useMediaQuery("(max-width:1014px)");
 
-// Conditional Constants
+  // Conditional Constants
 
   /* HTML 5 Container */
   const containerAspectRatio = state.isMini ? aspectRatio : "";
@@ -342,7 +342,7 @@ function VideoPlayer(
 
   useEffect(() => {
     const container = containerRef.current;
-    if (isOpen) return;
+    if (isOpen || isFullscreen) return;
     if (!container) return;
     let threshold;
 
@@ -384,7 +384,7 @@ function VideoPlayer(
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("orientationchange", handleResize);
     };
-  }, [isTheatre, data?.data?._id, state.hideMini, state.canPlay, isOpen]);
+  }, [isTheatre, data?.data?._id, state.hideMini, state.canPlay, isOpen, isFullscreen]);
 
   useEffect(() => {
     const width = 110;
@@ -717,7 +717,6 @@ function VideoPlayer(
   const handleMouseOut = () => {
     const container = containerRef.current;
     const video = videoRef.current;
-    const isFullscreen = !!document.fullscreenElement;
     if (
       !container ||
       !video ||
@@ -929,35 +928,25 @@ function VideoPlayer(
   }, [state.volumeSlider]);
 
   useEffect(() => {
-    const handleFullscreenChange = () => {
-      const isFullscreen = !!document.fullscreenElement;
-
-      if (isFullscreen) {
-        if (state.prevTheatre) {
-          setIsTheatre(false);
-        }
-      } else {
-        if (state.prevTheatre) {
-          setIsTheatre(true);
-        }
+    if (isFullscreen) {
+      if (state.prevTheatre) {
+        setIsTheatre(false);
       }
-    };
-
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => {
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
-    };
+    } else {
+      if (state.prevTheatre) {
+        setIsTheatre(true);
+      }
+    }
   }, [state.prevTheatre]);
 
   const toggleFullScreen = () => {
-    const el = fsRef.current;
+    const el = document.getElementById("root");
     if (!el) return;
 
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const isFullScreen = !!document.fullscreenElement;
-
-    if (!isFullScreen) {
+    if (!isFullscreen) {
       el.requestFullscreen?.().then(() => {
+
         if (!isIOS) {
           screen.orientation?.lock?.("landscape").catch(() => {});
         } else {
@@ -1032,7 +1021,7 @@ function VideoPlayer(
       video.removeEventListener("playing", handlePlaying);
     };
   }, [videoRef.current, videoId, state.isForwardSeek, state.isBackwardSeek]);
-  
+
   useEffect(() => {
     const video = videoRef.current;
     if (!video || video.readyState < 2) return;
@@ -1388,7 +1377,6 @@ function VideoPlayer(
         }, 400);
       } else if (e.key.toLowerCase() === "t") {
         e.preventDefault();
-        const isFullscreen = !!document.fullscreenElement;
         if (!isFullscreen && videoRef.current) {
           setIsUserInteracted(true);
           startTransition(() => {
@@ -1455,7 +1443,6 @@ function VideoPlayer(
 
     if (!video || isNaN(video.duration) || video.duration === 0) return;
 
-
     const duration = video.duration;
     const watchTime = video.currentTime;
 
@@ -1496,18 +1483,18 @@ function VideoPlayer(
       <Box
         sx={{
           position: "relative",
+          height: isFullscreen ? "100%" : "",
           paddingTop:
-            isTheatre || isCustomWidth || isMobile
+            isTheatre || isCustomWidth || isMobile || isFullscreen
               ? ""
-              : isFullscreen
-                ? "calc(9/16 * 100%)"
-                : `calc(${state.aspectRatio} * 100%)`,
+              : `calc(${state.aspectRatio} * 100%)`,
         }}
         className="video-inner"
       >
         <Box
           data-theatre={isTheatre}
           data-fullbleed={isCustomWidth}
+          data-fullscreen={isFullscreen}
           ref={containerRef}
           onMouseLeave={handleMouseOut}
           onMouseMove={handleContainerMouseMove}
