@@ -198,11 +198,12 @@ function RouteComponent() {
       position: "relative",
       display: "flex",
       overflowY: "visible",
-      marginTop: "var(--toolbar-height)",
+      marginTop: "var(--header-height)",
       marginLeft: leftMargin,
       backgroundColor: theme.palette.primary.main,
     };
   }, [isTablet, watch, isLaptop, open, home, search, userProfile]);
+  
   // Exiting Fullscreen on route change
   useExitFullscreenOnRouteChange();
 

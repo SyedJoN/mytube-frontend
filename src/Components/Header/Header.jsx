@@ -40,6 +40,7 @@ import { throttle } from "lodash";
 import CustomSlide from "./Slide";
 import { DrawerContext, UserContext } from "../../Contexts/RootContexts";
 import { useFullscreen } from "../Utils/useFullScreen";
+import { usePlayerSetting } from "../../helper/usePlayerSettings";
 
 const getListItemButtonStyles = (isExpanded, isUserMenu = false) => {
   return {
@@ -93,11 +94,11 @@ const DrawerContent = React.memo(
           sx={{
             paddingLeft: "16px",
             paddingRight: "16px",
-            minHeight: "var(--toolbar-height)",
+            minHeight: "var(--header-height)",
             "@media (min-width:600px)": {
               paddingLeft: "16px",
               paddingRight: "16px",
-              minHeight: "var(--toolbar-height)",
+              minHeight: "var(--header-height)",
             },
           }}
         >
@@ -262,12 +263,14 @@ function Header({ ...props }) {
   const isLaptop = useMediaQuery(theme.breakpoints.down("lg"));
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  
   const isSmallScreen = useMediaQuery("(max-width:430px)");
   const drawerWidth = "var(--drawer-width)";
   const miniDrawerWidth = "var(--mini-drawer-width)";
 
   const [searchMenu, setSearchMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
   const { window: windowProp } = props;
   const [opacity, setOpacity] = useState(0);
   const navigate = useNavigate();
@@ -295,13 +298,17 @@ function Header({ ...props }) {
     setOpacity(stepsArray[stepIndex]);
   }, [open]);
 
+React.useEffect(()=> {
+  console.log("isTheatre", isTheatre)
+}, [isTheatre])
+
   React.useEffect(() => {
-    if (home || search || userProfile || isFullscreen) return;
+    if (home || search || userProfile || isFullscreen || isTheatre) return;
 
     const throttledHandleScroll = throttle(handleScroll, 100);
     window.addEventListener("scroll", throttledHandleScroll);
     return () => window.removeEventListener("scroll", throttledHandleScroll);
-  }, [home, search, userProfile, handleScroll, isFullscreen]);
+  }, [home, search, userProfile, handleScroll, isFullscreen, isTheatre]);
 
   const handleSearch = useCallback(
     (e) => {
@@ -430,12 +437,12 @@ function Header({ ...props }) {
       <CssBaseline />
 
       <AppBar
-      data-fullscreen={isFullscreen}
+        data-fullscreen={isFullscreen}
         id="header"
         position="fixed"
         sx={{
           boxShadow: "none",
-          background: isFullscreen ? "#0f0f0f" : "none",
+          background: isFullscreen || isTheatre ? "#0f0f0f" : "none",
         }}
       >
         {!searchMenu ? (
@@ -443,11 +450,11 @@ function Header({ ...props }) {
             sx={{
               paddingLeft: "16px",
               paddingRight: "16px",
-              minHeight: "var(--toolbar-height)",
+              minHeight: "var(--header-height)",
               "@media (min-width:600px)": {
                 paddingLeft: "16px",
                 paddingRight: "16px",
-                minHeight: "var(--toolbar-height)",
+                minHeight: "var(--header-height)",
               },
             }}
           >

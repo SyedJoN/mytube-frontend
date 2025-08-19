@@ -5,12 +5,11 @@
 :root {
   --drawer-width: 240px;
   --mini-drawer-width: 72px;
-  --toolbar-height: 56px;
+  --header-height: 56px;
   --base-background: #181818;
   --text-secondary: #aaa;
   --progress-color: linear-gradient(to right,#f03 80%,#ff2791 100%);
-  --flexy-vt-player-width: 16;
-  --flexy-vt-player-height: 9;
+  
 }
 
 html {
@@ -38,6 +37,25 @@ overflow-y: hidden!important;
   scrollbar-width: none;
   transition: top 0.2s ease;
   
+}
+.flexy-video-grid-container {
+  --vtd-margin-6x: 24px;
+  --vtd-watch-flexy-space-below-player: 105px;
+  --vtd-watch-flexy-player-width-ratio: 1;
+  --vtd-watch-flexy-player-height-ratio: 0.75;
+  --vtd-watch-flexy-min-player-height: 480px;
+  --vtd-watch-flexy-sidebar-width: 402px;
+  --vtd-watch-flexy-sidebar-min-width: 300px;
+
+
+   --vtd-watch-flexy-min-player-width: calc(var(--vtd-watch-flexy-min-player-height) * (var(--vtd-watch-flexy-player-width-ratio) / var(--vtd-watch-flexy-player-height-ratio)));
+
+    --vtd-watch-flexy-max-player-width: calc((100vh - var(--vtd-watch-flexy-space-below-player) - var(--vtd-margin-6x) - var(--header-height)) * (var(--vtd-watch-flexy-player-width-ratio) / var(--vtd-watch-flexy-player-height-ratio)));
+
+  --vtd-watch-flexy-max-player-height: calc(100vh - (var(--vtd-watch-flexy-space-below-player) - var(--vtd-margin-6x) - var(--header-height)));
+}
+.flexy-video-grid-container[flexy-small-window] {
+  --ytd-watch-flexy-min-player-height: 360px
 }
 #header {
   transform: translateY(0);

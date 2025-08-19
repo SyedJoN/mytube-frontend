@@ -72,14 +72,17 @@ function VideoPlayer(
     index,
     shuffledVideos,
     handleNextVideo,
+    isMini,
+    setIsMini,
+    hideMini,
+    setHideMini,
     isTheatre,
-    fsRef,
+    watchRef,
     setIsTheatre,
     data,
     isLoading,
     isError,
     error,
-    aspectRatio,
   },
   ref
 ) {
@@ -132,8 +135,6 @@ function VideoPlayer(
     isIncreased: true,
     isAnimating: false,
     jumpedToMax: false,
-    isMini: false,
-    hideMini: false,
     customPlayback: false,
     isReplay: false,
     isSeeking: false,
@@ -220,29 +221,27 @@ function VideoPlayer(
   // Conditional Constants
 
   /* HTML 5 Container */
-  const containerAspectRatio = state.isMini ? aspectRatio : "";
+  const containerAspectRatio = isMini
+    ? "calc((var(--vtd-watch-flexy-player-width-ratio) / var(--vtd-watch-flexy-player-height-ratio)))"
+    : "";
   const containerPosition =
-    isTheatre && !state.isMini
-      ? "relative"
-      : state.isMini
-        ? "fixed"
-        : "absolute";
-  const containerWidth = state.isMini ? "480px" : "100%";
-  const containerHeight = state.isMini ? "auto" : "100%";
-  const containerTopOffset = state.isMini ? "15px" : 0;
-  const containerLeftOffset = state.isMini ? "15px" : 0;
-  const containerRightOffset = state.isMini ? "auto" : "";
-  const containerZindex = state.isMini ? 9999 : 0;
+    isTheatre && !isMini ? "relative" : isMini ? "fixed" : "absolute";
+  const containerWidth = isMini ? "480px" : "100%";
+  const containerHeight = isMini ? "auto" : "100%";
+  const containerTopOffset = isMini ? "15px" : 0;
+  const containerLeftOffset = isMini ? "15px" : 0;
+  const containerRightOffset = isMini ? "auto" : "";
+  const containerZindex = isMini ? 9999 : 0;
 
   /* HTML 5 VideoPlayer */
   const playerVisiblity = state.videoReady ? "visible" : "hidden";
-  const playerAspectRatio = state.isMini ? aspectRatio : "";
-  const playerWidth = state.isMini ? "480px" : state.playerWidth;
-  const playerHeight = state.isMini ? "auto" : state.playerHeight;
+  const playerAspectRatio = containerAspectRatio;
+  const playerWidth = isMini ? "480px" : state.playerWidth;
+  const playerHeight = isMini ? "auto" : state.playerHeight;
   const playerTopOffset = state.topOffset;
-  const playerLeftOffset = state.isMini ? 0 : state.leftOffset;
-  const playerRightOffset = state.isMini ? "auto" : "";
-  const playerBorderRadius = isTheatre && !state.isMini ? "0" : "8px";
+  const playerLeftOffset = isMini ? 0 : state.leftOffset;
+  const playerRightOffset = isMini ? "auto" : "";
+  const playerBorderRadius = isTheatre && !isMini ? "0" : "8px";
 
   useEffect(() => {
     if (state.isMuted) {
@@ -357,14 +356,14 @@ function VideoPlayer(
       threshold = calculateThreshold();
       const scrollY = window.scrollY;
 
-      if (scrollY > threshold && !state.hideMini && state.canPlay) {
-        updateState({ isMini: true });
+      if (scrollY > threshold && !hideMini && state.canPlay) {
+        setIsMini(true);
       }
       if (scrollY < threshold) {
-        updateState({ isMini: false });
+        setIsMini(false);
 
-        if (state.hideMini) {
-          updateState({ hideMini: false });
+        if (hideMini) {
+          setHideMini(false);
         }
       }
     };
@@ -384,7 +383,14 @@ function VideoPlayer(
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("orientationchange", handleResize);
     };
-  }, [isTheatre, data?.data?._id, state.hideMini, state.canPlay, isOpen, isFullscreen]);
+  }, [
+    isTheatre,
+    data?.data?._id,
+    hideMini,
+    state.canPlay,
+    isOpen,
+    isFullscreen,
+  ]);
 
   useEffect(() => {
     const width = 110;
@@ -402,6 +408,7 @@ function VideoPlayer(
         !captureCanvas ||
         !glowCanvas ||
         !isAmbient ||
+        isCustomWidth ||
         video.readyState < 2
       ) {
         return;
@@ -940,13 +947,16 @@ function VideoPlayer(
   }, [state.prevTheatre]);
 
   const toggleFullScreen = () => {
-    const el = document.getElementById("root");
+    const el = document.documentElement;
     if (!el) return;
 
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
     if (!isFullscreen) {
       el.requestFullscreen?.().then(() => {
-
+        requestAnimationFrame(() => {
+          el.scrollTop = 0;
+          setIsMini(false);
+        });
         if (!isIOS) {
           screen.orientation?.lock?.("landscape").catch(() => {});
         } else {
@@ -1235,8 +1245,12 @@ function VideoPlayer(
     }
   }, []);
 
+  // Updating Video Container Layout
+
   useEffect(() => {
-    if (!containerRef.current || !videoRef.current) return;
+    const flexyWatchContainer = watchRef.current;
+    if (!containerRef.current || !videoRef.current || !flexyWatchContainer)
+      return;
 
     const updateSize = () => {
       const containerWidth = containerRef.current.offsetWidth;
@@ -1245,9 +1259,7 @@ function VideoPlayer(
       const video = videoRef.current;
       if (!video.videoWidth || !video.videoHeight) return;
 
-      const targetAspectRatio = isFullscreen
-        ? containerWidth / containerHeight
-        : video.videoWidth / video.videoHeight;
+      const targetAspectRatio =  video.videoWidth / video.videoHeight;
 
       let videoWidth = video.videoWidth;
       let videoHeightLocal = Math.ceil(videoWidth / targetAspectRatio);
@@ -1265,6 +1277,12 @@ function VideoPlayer(
         ? 0
         : Math.floor((containerHeight - videoHeightLocal) / 2);
 
+
+      flexyWatchContainer.style.setProperty(
+        "--vtd-watch-flexy-player-height-ratio",
+        video.videoHeight / video.videoWidth
+      );
+
       updateState({
         videoContainerWidth: containerWidth,
         videoHeight: videoHeightLocal,
@@ -1276,7 +1294,6 @@ function VideoPlayer(
           : `${videoHeightLocal}px`,
         leftOffset: `${left}px`,
         topOffset: isFullscreen ? 0 : `${top}px`,
-        aspectRatio: video.videoHeight / video.videoWidth,
       });
     };
 
@@ -1481,15 +1498,15 @@ function VideoPlayer(
   return (
     <>
       <Box
+        className="player-inner"
         sx={{
           position: "relative",
           height: isFullscreen ? "100%" : "",
           paddingTop:
             isTheatre || isCustomWidth || isMobile || isFullscreen
               ? ""
-              : `calc(${state.aspectRatio} * 100%)`,
+              : "calc(var(--vtd-watch-flexy-player-height-ratio) / var(--vtd-watch-flexy-player-width-ratio) * 100%)",
         }}
-        className="video-inner"
       >
         <Box
           data-theatre={isTheatre}
@@ -1508,7 +1525,8 @@ function VideoPlayer(
           component="div"
           sx={{
             position: isTheatre || isCustomWidth ? "relative" : "absolute",
-            minHeight: isMobile ? "240px" : isCustomWidth ? "480px" : "360px",
+            minHeight: "var(--vtd-watch-flexy-min-player-height)",
+            maxHeight: "var(--vtd-watch-flexy-max-player-height)",
             width: "100%",
             height: "100%",
             top: 0,
@@ -1518,7 +1536,7 @@ function VideoPlayer(
           {!isTheatre && (
             <Box
               sx={{
-                display: state.isMini ? "none" : "block",
+                display: isMini ? "none" : "block",
                 height: state.videoHeight,
               }}
               className="ambient-wrapper"
@@ -1624,6 +1642,8 @@ function VideoPlayer(
                 playbackSliderSpeed={playbackSliderSpeed}
                 setPlaybackSliderSpeed={setPlaybackSliderSpeed}
                 customPlayback={state.customPlayback}
+                isMini={isMini}
+                setIsMini={setIsMini}
                 {...state}
                 updateState={updateState}
               />
@@ -1881,7 +1901,7 @@ function VideoPlayer(
 
                   justifyContent: "center",
                   alignItems: "center",
-                  display: isUserInteracted || state.isMini ? "none" : "flex",
+                  display: isUserInteracted || isMini ? "none" : "flex",
                   transition: "opacity .25s cubic-bezier(0,0,.2,1)",
                   color: "#fff",
                   userSelect: "none",
@@ -1942,9 +1962,10 @@ function VideoPlayer(
               </Box>
             </Box>
             <IconButton
-              className={`cancel-mini-btn ${state.isMini ? "" : "hide"}`}
+              className={`cancel-mini-btn ${isMini ? "" : "hide"}`}
               onClick={() => {
-                updateState({ isMini: false, hideMini: true });
+                setIsMini(false);
+                setHideMini(true);
               }}
               sx={{
                 position: "absolute",

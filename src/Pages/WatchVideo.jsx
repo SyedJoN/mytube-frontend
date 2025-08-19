@@ -40,6 +40,9 @@ function WatchVideo({ videoId, playlistId }) {
   const { open } = useContext(DrawerContext);
   const theme = useTheme();
   const queryClient = useQueryClient();
+
+  // Refs
+  const watchRef = useRef(null);
   const fsRef = useRef(null);
   const videoRef = useRef(null);
 
@@ -54,16 +57,17 @@ function WatchVideo({ videoId, playlistId }) {
   const [activeAlertId, setActiveAlertId] = useState(null);
   const [shuffledVideos, setShuffledVideos] = useState([]);
   const [aspectRatio, setAspectRatio] = useState(1);
+  const [isMini, setIsMini] = useState(false);
+  const [hideMini, setHideMini] = useState(false);
   const [isTheatre, setIsTheatre] = usePlayerSetting("theatreMode", false);
   const [playerMinHeight, setPlayerMinHeight] = useState(360);
   const [subscriberCount, setSubscriberCount] = useState(0);
   const isFullscreen = useFullscreen();
 
   useEffect(() => {
-    const fullScreenEl = fsRef.current;
+    const fullScreenEl = watchRef.current;
     if (!fullScreenEl) return;
     if (isFullscreen) {
-      document.documentElement.scrollTop = 0;
       document.body.setAttribute("fullscreen-mode", "");
     } else {
       document.body.removeAttribute("fullscreen-mode");
@@ -111,16 +115,19 @@ function WatchVideo({ videoId, playlistId }) {
   }, [isFullscreen]);
 
   useEffect(() => {
-    setPlayerMinHeight(isCustomWidth ? 480 : 360);
+    const flexyWatchContainer = watchRef.current;
+    if (!flexyWatchContainer) return;
+    flexyWatchContainer.style.setProperty(
+      "--vtd-watch-flexy-min-player-height",
+      isCustomWidth ? "480px" : "360px"
+    );
   }, [isCustomWidth]);
 
   // Memoized layout calculations to prevent re-renders
-  const isWideLayout = useMemo(
-    () => isCustomWidth || isTheatre || isFullscreen,
-    [isCustomWidth, isTheatre, isFullscreen]
-  );
+  const isWideLayout = isCustomWidth || isTheatre || isFullscreen;
 
-  const showMainSidebar = () => !(isTheatre && !isCustomWidth && isFullscreen);
+  const showMainSidebar =
+    (isTheatre && isCustomWidth && !isFullscreen) || !isTheatre;
 
   // Stable keys to prevent component re-mounting
   const sidebarKey = useMemo(
@@ -141,13 +148,19 @@ function WatchVideo({ videoId, playlistId }) {
 
   useEffect(() => {
     const video = videoRef.current;
-    if (!video) return;
-    const root = document.documentElement;
+    const flexyWatchContainer = watchRef.current;
+    if (!video || flexyWatchContainer) return;
     const updateAspectRatio = () => {
       if (video.videoWidth && video.videoHeight) {
         setAspectRatio(video.videoWidth / video.videoHeight);
-        root.style.setProperty("--flexy-vt-player-width", video.videoWidth);
-        root.style.setProperty("--flexy-vt-player-height", video.videoHeight);
+        flexyWatchContainer.style.setProperty(
+          "--flexy-vt-player-width",
+          video.videoWidth
+        );
+        flexyWatchContainer.style.setProperty(
+          "--flexy-vt-player-height",
+          video.videoHeight
+        );
       }
     };
 
@@ -160,7 +173,7 @@ function WatchVideo({ videoId, playlistId }) {
     return () => {
       video.removeEventListener("loadedmetadata", updateAspectRatio);
     };
-  }, [isTheatre, data?.data?._id, isFullscreen]);
+  }, [isTheatre, data?.data?._id, isFullscreen, isMini]);
 
   // Data fetching - Videos list
   const {
@@ -285,7 +298,11 @@ function WatchVideo({ videoId, playlistId }) {
     handleNextVideo,
     isTheatre,
     setIsTheatre,
-    fsRef,
+    isMini,
+    setIsMini,
+    hideMini,
+    setHideMini,
+    watchRef,
     aspectRatio,
     playerMinHeight,
   };
@@ -344,7 +361,7 @@ function WatchVideo({ videoId, playlistId }) {
       isLoadingList,
       isErrorList,
       errorList,
-      fsRef,
+      watchRef,
       isFullscreen,
     ]
   );
@@ -387,7 +404,7 @@ function WatchVideo({ videoId, playlistId }) {
       rightContent,
       leftSize = 7.5,
       rightSize = 4.5,
-      paddingY = 3,
+      paddingY = margin6x,
       leftPaddingY = null,
     }) => (
       <Grid
@@ -409,8 +426,8 @@ function WatchVideo({ videoId, playlistId }) {
             maxWidth: "100%",
             minWidth: isCustomWidth ? "100%" : "300px!important",
             py: leftPaddingY ?? paddingY,
-            px: isCustomWidth ? 3 : 0,
-            pr: 3,
+            px: isCustomWidth ? margin6x : 0,
+            pr: margin6x,
           }}
         >
           {leftContent}
@@ -419,11 +436,11 @@ function WatchVideo({ videoId, playlistId }) {
           size={{ xs: rightSize, sm: rightSize, md: rightSize }}
           sx={{
             flexGrow: isCustomWidth ? "1" : "0",
-            maxWidth: "426px",
+            maxWidth: "402px",
             minWidth: isCustomWidth ? "100%" : "300px!important",
-            py: 3,
-            px: isCustomWidth ? 3 : 0,
-            pr: 3,
+            py: margin6x,
+            px: isCustomWidth ? margin6x : 0,
+            pr: margin6x,
           }}
         >
           {rightContent}
@@ -444,8 +461,18 @@ function WatchVideo({ videoId, playlistId }) {
     [isTheatre, isCustomWidth]
   );
 
+  // Style constants
+  const gridMaxWidth = "var(--vtd-watch-flexy-max-player-width)";
+
+  const gridMinWidth = "var(--vtd-watch-flexy-min-player-width)";
+
+  const inverseHeaderTop = "calc(-1 * (var(--header-height)))";
+
+  const margin6x = "var(--vtd-margin-6x)";
   return (
     <Grid
+      ref={watchRef}
+      className="flexy-video-grid-container"
       container
       direction={isWideLayout ? "column" : "row"}
       spacing={0}
@@ -458,25 +485,22 @@ function WatchVideo({ videoId, playlistId }) {
     >
       {/* Video Player Container */}
       <Grid
-        className={isFullscreen ? "fullscreen-grid" : ""}
         ref={fsRef}
-        size={{ xs: 12, sm: 11.5, md: 7 }}
+        className={`${isFullscreen ? "fullscreen-grid" : ""} `}
+        size={{ xs: 12, sm: 11.5, md: 8 }}
         sx={{
           position: "relative",
-          zIndex: 0,
-          top: isFullscreen ? "-56px" : "0",
-          maxWidth: isWideLayout
-            ? "100%"
-            : `calc((100vh - 56px - 24px - 136px) * (${aspectRatio}))`,
-          minWidth: isWideLayout
-            ? "100%"
-            : `calc(${playerMinHeight}px * (${aspectRatio}))`,
-          p: isWideLayout ? 0 : 3,
+          top: isFullscreen ? inverseHeaderTop : "0",
+          maxWidth: isWideLayout ? "100%" : gridMaxWidth,
+          minWidth: isWideLayout ? "100%" : gridMinWidth,
+          p: isWideLayout ? 0 : margin6x,
           overflowY: isFullscreen ? "auto" : "visible",
           overflowX: "visible",
           width: isWideLayout ? "100%!important" : "",
           flex: 1,
           background: "#0f0f0f",
+        boxSizing: "content-box",
+
         }}
       >
         {/* Video Player */}
@@ -485,7 +509,7 @@ function WatchVideo({ videoId, playlistId }) {
         {/* Desktop Normal Mode - Video Details */}
         {shouldShowNormalDesktopDetails && (
           <Box sx={{ mt: 2 }}>
-            <Box marginTop={3}>{MemoizedVideoDetailsPanel}</Box>
+            <Box marginTop={margin6x}>{MemoizedVideoDetailsPanel}</Box>
 
             {/* Theatre Mode Content - Nested inside normal mode box */}
             {shouldShowTheatreMode && (
@@ -540,14 +564,13 @@ function WatchVideo({ videoId, playlistId }) {
         <Grid
           size={{ xs: 12, sm: 12, md: 4 }}
           sx={{
-            display: isFullscreen ? "none" : "flex",
             flexGrow: isCustomWidth ? "1" : "0",
-            maxWidth: "426px!important",
+            width: isCustomWidth ? "100%!important" : "var(--vtd-watch-flexy-sidebar-width)!important",
             flex: 1,
-            minWidth: isCustomWidth ? "100%" : "300px!important",
-            py: 3,
-            px: isCustomWidth ? 3 : 0,
-            pr: 3,
+            minWidth: "var(--vtd-watch-flexy-sidebar-min-width)",
+            py: margin6x,
+            px: isCustomWidth ? margin6x : 0,
+            pr: margin6x,
           }}
         >
           {MemoizedPlaylistContainer}

@@ -18,12 +18,9 @@ export default defineConfig({
     TanStackRouterVite({ target: 'react', autoCodeSplitting: true }),
     react(),
   ],
-  optimizeDeps: {
-    include: ["animejs"],
-  },
     build: {
     commonjsOptions: {
-      include: [/animejs/, /node_modules/],
+      include: [/node_modules/],
     },
   },
 })
