@@ -79,19 +79,19 @@ const VideoControls = ({
   playbackSpeed,
   setPlaybackSpeed,
   playbackSliderSpeed,
+  setPlaybackSliderSpeed,
   customPlayback,
   isAmbient,
   setIsAmbient,
   updateState,
   playerWidth,
-  playerHeight
+  playerHeight,
 }) => {
-
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
   const isDesktop = useMediaQuery(theme.breakpoints.down("xl"));
-const isFullscreen = useFullscreen();
+  const isFullscreen = useFullscreen();
   const context = useContext(UserInteractionContext);
   const pipSupported = !!document.pictureInPictureEnabled;
 
@@ -329,14 +329,16 @@ const isFullscreen = useFullscreen();
   // playbackSettings
 
   const handleChange = (_, speed) => {
-    console.log("hello");
-    updateState({ playbackSpeed: speed });
-    updateState({ playbackSliderSpeed: speed });
+    setPlaybackSliderSpeed(speed);
     if (customPlayback !== true) {
       updateState({ customPlayback: true });
     }
   };
-
+  const handlePlayBackClick = (speed) => {
+    handlePlaybackspeed(speed);
+    updateState({ customPlayback: false });
+    setShowPlaybackMenu(false);
+  };
   // Ambient
 
   const handleAmbientChange = () => {
@@ -655,10 +657,7 @@ const isFullscreen = useFullscreen();
               <Typography sx={{ color: "#f1f1f1" }} fontSize={"0.85rem"}>
                 {formatDuration(
                   Math.min(
-                    Math.max(
-                      0,
-                        videoRef?.current?.currentTime
-                    ) || 0,
+                    Math.max(0, videoRef?.current?.currentTime) || 0,
                     videoRef?.current?.duration || 0
                   )
                 )}{" "}
@@ -678,7 +677,7 @@ const isFullscreen = useFullscreen();
                 display: "block",
                 background: "rgba(28,28,28,.9)",
                 borderRadius: "12px",
-                transition: "all 0.25s cubic-bezier(.2,0,1,1)",
+                transition: "all 0.25s ease-in-out",
                 overflow: "hidden",
                 willChange: "width, height",
               }}
@@ -692,9 +691,10 @@ const isFullscreen = useFullscreen();
                   transform: showPlaybackMenu
                     ? "translateX(0%)"
                     : "translateX(100%)",
-                  transition: "transform 0.25s cubic-bezier(.2,0,1,1)",
+                  transition: "transform 0.25s ease-in-out",
                   overflowY: "auto",
                   overflowX: "hidden",
+                  willChange: "transform",
                 }}
                 className="settings-inner"
               >
@@ -709,7 +709,7 @@ const isFullscreen = useFullscreen();
                     }}
                   >
                     <Box
-                      sx={{ display: "flex", alignItems: "center", py: 3 }}
+                      sx={{ display: "flex", alignItems: "center", py: 1.5 }}
                       className="item-text"
                     >
                       <KeyboardArrowLeftIcon sx={{ mb: "1px", mr: "12px" }} />
@@ -752,7 +752,7 @@ const isFullscreen = useFullscreen();
                         sx={{ fontWeight: "600", p: 2 }}
                         variant="caption"
                       >
-                        Custom ({playbackSliderSpeed})
+                        Custom ({videoRef.current?.playbackRate})
                       </Typography>
                       <Box
                         sx={{
@@ -802,9 +802,7 @@ const isFullscreen = useFullscreen();
 
                     <Box
                       onClick={() => {
-                        handlePlaybackspeed(0.25);
-                        updateState({ customPlayback: false });
-                        setShowPlaybackMenu(false);
+                        handlePlayBackClick(0.25);
                       }}
                       sx={{
                         display: "flex",
@@ -835,9 +833,7 @@ const isFullscreen = useFullscreen();
                     </Box>
                     <Box
                       onClick={() => {
-                        handlePlaybackspeed(0.5);
-                        updateState({ customPlayback: false });
-                        setShowPlaybackMenu(false);
+                        handlePlayBackClick(0.5);
                       }}
                       sx={{
                         display: "flex",
@@ -868,11 +864,7 @@ const isFullscreen = useFullscreen();
                       </Typography>
                     </Box>
                     <Box
-                      onClick={() => {
-                        handlePlaybackspeed(0.75);
-                        updateState({ customPlayback: false });
-                        setShowPlaybackMenu(false);
-                      }}
+                      onClick={() => handlePlayBackClick(0.75)}
                       sx={{
                         display: "flex",
                         alignItems: "center",
@@ -903,9 +895,7 @@ const isFullscreen = useFullscreen();
                     </Box>
                     <Box
                       onClick={() => {
-                        handlePlaybackspeed(1.0);
-                        updateState({ customPlayback: false });
-                        setShowPlaybackMenu(false);
+                        handlePlayBackClick(1.0);
                       }}
                       sx={{
                         display: "flex",
@@ -937,9 +927,7 @@ const isFullscreen = useFullscreen();
                     </Box>
                     <Box
                       onClick={() => {
-                        handlePlaybackspeed(1.25);
-                        updateState({ customPlayback: false });
-                        setShowPlaybackMenu(false);
+                        handlePlayBackClick(1.25);
                       }}
                       sx={{
                         display: "flex",
@@ -971,9 +959,7 @@ const isFullscreen = useFullscreen();
                     </Box>
                     <Box
                       onClick={() => {
-                        handlePlaybackspeed(1.5);
-                        updateState({ customPlayback: false });
-                        setShowPlaybackMenu(false);
+                        handlePlayBackClick(1.5);
                       }}
                       sx={{
                         display: "flex",
@@ -1005,9 +991,7 @@ const isFullscreen = useFullscreen();
                     </Box>
                     <Box
                       onClick={() => {
-                        handlePlaybackspeed(1.75);
-                        updateState({ customPlayback: false });
-                        setShowPlaybackMenu(false);
+                        handlePlayBackClick(1.75);
                       }}
                       sx={{
                         display: "flex",
@@ -1039,9 +1023,7 @@ const isFullscreen = useFullscreen();
                     </Box>
                     <Box
                       onClick={() => {
-                        handlePlaybackspeed(2);
-                        updateState({ customPlayback: false });
-                        setShowPlaybackMenu(false);
+                        handlePlayBackClick(2);
                       }}
                       sx={{
                         display: "flex",
@@ -1084,7 +1066,8 @@ const isFullscreen = useFullscreen();
                   transform: showPlaybackMenu
                     ? "translateX(-100%)"
                     : "translateX(0%)",
-                  transition: "transform 0.25s cubic-bezier(.2,0,1,1)",
+                  transition: "transform 0.25s ease-in-out",
+                  willChange: "transform",
                 }}
                 className="settings-inner"
               >
@@ -1295,7 +1278,7 @@ const isFullscreen = useFullscreen();
           isMini={isMini}
           vttUrl={vttUrl}
           updateState={updateState}
-          playerWidth={playerWidth} 
+          playerWidth={playerWidth}
           playerHeight={playerHeight}
         />
       </Box>

@@ -6,6 +6,7 @@ import React, {
   useCallback,
   startTransition,
   useImperativeHandle,
+  useMemo,
 } from "react";
 import { keyframes, useMediaQuery, useTheme } from "@mui/system";
 import { fetchVideoById } from "../../apis/videoFn";
@@ -105,10 +106,7 @@ function VideoPlayer(
     "playbackSpeed",
     1.0
   );
-  const [playbackSliderSpeed, setPlaybackSliderSpeed] = usePlayerSetting(
-    "playbackSpeed",
-    1.0
-  );
+  const [playbackSliderSpeed, setPlaybackSliderSpeed] = useState(1);
   const location = useLocation();
   const { getTimeStamp, setTimeStamp } = useContext(TimeStampContext);
 
@@ -170,7 +168,7 @@ function VideoPlayer(
     clickCount,
     animateTimeoutRef,
     captureCanvasRef,
-    prevHoverStateRef,
+    prevOpacityRef,
     prevVolRef,
     prevVolumeRef,
     exitingPiPViaOurUIButtonRef,
@@ -178,8 +176,6 @@ function VideoPlayer(
     trackerRef,
     isHolding,
     glowCanvasRef,
-    prevSpeedRef,
-    prevSliderSpeedRef,
     volTimeoutRef,
     lastKeyPress,
     hideVolumeTimer,
@@ -199,7 +195,7 @@ function VideoPlayer(
     clickCount: 0,
     animateTimeoutRef: null,
     captureCanvasRef: null,
-    prevHoverStateRef: null,
+    prevOpacityRef: null,
     prevVolRef: null,
     prevVolumeRef: 0.5,
     exitingPiPViaOurUIButtonRef: null,
@@ -207,8 +203,6 @@ function VideoPlayer(
     trackerRef: new VideoTelemetryTimer(),
     isHolding: null,
     glowCanvasRef: null,
-    prevSpeedRef: null,
-    prevSliderSpeedRef: null,
     volTimeoutRef: null,
     lastKeyPress: null,
     hideVolumeTimer: null,
@@ -242,6 +236,32 @@ function VideoPlayer(
   const playerLeftOffset = isMini ? 0 : state.leftOffset;
   const playerRightOffset = isMini ? "auto" : "";
   const playerBorderRadius = isTheatre && !isMini ? "0" : "8px";
+
+  /* Utility Functions */
+
+  const showControls = () => {
+    if (state.controlOpacity !== 1) updateState({ controlOpacity: 1 });
+    if (state.titleOpacity !== 1) updateState({ titleOpacity: 1 });
+  };
+
+  const hideControls = () => {
+    if (state.controlOpacity !== 0) updateState({ controlOpacity: 0 });
+
+    if (state.titleOpacity !== 0) updateState({ titleOpacity: 0 });
+  };
+
+  const handleVideoCursorVisiblity = (prop) => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    container
+      .querySelectorAll(".video-overlay, .controls")
+      .forEach((el) =>
+        prop === "hide"
+          ? el.classList.add("hide-cursor")
+          : el.classList.remove("hide-cursor")
+      );
+  };
 
   useEffect(() => {
     if (state.isMuted) {
@@ -470,14 +490,6 @@ function VideoPlayer(
     return () => clearInterval(interval);
   }, [isAmbient]);
 
-  const showControls = () => {
-    if (state.controlOpacity !== 1) updateState({ controlOpacity: 1 });
-  };
-
-  const hideControls = () => {
-    if (state.controlOpacity !== 0) updateState({ controlOpacity: 0 });
-  };
-
   const handleEnterPiP = useCallback(() => {
     showControls();
     updateState({ isPipActive: true });
@@ -530,16 +542,17 @@ function VideoPlayer(
   const handleClick = (e) => {
     if (e.button === 2) return;
     if (state.isReplay) return;
-    if (clickTimeout.current || state.isLongPress) return;
     videoPauseStatus.current = false;
+    if (clickTimeout.current || state.isLongPress) return;
     clickCount.current += 1;
     if (clickCount.current === 1) {
       clickTimeout.current = setTimeout(() => {
+        console.log("Single Click");
+
         togglePlayPause();
 
         updateState({ showIcon: true, showVolumeIcon: false });
 
-        console.log("Single Click");
         clickCount.current = 0;
         clearTimeout(clickTimeout.current);
         clickTimeout.current = null;
@@ -552,6 +565,7 @@ function VideoPlayer(
     }
   };
   const handleMouseUp = (e) => {
+    console.log("MOUSE UP")
     exitDoubleSpeed(e);
     window.removeEventListener("mousemove", handleMouseMove);
     window.removeEventListener("mouseup", handleMouseUp);
@@ -559,38 +573,28 @@ function VideoPlayer(
     window.removeEventListener("touchcancel", handleMouseUp);
   };
   const DoubleSpeed = (e) => {
-    if (e.type === "mousedown" && e.button === 2) return;
+    if ((e.type === "mousedown" && e.button === 2) || isHolding.current) return;
     const video = videoRef.current;
     if (!video) return;
 
-    prevSliderSpeedRef.current = playbackSliderSpeed;
-
-    prevSpeedRef.current = playbackSpeed;
-
-    console.log("prevsliderspeed", prevSliderSpeedRef.current);
-    console.log("prevspeed", prevSpeedRef.current);
-
     clearTimeout(clickTimeout.current);
     clickTimeout.current = null;
-    prevHoverStateRef.current = state.controlOpacity;
+    prevOpacityRef.current = state.controlOpacity;
+    console.log("video paused", video.paused);
+    videoPauseStatus.current = video.paused;
 
     pressTimer.current = setTimeout(() => {
       console.log("down");
-      updateState({ isLongPress: true, titleOpacity: 0, showIcon: false });
+      updateState({ isLongPress: true, showIcon: false });
       hideControls();
       if (video.paused) {
         video.play();
-        videoPauseStatus.current = true;
         updateState({ isPlaying: true });
       }
-
       video.playbackRate = 2.0;
-      setPlaybackSpeed(2.0);
-      setPlaybackSliderSpeed(playbackSpeed);
       updateState({ isFastPlayback: true });
       pressTimer.current = null;
     }, 600);
-
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
     window.addEventListener("touchend", handleMouseUp);
@@ -604,20 +608,40 @@ function VideoPlayer(
     if (!video) return;
 
     updateState({ showIcon: true, showVolumeIcon: false });
+    console.log({
+      longPress: state.isLongPress,
+      isPlaying: state.isPlaying,
+      videoPauseStatusCurrent: videoPauseStatus.current,
+    });
 
-    if (videoPauseStatus.current) {
+    if (isHolding.current) {
+      if (videoPauseStatus.current) {
+        console.log("play");
+        video.play();
+        updateState({ isPlaying: true });
+        showControls();
+        video.playbackRate = playbackSpeed;
+
+      } else {
+        video.pause();
+        console.log("pause");
+        showControls();
+        updateState({ isPlaying: false });
+
+      }
+    } else if (videoPauseStatus.current && !state.isLongPress) {
       video.pause();
-      updateState({ isPlaying: false, titleOpacity: 1 });
-      showControls();
+      updateState({ isPlaying: false });
     }
+
     updateState({
       controlOpacity:
-        isInside.current && prevHoverStateRef.current === 1
-          ? prevHoverStateRef.current
+        isInside.current && prevOpacityRef.current === 1
+          ? prevOpacityRef.current
           : 0,
       titleOpacity:
-        isInside.current && prevHoverStateRef.current === 1
-          ? prevHoverStateRef.current
+        isInside.current && prevOpacityRef.current === 1
+          ? prevOpacityRef.current
           : 0,
     });
 
@@ -628,32 +652,22 @@ function VideoPlayer(
       console.log("up");
     }, 200);
     updateState({ isFastPlayback: false });
-    if (state.customPlayback) {
-      video.playbackRate = prevSliderSpeedRef.current;
-    } else {
-      video.playbackRate = prevSpeedRef.current;
-    }
-    setPlaybackSpeed(prevSpeedRef.current);
-    setPlaybackSliderSpeed(prevSliderSpeedRef.current);
+
+    video.playbackRate = playbackSpeed;
   };
   const handleContainerMouseMove = () => {
     const container = containerRef.current;
     if (!container) return;
     if (!state.isLongPress) {
-      console.log("move");
+      handleVideoCursorVisiblity("show");
 
-      container
-        .querySelectorAll(".video-overlay, .controls")
-        .forEach((el) => el.classList.remove("hide-cursor"));
       isInside.current = true;
       showControls();
-      updateState({ titleOpacity: 1 });
     }
   };
   const handleMouseMove = (e) => {
     const container = containerRef.current;
     const video = videoRef.current;
-    const controls = container.getElementsByClassName("MuiPopper-root");
 
     const rect = video.getBoundingClientRect();
     const x = e.clientX;
@@ -661,17 +675,16 @@ function VideoPlayer(
     const inside =
       x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
 
-    console.log(inside);
     if (videoPauseStatus.current) return;
     isInside.current = inside;
 
-    container
-      .querySelectorAll(".video-overlay, .controls")
-      .forEach((el) => el.classList.remove("hide-cursor"));
+    handleVideoCursorVisiblity("show");
 
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = null;
     timeoutRef.current = setTimeout(() => {
+      const controls = container.getElementsByClassName("MuiPopper-root");
+
       if (
         state.isPlaying &&
         !controls.length &&
@@ -680,10 +693,7 @@ function VideoPlayer(
         !state.showSettings
       ) {
         hideControls();
-        updateState({ titleOpacity: 0 });
-        container
-          .querySelectorAll(".video-overlay, .hide-cursor")
-          .forEach((el) => el.classList.add("hide-cursor"));
+        handleVideoCursorVisiblity("hide");
       }
     }, 2000);
   };
@@ -696,31 +706,50 @@ function VideoPlayer(
 
     if (!container || !video || !fullScreenTitle || !isInsideRef) return;
 
-    const controls = container.getElementsByClassName("MuiPopper-root");
-
     if (!state.isPlaying) {
       showControls();
-      updateState({ titleOpacity: 1 });
       fullScreenTitle.classList.add("show");
       return;
-    } else {
+    }
+
+    const handleMouseMove = () => {
+      let lastCall = 0;
+      const throttleMs = 100;
+
+      const now = Date.now();
+      if (now - lastCall < throttleMs) return;
+      lastCall = now;
+
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
       timeoutRef.current = setTimeout(() => {
-        if (!controls.length && !isHolding.current && !state.showSettings) {
+        const currentControls =
+          container.getElementsByClassName("MuiPopper-root");
+        if (
+          !currentControls.length &&
+          !isHolding.current &&
+          !state.showSettings
+        ) {
           hideControls();
-          updateState({ titleOpacity: 0 });
-          container
-            .querySelectorAll(".video-overlay, .controls")
-            .forEach((el) => el.classList.add("hide-cursor"));
+          handleVideoCursorVisiblity("hide");
         }
       }, 2000);
-    }
+    };
+
+    container.addEventListener("mousemove", handleMouseMove);
+
+    handleMouseMove();
+
     return () => {
+      container.removeEventListener("mousemove", handleMouseMove);
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [state.isPlaying, state.controlOpacity, state.isLongPress]);
-
+  }, [
+    state.isPlaying,
+    state.controlOpacity,
+    state.isLongPress,
+    state.showSettings,
+  ]);
   const handleMouseOut = () => {
     const container = containerRef.current;
     const video = videoRef.current;
@@ -735,7 +764,6 @@ function VideoPlayer(
       return;
 
     hideControls();
-    updateState({ titleOpacity: 0 });
   };
 
   useEffect(() => {
@@ -977,9 +1005,8 @@ function VideoPlayer(
     if (!video || !container || !state.canPlay) return;
     setIsUserInteracted(true);
 
-    container.querySelectorAll(".video-overlay, .controls").forEach((el) => {
-      el.classList.remove("hide-cursor");
-    });
+    handleVideoCursorVisiblity("show");
+
     if (playIconRef.current?.classList) {
       playIconRef.current.classList.add("click");
     } else {
@@ -1086,7 +1113,6 @@ function VideoPlayer(
 
     if (!isUserInteracted) {
       showControls();
-      updateState({ titleOpacity: 1 });
     }
     try {
       if (isUserInteracted) {
@@ -1259,7 +1285,7 @@ function VideoPlayer(
       const video = videoRef.current;
       if (!video.videoWidth || !video.videoHeight) return;
 
-      const targetAspectRatio =  video.videoWidth / video.videoHeight;
+      const targetAspectRatio = video.videoWidth / video.videoHeight;
 
       let videoWidth = video.videoWidth;
       let videoHeightLocal = Math.ceil(videoWidth / targetAspectRatio);
@@ -1276,7 +1302,6 @@ function VideoPlayer(
       const top = isFullscreen
         ? 0
         : Math.floor((containerHeight - videoHeightLocal) / 2);
-
 
       flexyWatchContainer.style.setProperty(
         "--vtd-watch-flexy-player-height-ratio",
@@ -1323,8 +1348,6 @@ function VideoPlayer(
     let rafId = null;
 
     const handleKeyPress = (e) => {
-      const overlay = container.querySelector(".video-overlay");
-      const controls = container.querySelector(".controls");
       const activeElement = document.activeElement;
       const isInputFocused =
         activeElement &&
@@ -1345,10 +1368,9 @@ function VideoPlayer(
       } else if (e.code === "Space") {
         e.preventDefault();
         if (isHolding.current) return;
-        updateState({ controlOpacity: 1, titleOpacity: 1 });
-        [overlay, controls].forEach((el) => {
-          el?.classList.remove("hide-cursor");
-        });
+        showControls();
+        handleVideoCursorVisiblity("show");
+
         holdTimer.current = setTimeout(() => {
           DoubleSpeed(e);
           isHolding.current = true;
@@ -1591,13 +1613,13 @@ function VideoPlayer(
             >
               {data?.data?.videoFile.url && (
                 <video
+                  src={data?.data?.videoFile.url}
                   muted={state.isMuted}
                   key={data?.data?.videoFile.url}
                   ref={videoRef}
                   crossOrigin="anonymous"
                   controlsList="nodownload"
                   id="video-player"
-                  preload="auto"
                   onTimeUpdate={handleTimeUpdate}
                   onEnded={handleVideoEnd}
                   onPlay={handlePlay}
@@ -1613,9 +1635,7 @@ function VideoPlayer(
                     right: playerRightOffset,
                     borderRadius: playerBorderRadius,
                   }}
-                >
-                  <source src={data?.data?.videoFile.url} type="video/mp4" />
-                </video>
+                ></video>
               )}
               <VideoControls
                 videoRef={videoRef}
@@ -1664,7 +1684,7 @@ function VideoPlayer(
                 pointerEvents: "all",
               }}
             >
-              {state.isFastPlayback && (
+              {state.isFastPlayback && !state.showIcon && (
                 <Box
                   sx={{
                     position: "absolute",

@@ -21,7 +21,7 @@ export const PlayPauseSvg = ({ isPlaying }) => {
      <motion.path
      id="id-1"
   d={paths[isPlaying ? "play" : "pause"] ?? ""}
-  initial={{ d: paths[isPlaying ? "play" : "pause"] ?? "" }}
+  initial={{ d: paths["pause"] ?? "" }}
   animate={{ d: paths[isPlaying ? "play" : "pause"] ?? "" }}
   transition={{ duration: 0.3 }}
 

@@ -269,6 +269,7 @@ function Header({ ...props }) {
   const miniDrawerWidth = "var(--mini-drawer-width)";
 
   const [searchMenu, setSearchMenu] = useState(false);
+  const [isTheatre, setIsTheatre] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   const { window: windowProp } = props;
