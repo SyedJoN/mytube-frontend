@@ -506,6 +506,8 @@ function VideoPlayer(
 
     exitingPiPViaOurUIButtonRef.current = false;
   }, []);
+  const isLongPressActiveMouse = useRef(false);
+  const isLongPressActiveKey = useRef(false);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -539,54 +541,124 @@ function VideoPlayer(
     }
   }, []);
 
-  const handleClick = (e) => {
-    if (e.button === 2) return;
-    if (state.isReplay) return;
-    videoPauseStatus.current = false;
-    if (clickTimeout.current || state.isLongPress) return;
-    clickCount.current += 1;
-    if (clickCount.current === 1) {
-      clickTimeout.current = setTimeout(() => {
-        console.log("Single Click");
-
-        togglePlayPause();
-
-        updateState({ showIcon: true, showVolumeIcon: false });
-
-        clickCount.current = 0;
-        clearTimeout(clickTimeout.current);
-        clickTimeout.current = null;
-      }, 150);
-    } else if (clickCount.current === 2) {
-      clearTimeout(clickTimeout.current);
-      clickTimeout.current = null;
-      clickCount.current = 0;
-      toggleFullScreen();
-    }
-  };
   const handleMouseUp = (e) => {
-    console.log("MOUSE UP")
-    exitDoubleSpeed(e);
-    window.removeEventListener("mousemove", handleMouseMove);
-    window.removeEventListener("mouseup", handleMouseUp);
-    window.removeEventListener("touchend", handleMouseUp);
-    window.removeEventListener("touchcancel", handleMouseUp);
-  };
-  const DoubleSpeed = (e) => {
-    if ((e.type === "mousedown" && e.button === 2) || isHolding.current) return;
     const video = videoRef.current;
     if (!video) return;
+    const isKeyboard = e.type === "keyup";
 
-    clearTimeout(clickTimeout.current);
-    clickTimeout.current = null;
+    if (!isKeyboard && currentInteractionType.current !== "mouse") {
+      clickCount.current = -1;
+
+      return;
+    }
+
+    if (
+      (!isLongPressActiveMouse.current &&
+        isLongPressActiveKey.current &&
+        isKeyboard) ||
+      (isLongPressActiveMouse.current && !isKeyboard)
+    ) {
+      exitDoubleSpeed(e);
+      statusRecordCheck.current = true;
+      isLongPressActiveMouse.current = false;
+      isLongPressActiveKey.current = false;
+    } else {
+      clearTimeout(pressTimer.current);
+      pressTimer.current = null;
+
+      if (!isKeyboard) {
+        if (e.button === 2) return;
+      }
+
+      if (state.isReplay) return;
+
+      clickCount.current += 1;
+      console.log("After increment, clickCount:", clickCount.current);
+
+      if (clickCount.current === 2 && !isKeyboard) {
+        console.log("Double click detected!");
+        clearTimeout(clickTimeout.current);
+        clickTimeout.current = null;
+        clearTimeout(pressTimer.current);
+        pressTimer.current = null;
+
+        if (state.isLongPress) {
+          exitDoubleSpeed(e);
+          isLongPressActiveMouse.current = false;
+          isLongPressActiveKey.current = false;
+        }
+
+        toggleFullScreen();
+        clickCount.current = 0;
+        statusRecordCheck.current = true;
+
+        if (videoPauseStatus.current) {
+          video.pause();
+        } else {
+          video.play();
+        }
+      } else if (clickCount.current === 1) {
+        console.log("Setting single click timer");
+
+        if (state.isLongPress) {
+          exitDoubleSpeed(e);
+          isLongPressActiveMouse.current = false;
+          isLongPressActiveKey.current = false;
+          statusRecordCheck.current = true;
+        }
+
+        clickTimeout.current = setTimeout(() => {
+          console.log("Single Click");
+          togglePlayPause();
+          statusRecordCheck.current = true;
+          updateState({ showIcon: true, showVolumeIcon: false });
+          clickCount.current = 0;
+          clearTimeout(clickTimeout.current);
+          clickTimeout.current = null;
+        }, 150);
+      }
+    }
+
+    if (!isKeyboard) {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+      window.removeEventListener("touchend", handleMouseUp);
+      window.removeEventListener("touchcancel", handleMouseUp);
+    }
+  };
+  const statusRecordCheck = useRef(true);
+  const currentInteractionType = useRef(null);
+  const DoubleSpeed = (e) => {
+    const isKeyboard = e.type === "keydown";
+    const isMouse = e.type === "mousedown";
+
+    currentInteractionType.current = isKeyboard ? "keyboard" : "mouse";
+
+    if (isMouse && e.button === 2) return;
+    if (isHolding.current) return;
+
+    const video = videoRef.current;
+    console.log(isKeyboard ? "keydown - space" : "mousedown - doublespeed");
+
+    if (!video) return;
+
     prevOpacityRef.current = state.controlOpacity;
-    console.log("video paused", video.paused);
-    videoPauseStatus.current = video.paused;
+    if (pressTimer.current) {
+      clearTimeout(pressTimer.current);
+      pressTimer.current = null;
+    }
+
+    if (statusRecordCheck.current) {
+      videoPauseStatus.current = video.paused;
+      statusRecordCheck.current = false;
+    }
 
     pressTimer.current = setTimeout(() => {
-      console.log("down");
-      updateState({ isLongPress: true, showIcon: false });
+      isLongPressActiveKey.current = isKeyboard ? true : false;
+      isLongPressActiveMouse.current = isMouse ? true : false;
+      flushSync(() => updateState({ isLongPress: true, showIcon: false }));
       hideControls();
+
       if (video.paused) {
         video.play();
         updateState({ isPlaying: true });
@@ -595,10 +667,13 @@ function VideoPlayer(
       updateState({ isFastPlayback: true });
       pressTimer.current = null;
     }, 600);
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
-    window.addEventListener("touchend", handleMouseUp);
-    window.addEventListener("touchcancel", handleMouseUp);
+
+    if (isMouse) {
+      window.addEventListener("mousemove", handleMouseMove);
+      window.addEventListener("mouseup", handleMouseUp);
+      window.addEventListener("touchend", handleMouseUp);
+      window.addEventListener("touchcancel", handleMouseUp);
+    }
   };
 
   const exitDoubleSpeed = (e) => {
@@ -608,30 +683,23 @@ function VideoPlayer(
     if (!video) return;
 
     updateState({ showIcon: true, showVolumeIcon: false });
-    console.log({
-      longPress: state.isLongPress,
-      isPlaying: state.isPlaying,
-      videoPauseStatusCurrent: videoPauseStatus.current,
-    });
 
-    if (isHolding.current) {
+    if (
+      currentInteractionType.current &&
+      (isLongPressActiveMouse.current || isLongPressActiveKey.current)
+    ) {
       if (videoPauseStatus.current) {
-        console.log("play");
-        video.play();
-        updateState({ isPlaying: true });
+        video.pause();
+        updateState({ isPlaying: false });
         showControls();
         video.playbackRate = playbackSpeed;
-
       } else {
-        video.pause();
-        console.log("pause");
-        showControls();
-        updateState({ isPlaying: false });
+        video.play();
 
+        showControls();
+        updateState({ isPlaying: true });
       }
-    } else if (videoPauseStatus.current && !state.isLongPress) {
-      video.pause();
-      updateState({ isPlaying: false });
+      currentInteractionType.current = null;
     }
 
     updateState({
@@ -649,7 +717,6 @@ function VideoPlayer(
     pressTimer.current = setTimeout(() => {
       updateState({ isLongPress: false });
       pressTimer.current = null;
-      console.log("up");
     }, 200);
     updateState({ isFastPlayback: false });
 
@@ -1339,6 +1406,7 @@ function VideoPlayer(
       video.removeEventListener("loadedmetadata", updateSize);
     };
   }, [isTheatre, data?.data?._id, isFullscreen]);
+  const isSpacePressed = useRef(false);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -1367,15 +1435,10 @@ function VideoPlayer(
         togglePlayPause();
       } else if (e.code === "Space") {
         e.preventDefault();
-        if (isHolding.current) return;
-        showControls();
-        handleVideoCursorVisiblity("show");
+        if (isSpacePressed.current) return;
 
-        holdTimer.current = setTimeout(() => {
-          DoubleSpeed(e);
-          isHolding.current = true;
-          holdTimer.current = null;
-        }, 200);
+        isSpacePressed.current = true;
+        DoubleSpeed(e);
       } else if (e.shiftKey && e.key.toLowerCase() === "n") {
         handleNextVideo();
       } else if (e.key.toLowerCase() === "f") {
@@ -1426,20 +1489,12 @@ function VideoPlayer(
     };
 
     const handleKeyUp = (e) => {
-      e.preventDefault();
       if (e.code === "Space") {
-        if (isHolding.current) {
-          isHolding.current = false;
-          clearTimeout(holdTimer.current);
-          holdTimer.current = null;
-          exitDoubleSpeed(e);
+        if (currentInteractionType.current === "keyboard") {
+          isSpacePressed.current = false;
+          handleMouseUp(e);
         } else {
-          clearTimeout(holdTimer.current);
-          holdTimer.current = null;
-
-          updateState({ showIcon: true, showVolumeIcon: false });
-
-          togglePlayPause();
+          isSpacePressed.current = false;
         }
       }
     };
@@ -1462,6 +1517,7 @@ function VideoPlayer(
     playbackSliderSpeed,
     playbackSpeed,
     handleVolumeToggle,
+    handleMouseUp,
   ]);
 
   useEffect(() => {
@@ -1684,7 +1740,7 @@ function VideoPlayer(
                 pointerEvents: "all",
               }}
             >
-              {state.isFastPlayback && !state.showIcon && (
+              {state.isFastPlayback && (
                 <Box
                   sx={{
                     position: "absolute",
@@ -1904,7 +1960,6 @@ function VideoPlayer(
             </Box>
             <Box
               sx={{ userSelect: "none" }}
-              onClick={handleClick}
               onMouseDown={
                 isUserInteracted && !state.isPipActive ? DoubleSpeed : null
               }
