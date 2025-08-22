@@ -111,45 +111,58 @@ function VideoPlayer(
   const { getTimeStamp, setTimeStamp } = useContext(TimeStampContext);
 
   const { state, updateState } = useStateReducer({
+    // === PLAYBACK CONTROL ===
     isPlaying: false,
-    viewCounted: false,
     isLongPress: false,
-    showIcon: false,
-    showVolumeIcon: false,
-    volumeUp: false,
-    leftOffset: "0px",
-    topOffset: "0px",
+    isFastPlayback: false,
+    customPlayback: false,
+    isReplay: false,
+    resumeTime: 0,
+    viewCounted: false,
+
+    // === VOLUME CONTROL ===
+    volume: 40,
     volumeSlider: 40,
+    volumeUp: false,
     volumeDown: false,
     volumeMuted: false,
+    isMuted: false,
+    isVolumeChanged: false,
+
+    // === UI ICONS & ANIMATIONS ===
+    showIcon: false,
+    showVolumeIcon: false,
+    isAnimating: false,
+    isIncreased: true,
+
+    // === SEEK & SCRUBBING ===
+    isForwardSeek: false,
+    isBackwardSeek: false,
+    isSeeking: false,
+    jumpedToMax: false,
+
+    // === LOADING & BUFFERING ===
     isBuffering: false,
     showBufferingIndicator: false,
     loadingVideo: false,
-    isForwardSeek: false,
-    isBackwardSeek: false,
-    volume: 40,
-    isVolumeChanged: false,
-    isMuted: false,
-    isIncreased: true,
-    isAnimating: false,
-    jumpedToMax: false,
-    customPlayback: false,
-    isReplay: false,
-    isSeeking: false,
+    videoReady: false,
+    canPlay: true,
+
+    // === PLAYER LAYOUT & POSITIONING ===
+    leftOffset: "0px",
+    topOffset: "0px",
     videoContainerWidth: "0px",
-    isFastPlayback: false,
-    prevTheatre: false,
     videoHeight: 0,
     playerHeight: "0px",
-    resumeTime: 0,
     playerWidth: "0px",
+    aspectRatio: 0.75,
+    prevTheatre: false,
+
+    // === UI CONTROLS & OPACITY ===
     controlOpacity: 0,
     titleOpacity: 0,
     showSettings: false,
     isPipActive: false,
-    videoReady: false,
-    canPlay: true,
-    aspectRatio: 0.75,
   });
 
   const {
@@ -172,13 +185,17 @@ function VideoPlayer(
     prevVolRef,
     prevVolumeRef,
     exitingPiPViaOurUIButtonRef,
-    holdTimer,
     trackerRef,
     isHolding,
     glowCanvasRef,
     volTimeoutRef,
     lastKeyPress,
     hideVolumeTimer,
+    statusRecordCheck,
+    currentInteractionType,
+    isSpacePressed,
+    isLongPressActiveMouse,
+    isLongPressActiveKey,
   } = useRefReducer({
     isInside: null,
     prevVideoRef: null,
@@ -199,17 +216,25 @@ function VideoPlayer(
     prevVolRef: null,
     prevVolumeRef: 0.5,
     exitingPiPViaOurUIButtonRef: null,
-    holdTimer: null,
     trackerRef: new VideoTelemetryTimer(),
     isHolding: null,
     glowCanvasRef: null,
     volTimeoutRef: null,
     lastKeyPress: null,
     hideVolumeTimer: null,
+    statusRecordCheck: true,
+    currentInteractionType: null,
+    isSpacePressed: null,
+    isLongPressActiveMouse: false,
+    isLongPressActiveKey: false,
   });
+
+  // Imperative Handler for videoRef
   useImperativeHandle(ref, () => videoRef.current);
 
   const [previousVolume, setPreviousVolume] = useState(state.volume || 40);
+
+  // Media queries breakpoints
   const isCustomWidth = useMediaQuery("(max-width:1014px)");
 
   // Conditional Constants
@@ -238,7 +263,6 @@ function VideoPlayer(
   const playerBorderRadius = isTheatre && !isMini ? "0" : "8px";
 
   /* Utility Functions */
-
   const showControls = () => {
     if (state.controlOpacity !== 1) updateState({ controlOpacity: 1 });
     if (state.titleOpacity !== 1) updateState({ titleOpacity: 1 });
@@ -282,12 +306,10 @@ function VideoPlayer(
     }
   }, [state.isMuted]);
 
-  // const { data, isLoading, isError, error } = useQuery({
-  //   queryKey: ["video", videoId],
-  //   queryFn: () => fetchVideoById(videoId),
-  //   refetchOnWindowFocus: false,
-  //   enabled: !!videoId,
-  // });
+  useEffect(() => {
+    updateState({ videoReady: false });
+    hideControls();
+  }, [videoId]);
 
   const {
     data: userHistory,
@@ -306,12 +328,7 @@ function VideoPlayer(
     ? (userHistory?.data?.find((entry) => entry.video?._id === videoId)
         ?.currentTime ?? 0)
     : 0;
-
-  useEffect(() => {
-    updateState({ videoReady: false });
-    hideControls();
-  }, [videoId]);
-
+  // Player functions
   const handlePlay = async () => {
     const video = videoRef?.current;
     const tracker = trackerRef.current;
@@ -498,16 +515,14 @@ function VideoPlayer(
   }, []);
 
   const handleLeavePiP = useCallback(() => {
+    console.log("reac", videoRef.current?.paused)
     updateState({
       showIcon: false,
       isPipActive: false,
-      isPlaying: videoRef.current?.paused ? false : true,
     });
 
     exitingPiPViaOurUIButtonRef.current = false;
   }, []);
-  const isLongPressActiveMouse = useRef(false);
-  const isLongPressActiveKey = useRef(false);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -626,8 +641,7 @@ function VideoPlayer(
       window.removeEventListener("touchcancel", handleMouseUp);
     }
   };
-  const statusRecordCheck = useRef(true);
-  const currentInteractionType = useRef(null);
+
   const DoubleSpeed = (e) => {
     const isKeyboard = e.type === "keydown";
     const isMouse = e.type === "mousedown";
@@ -654,6 +668,8 @@ function VideoPlayer(
     }
 
     pressTimer.current = setTimeout(() => {
+    if (!isUserInteracted && !state.isPipActive) return;
+
       isLongPressActiveKey.current = isKeyboard ? true : false;
       isLongPressActiveMouse.current = isMouse ? true : false;
       flushSync(() => updateState({ isLongPress: true, showIcon: false }));
@@ -1406,7 +1422,6 @@ function VideoPlayer(
       video.removeEventListener("loadedmetadata", updateSize);
     };
   }, [isTheatre, data?.data?._id, isFullscreen]);
-  const isSpacePressed = useRef(false);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -1960,12 +1975,8 @@ function VideoPlayer(
             </Box>
             <Box
               sx={{ userSelect: "none" }}
-              onMouseDown={
-                isUserInteracted && !state.isPipActive ? DoubleSpeed : null
-              }
-              onTouchStart={
-                isUserInteracted && !state.isPipActive ? DoubleSpeed : null
-              }
+              onMouseDown={DoubleSpeed}
+              onTouchStart={DoubleSpeed}
               className="video-overlay"
             >
               <Box
