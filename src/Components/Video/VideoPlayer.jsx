@@ -45,8 +45,6 @@ import VideoControls from "./VideoControls";
 import VolumeUpIcon from "@mui/icons-material/VolumeUp";
 import VolumeOffIcon from "@mui/icons-material/VolumeOff";
 import VolumeDownIcon from "@mui/icons-material/VolumeDown";
-import { useDebouncedCallback } from "../../helper/debouncedFn";
-import { flushSync } from "react-dom";
 import { usePlayerSetting } from "../../helper/usePlayerSettings";
 import {
   DrawerContext,
@@ -156,7 +154,6 @@ function VideoPlayer(
     playerHeight: "0px",
     playerWidth: "0px",
     aspectRatio: 0.75,
-    prevTheatre: false,
 
     // === UI CONTROLS & OPACITY ===
     controlOpacity: 0,
@@ -167,7 +164,6 @@ function VideoPlayer(
 
   const {
     isInside,
-    prevVideoRef,
     videoPauseStatus,
     playIconRef,
     volumeIconRef,
@@ -196,9 +192,9 @@ function VideoPlayer(
     isSpacePressed,
     isLongPressActiveMouse,
     isLongPressActiveKey,
+    videoOverlayRef,
   } = useRefReducer({
     isInside: null,
-    prevVideoRef: null,
     videoPauseStatus: null,
     playIconRef: null,
     volumeIconRef: null,
@@ -227,6 +223,7 @@ function VideoPlayer(
     isSpacePressed: null,
     isLongPressActiveMouse: false,
     isLongPressActiveKey: false,
+    videoOverlayRef: null,
   });
 
   // Imperative Handler for videoRef
@@ -510,17 +507,16 @@ function VideoPlayer(
   const handleEnterPiP = useCallback(() => {
     showControls();
     updateState({ isPipActive: true });
-
-    if (!prevVideoRef.current) videoRef.current?.play();
   }, []);
 
   const handleLeavePiP = useCallback(() => {
-    console.log("reac", videoRef.current?.paused)
-    updateState({
-      showIcon: false,
-      isPipActive: false,
+    requestAnimationFrame(() => {
+      updateState({
+        showIcon: false,
+        isPipActive: false,
+        isPlaying: !videoRef.current?.paused,
+      });
     });
-
     exitingPiPViaOurUIButtonRef.current = false;
   }, []);
 
@@ -540,14 +536,14 @@ function VideoPlayer(
   const handleTogglePiP = useCallback(async () => {
     const video = videoRef.current;
     if (!video) return;
-    setIsUserInteracted(true);
-
     try {
       if (document.pictureInPictureElement) {
         exitingPiPViaOurUIButtonRef.current = true;
         await document.exitPictureInPicture();
+        updateState({ isPipActive: false });
       } else {
         await video.requestPictureInPicture();
+        updateState({ isPipActive: true });
       }
     } catch (err) {
       console.error("PiP error:", err);
@@ -563,7 +559,6 @@ function VideoPlayer(
 
     if (!isKeyboard && currentInteractionType.current !== "mouse") {
       clickCount.current = -1;
-
       return;
     }
 
@@ -642,6 +637,11 @@ function VideoPlayer(
     }
   };
 
+  const handleVideoOverlay = () => {
+    togglePlayPause();
+    return;
+  };
+
   const DoubleSpeed = (e) => {
     const isKeyboard = e.type === "keydown";
     const isMouse = e.type === "mousedown";
@@ -668,11 +668,9 @@ function VideoPlayer(
     }
 
     pressTimer.current = setTimeout(() => {
-    if (!isUserInteracted && !state.isPipActive) return;
-
       isLongPressActiveKey.current = isKeyboard ? true : false;
       isLongPressActiveMouse.current = isMouse ? true : false;
-      flushSync(() => updateState({ isLongPress: true, showIcon: false }));
+      updateState({ isLongPress: true, showIcon: false });
       hideControls();
 
       if (video.paused) {
@@ -680,10 +678,12 @@ function VideoPlayer(
         updateState({ isPlaying: true });
       }
       video.playbackRate = 2.0;
+      if (!isUserInteracted) {
+        setIsUserInteracted(true);
+      }
       updateState({ isFastPlayback: true });
       pressTimer.current = null;
     }, 600);
-
     if (isMouse) {
       window.addEventListener("mousemove", handleMouseMove);
       window.addEventListener("mouseup", handleMouseUp);
@@ -922,7 +922,7 @@ function VideoPlayer(
     const step = 0.05;
     let newVol = video.volume;
 
-    updateState((prev) => ({ ...prev, isVolumeChanged: false }));
+    updateState({ isVolumeChanged: false });
 
     requestAnimationFrame(() => {
       updateState((prev) => {
@@ -933,7 +933,6 @@ function VideoPlayer(
         const newState = {
           ...prev,
           isFastPlayback: false,
-          showIcon: false,
           showVolumeIcon: true,
           isVolumeChanged: true,
         };
@@ -958,12 +957,6 @@ function VideoPlayer(
         setPreviousVolume((p) => (!prev.isMuted ? prev.volume : p));
         console.log("prev.vol", prev.volume);
 
-        if (state.customPlayback) {
-          video.playbackRate = prevSliderSpeedRef.current;
-        } else {
-          video.playbackRate = prevSpeedRef.current;
-        }
-
         return newState;
       });
 
@@ -975,7 +968,7 @@ function VideoPlayer(
     });
 
     hideVolumeTimer.current = setTimeout(() => {
-      updateState((prev) => ({ ...prev, isVolumeChanged: false }));
+      updateState({ isVolumeChanged: false });
     }, 500);
   };
 
@@ -1045,18 +1038,6 @@ function VideoPlayer(
     };
   }, [state.volumeSlider]);
 
-  useEffect(() => {
-    if (isFullscreen) {
-      if (state.prevTheatre) {
-        setIsTheatre(false);
-      }
-    } else {
-      if (state.prevTheatre) {
-        setIsTheatre(true);
-      }
-    }
-  }, [state.prevTheatre]);
-
   const toggleFullScreen = () => {
     const el = document.documentElement;
     if (!el) return;
@@ -1067,6 +1048,7 @@ function VideoPlayer(
         requestAnimationFrame(() => {
           el.scrollTop = 0;
           setIsMini(false);
+          setIsUserInteracted(true);
         });
         if (!isIOS) {
           screen.orientation?.lock?.("landscape").catch(() => {});
@@ -1210,14 +1192,20 @@ function VideoPlayer(
   };
 
   useEffect(() => {
-    let timeoutId;
-    if (location.pathname === "/") {
-      timeoutId = setTimeout(() => {
-        setIsUserInteracted(true);
-      }, 500);
+    if (state.isPlaying) {
+      setIsUserInteracted(true);
     }
-    return () => clearTimeout(timeoutId);
-  }, [location.pathname]);
+  }, [state.isPlaying]);
+
+  // useEffect(() => {
+  //   let timeoutId;
+  //   if (location.pathname === "/") {
+  //     timeoutId = setTimeout(() => {
+  //       setIsUserInteracted(true);
+  //     }, 500);
+  //   }
+  //   return () => clearTimeout(timeoutId);
+  // }, [location.pathname]);
 
   // useEffect(() => {
   //   sendWatchHistory();
@@ -1256,11 +1244,6 @@ function VideoPlayer(
       videoRef.current.play();
       updateState({ isPlaying: true });
     }
-    if (state.customPlayback) {
-      video.playbackRate = prevSliderSpeedRef.current;
-    } else {
-      video.playbackRate = prevSpeedRef.current;
-    }
 
     setTimeout(() => updateState({ isForwardSeek: false }), 300);
   }, []);
@@ -1282,11 +1265,6 @@ function VideoPlayer(
     }
     updateState({ isBackwardSeek: true });
 
-    if (state.customPlayback) {
-      video.playbackRate = prevSliderSpeedRef.current;
-    } else {
-      video.playbackRate = prevSpeedRef.current;
-    }
     video.currentTime = Math.max(video.currentTime - 5, 0);
 
     if (!video.paused) {
@@ -1473,7 +1451,6 @@ function VideoPlayer(
         lastKeyPress.current = now;
         const icon = volumeIconRef.current;
         updateState({
-          showIcon: false,
           showVolumeIcon: true,
           isVolumeChanged: true,
         });
@@ -1494,11 +1471,19 @@ function VideoPlayer(
         }, 400);
       } else if (e.key.toLowerCase() === "t") {
         e.preventDefault();
-        if (!isFullscreen && videoRef.current) {
-          setIsUserInteracted(true);
-          startTransition(() => {
+        if (videoRef.current) {
+          if (isFullscreen) {
+            setIsUserInteracted(true);
+            setIsTheatre(true);
+            document
+              .exitFullscreen?.()
+              .then(() => {
+                screen.orientation?.unlock?.();
+              })
+              .catch(console.error);
+          } else {
             setIsTheatre((prev) => !prev);
-          });
+          }
         }
       }
     };
@@ -1534,10 +1519,6 @@ function VideoPlayer(
     handleVolumeToggle,
     handleMouseUp,
   ]);
-
-  useEffect(() => {
-    updateState({ prevTheatre: isTheatre });
-  }, [isTheatre]);
 
   const { mutate } = useMutation({
     mutationFn: () => videoView(videoId),
@@ -1974,9 +1955,11 @@ function VideoPlayer(
               </Box>
             </Box>
             <Box
+              ref={videoOverlayRef}
               sx={{ userSelect: "none" }}
-              onMouseDown={DoubleSpeed}
-              onTouchStart={DoubleSpeed}
+              onMouseDown={!isUserInteracted ? undefined : DoubleSpeed}
+              onMouseUp={!isUserInteracted ? handleVideoOverlay : undefined}
+              onTouchStart={!isUserInteracted ? undefined : DoubleSpeed}
               className="video-overlay"
             >
               <Box

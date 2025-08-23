@@ -363,7 +363,10 @@ function VideoCard({
     });
   };
   const handleInteraction = () => {
-    setIsUserInteracted(true);
+    requestAnimationFrame(()=> {
+      setIsUserInteracted(true);
+
+    })
   };
   const handleDragEnd = () => {
     if (interactionRef.current) {

@@ -544,9 +544,6 @@ const VideoControls = ({
                 className="control"
                 style={controlStyles}
                 to="/watch"
-                onClick={() => {
-                  setIsUserInteracted(true);
-                }}
                 search={nextSearch}
               >
                 <SkipNextSvg />h

@@ -28,8 +28,6 @@ const rotateAnimation = keyframes`
   100% { transform: rotate(0deg); }
 `;
 
-
-
 export const SubscribeButton = React.memo(
   ({
     channelProfile,
@@ -90,52 +88,52 @@ export const SubscribeButton = React.memo(
       },
     };
 
-     const launchFireworks = () => {
-        if (!buttonRef.current) return;
-    
-        const { left, top, width, height } =
-          buttonRef.current.getBoundingClientRect();
-    
-        const steps = 10; // Number of steps from left to right
-        let currentStep = 0;
-    
-        const animateFireworks = () => {
-          if (currentStep > steps || !buttonRef.current) return;
-    
-          const originX =
-            (left + (width / steps) * currentStep) / window.innerWidth;
-          const originY = (top + height + 5) / window.innerHeight; // Just below the button
-    
-          confetti({
-            particleCount: 1,
-            startVelocity: 2,
-            spread: 260,
-            ticks: 10,
-            gravity: 0,
-            scalar: 0.8,
-            shapes: ["star"],
-            colors: ["#C71585"], // Yellow Star
-            origin: { x: originX, y: originY },
-          });
-    
-          confetti({
-            particleCount: 1,
-            startVelocity: 4,
-            spread: 260,
-            ticks: 10,
-            gravity: 0,
-            scalar: 1,
-            shapes: ["square"],
-            colors: ["#FFD700"],
-            origin: { x: originX, y: originY },
-          });
-    
-          currentStep++;
-          setTimeout(animateFireworks, 10);
-        };
-    
-        animateFireworks();
+    const launchFireworks = () => {
+      if (!buttonRef.current) return;
+
+      const { left, top, width, height } =
+        buttonRef.current.getBoundingClientRect();
+
+      const steps = 10; // Number of steps from left to right
+      let currentStep = 0;
+
+      const animateFireworks = () => {
+        if (currentStep > steps || !buttonRef.current) return;
+
+        const originX =
+          (left + (width / steps) * currentStep) / window.innerWidth;
+        const originY = (top + height + 5) / window.innerHeight; // Just below the button
+
+        confetti({
+          particleCount: 1,
+          startVelocity: 2,
+          spread: 260,
+          ticks: 10,
+          gravity: 0,
+          scalar: 0.8,
+          shapes: ["star"],
+          colors: ["#C71585"], // Yellow Star
+          origin: { x: originX, y: originY },
+        });
+
+        confetti({
+          particleCount: 1,
+          startVelocity: 4,
+          spread: 260,
+          ticks: 10,
+          gravity: 0,
+          scalar: 1,
+          shapes: ["square"],
+          colors: ["#FFD700"],
+          origin: { x: originX, y: originY },
+        });
+
+        currentStep++;
+        setTimeout(animateFireworks, 10);
       };
+
+      animateFireworks();
+    };
 
     const handleTransitionEnd = () => {
       if (isSubscribed) {
@@ -145,6 +143,8 @@ export const SubscribeButton = React.memo(
 
     const handleSubscribeBtn = (e) => {
       e.stopPropagation();
+
+      if (isLoading) return;
 
       if (isAuthenticated && isSubscribed) {
         setDialogOpen(true);
@@ -158,12 +158,6 @@ export const SubscribeButton = React.memo(
     useEffect(() => {
       if (!userData?.data) return;
 
-      const newValue = userData.data?.isSubscribedTo ?? false;
-      const newCount = userData.data?.subscribersCount ?? 0;
-
-      setIsSubscribed(newValue);
-      setSubscriberCount(newCount);
-
       if (!hasLoaded) {
         setHasLoaded(true);
       }
@@ -171,22 +165,36 @@ export const SubscribeButton = React.memo(
 
     const { mutate, isLoading } = useMutation({
       mutationFn: () => toggleSubscription(channelId),
-      onMutate: () => {
-        const isSubscribing = !isSubscribed;
+
+      onMutate: async () => {
+        await queryClient.cancelQueries(["channelProfile", user]);
+        const prevData = queryClient.getQueryData(["channelProfile", user]);
+        const isSubscribing = !prevData?.data?.isSubscribedTo;
+
+        queryClient.setQueryData(["channelProfile", user], (old) => {
+          if (!old?.data) return old;
+          return {
+            ...old,
+            data: {
+              ...old.data,
+              isSubscribedTo: isSubscribing,
+              subscribersCount: isSubscribing
+                ? old.data.subscribersCount + 1
+                : old.data.subscribersCount - 1,
+            },
+          };
+        });
 
         if (isSubscribing) {
           setShowGradient(true);
         }
-
         setIsSubscribed(isSubscribing);
         setSubscriberCount((prev) => prev + (isSubscribing ? 1 : -1));
 
         setShouldAnimate(false);
-
         if (timeoutIdRef.current) {
           clearTimeout(timeoutIdRef.current);
         }
-
         timeoutIdRef.current = setTimeout(() => {
           setShouldAnimate(true);
         }, 500);
@@ -194,12 +202,23 @@ export const SubscribeButton = React.memo(
         if (!isSubscribing) {
           setShouldAnimate(false);
         }
+
+        return { prevData };
       },
 
-      onSuccess: () => {
-          
+      onError: (_, __, context) => {
+        setIsSubscribed(context.prevSubscribed);
+        setSubscriberCount(context.prevCount);
+      },
+
+      onSettled: () => {
         queryClient.invalidateQueries(["channelProfile", user]);
-         showMessage(isSubscribed ? "Subscription added" : "Subscription removed");
+      },
+
+      onSuccess: (_, __, context) => {
+        showMessage(
+          !context.prevData.data.isSubscribedTo ? "Subscription added" : "Subscription removed"
+        );
       },
     });
 
@@ -221,7 +240,7 @@ export const SubscribeButton = React.memo(
           setDialogOpen={setDialogOpen}
           onConfirm={() => mutate()}
         />
-    
+
         <Box
           sx={{
             display: "flex",
@@ -232,6 +251,7 @@ export const SubscribeButton = React.memo(
           {hasLoaded && (
             <Button
               ref={buttonRef}
+              disabled={isLoading}
               onClick={handleSubscribeBtn}
               onTransitionEnd={handleTransitionEnd}
               sx={{

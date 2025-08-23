@@ -4,13 +4,7 @@ import { toggleVideoLike } from "../../apis/likeFn";
 import { toggleVideoDislike } from "../../apis/dislikeFn";
 import SignInAlert from "../Dialogs/SignInAlert";
 import Signin from "../Auth/Signin";
-import {
-  Box,
-  Button,
-  Tooltip,
-  Divider,
-  useMediaQuery,
-} from "@mui/material";
+import { Box, Button, Tooltip, Divider, useMediaQuery } from "@mui/material";
 import ThumbUpAltIcon from "@mui/icons-material/ThumbUpAlt";
 import ThumbUpOffAltIcon from "@mui/icons-material/ThumbUpOffAlt";
 import ThumbDownAltIcon from "@mui/icons-material/ThumbDownAlt";
@@ -62,7 +56,7 @@ export const LikeDislikeButtons = React.memo(
         await queryClient.cancelQueries(["video", videoId]);
         const prevData = queryClient.getQueryData(["video", videoId]);
 
-        // Optimistic update
+
         queryClient.setQueryData(["video", videoId], (old) => {
           if (!old?.data) return old;
           const alreadyLiked = old.data.likedBy.includes(userId);
@@ -97,24 +91,26 @@ export const LikeDislikeButtons = React.memo(
         await queryClient.cancelQueries(["video", videoId]);
         const prevData = queryClient.getQueryData(["video", videoId]);
 
+        
         queryClient.setQueryData(["video", videoId], (old) => {
           if (!old?.data) return old;
+          const alreadyLiked = old.data.likedBy.includes(userId);
           const alreadyDisliked = old.data.disLikedBy.includes(userId);
+
           return {
             ...old,
             data: {
               ...old.data,
+              likesCount: alreadyLiked
+                ? old.data.likesCount - 1
+                : old.data.likesCount,
+              likedBy: old.data.likedBy.filter((id) => id !== userId),
               disLikedBy: alreadyDisliked
                 ? old.data.disLikedBy.filter((id) => id !== userId)
                 : [...old.data.disLikedBy, userId],
-              likedBy: old.data.likedBy.filter((id) => id !== userId),
-              likesCount: old.data.likedBy.includes(userId)
-                ? old.data.likesCount - 1
-                : old.data.likesCount,
             },
           };
         });
-
         return { prevData };
       },
       onError: (_, __, context) => {
@@ -178,6 +174,7 @@ export const LikeDislikeButtons = React.memo(
                 <Button
                   disableRipple
                   onClick={handleLikeClick}
+                  disabled={likeMutation.isLoading}
                   sx={{
                     px: "8px",
                     py: 0,
@@ -222,11 +219,14 @@ export const LikeDislikeButtons = React.memo(
                 disableInteractive
                 disableFocusListener
                 disableTouchListener
-                title={isDislike.isDisliked ? "Remove dislike" : "I dislike this"}
+                title={
+                  isDislike.isDisliked ? "Remove dislike" : "I dislike this"
+                }
               >
                 <Button
                   disableRipple
                   onClick={handleDislikeClick}
+                  disabled={dislikeMutation.isLoading}
                   sx={{
                     px: "8px",
                     py: 0,

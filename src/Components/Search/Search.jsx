@@ -17,7 +17,6 @@ export default function Search({
   setSearchQuery,
   setSearchMenu,
 }) {
-  
   return !isMobile ? (
     <Paper
       onSubmit={handleSearch}
@@ -61,7 +60,7 @@ export default function Search({
   ) : (
     <Box
       sx={{
-        height: "var(--toolbar-height)",
+        height: "var(--header-height)",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
