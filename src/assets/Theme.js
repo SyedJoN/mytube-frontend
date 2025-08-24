@@ -27,7 +27,7 @@ let theme = createTheme({
     },
     breakpoints: {
       values: {
-        xs: 0,   // Mobile screen
+        xs: 400,   // Mobile screen
         sm: 600, // Small tablets
         md: 792, // Tablets
         lg: 1284, // Laptops

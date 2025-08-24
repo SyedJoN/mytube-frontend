@@ -87,8 +87,8 @@ const Comments = ({
   const [deleteTargetId, setDeleteTargetId] = useState(null);
   const [isEditable, setIsEditable] = useState(false);
   const [isSignIn, setIsSignIn] = useState(false);
-  
-      const { showMessage } = useSnackbar();
+
+  const { showMessage } = useSnackbar();
 
   const [isLike, setIsLike] = useState({
     isLiked: comment?.LikedBy?.includes(userData?.data?._id) || false,
@@ -425,6 +425,7 @@ const Comments = ({
                 {isLike.isLiked ? (
                   <Tooltip title="Unlike">
                     <IconButton
+                      onClick={() => toggleLike(comment._id)}
                       sx={{
                         padding: 0,
                         width: "32px",
@@ -435,7 +436,6 @@ const Comments = ({
                       }}
                     >
                       <ThumbUpAltIcon
-                        onClick={() => toggleLike(comment._id)}
                         sx={{
                           cursor: "pointer",
                           color: "#f1f1f1",
@@ -447,6 +447,7 @@ const Comments = ({
                 ) : (
                   <Tooltip title="Like">
                     <IconButton
+                      onClick={() => toggleLike(comment._id)}
                       sx={{
                         padding: 0,
                         width: "32px",
@@ -457,7 +458,6 @@ const Comments = ({
                       }}
                     >
                       <ThumbUpOffAltIcon
-                        onClick={() => toggleLike(comment._id)}
                         sx={{
                           cursor: "pointer",
                           color: "#fff",
@@ -493,6 +493,8 @@ const Comments = ({
                 {isDislike.isDisliked ? (
                   <Tooltip title="Remove dislike">
                     <IconButton
+                        onClick={() => toggleDislike(comment._id)}
+
                       sx={{
                         padding: 0,
                         width: "32px",
@@ -503,7 +505,6 @@ const Comments = ({
                       }}
                     >
                       <ThumbDownAltIcon
-                        onClick={() => toggleDislike(comment._id)}
                         sx={{
                           cursor: "pointer",
                           color: "#fff",
@@ -515,6 +516,8 @@ const Comments = ({
                 ) : (
                   <Tooltip title="Dislike">
                     <IconButton
+                        onClick={() => toggleDislike(comment._id)}
+
                       sx={{
                         padding: 0,
                         width: "32px",
@@ -525,7 +528,6 @@ const Comments = ({
                       }}
                     >
                       <ThumbDownOffAltIcon
-                        onClick={() => toggleDislike(comment._id)}
                         sx={{
                           cursor: "pointer",
                           color: "#fff",
@@ -577,7 +579,11 @@ const Comments = ({
               <>
                 <Box sx={{ display: "flex", alignItems: "center" }}>
                   <Avatar
-                    src={userData?.data?.avatar?.url ? userData?.data?.avatar?.url : null}
+                    src={
+                      userData?.data?.avatar?.url
+                        ? userData?.data?.avatar?.url
+                        : null
+                    }
                     sx={{
                       bgcolor: userData
                         ? getColor(userData?.data?.fullName)
@@ -843,7 +849,6 @@ const Comments = ({
                 })
               }
             />
-
           </Box>
         }
       />

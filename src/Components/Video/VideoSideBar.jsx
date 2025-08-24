@@ -66,7 +66,6 @@ function VideoSideBar({
                 </Grid>
               ) : (
                 <Box
-                  key={video._id}
                   sx={{
                     marginBottom: 1,
                     flexGrow: "1!important",

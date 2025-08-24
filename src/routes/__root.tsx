@@ -136,21 +136,22 @@ function RouteComponent() {
 
     channel.onmessage = (event) => {
       if (event.data.type === "LOGIN") {
-        setAuthenticated(true);
-        refetch();
+        setAuthenticated(true)
+        queryClient.invalidateQueries({ queryKey: [], exact: false }); 
+
       }
       if (event.data.type === "LOGOUT") {
         setData(null);
-        queryClient.setQueryData(["user"], null);
         setAuthenticated(false);
-        refetch();
+        queryClient.clear();
+        queryClient.setQueryData(["user"], null);
       }
     };
 
     return () => {
       channel.close();
     };
-  }, [refetch]);
+  }, []);
 
   const silentRefresh = async () => {
     try {

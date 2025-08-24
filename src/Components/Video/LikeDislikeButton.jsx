@@ -1,10 +1,24 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, {
+  useState,
+  useEffect,
+  useContext,
+  useRef,
+  useCallback,
+} from "react";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { toggleVideoLike } from "../../apis/likeFn";
 import { toggleVideoDislike } from "../../apis/dislikeFn";
 import SignInAlert from "../Dialogs/SignInAlert";
 import Signin from "../Auth/Signin";
-import { Box, Button, Tooltip, Divider, useMediaQuery } from "@mui/material";
+import {
+  Box,
+  Button,
+  Tooltip,
+  Divider,
+  useMediaQuery,
+  Alert,
+  Snackbar,
+} from "@mui/material";
 import ThumbUpAltIcon from "@mui/icons-material/ThumbUpAlt";
 import ThumbUpOffAltIcon from "@mui/icons-material/ThumbUpOffAlt";
 import ThumbDownAltIcon from "@mui/icons-material/ThumbDownAlt";
@@ -26,130 +40,212 @@ export const LikeDislikeButtons = React.memo(
     const isDislikeAlertOpen = activeAlertId === dislikeAlertId;
 
     const [isSignIn, setIsSignIn] = useState(false);
+    const [error, setError] = useState(null);
 
-    // Local derived state
-    const [isLike, setIsLike] = useState({
-      isLiked: data?.data?.likedBy.includes(userId) || false,
-      likeCount: data?.data?.likesCount || 0,
+    const [localState, setLocalState] = useState({
+      isLiked: false,
+      isDisliked: false,
+      likesCount: 0,
     });
-    const [isDislike, setIsDislike] = useState({
-      isDisliked: data?.data?.disLikedBy.includes(userId) || false,
-    });
+
+    const hasMountedRef = useRef(false);
 
     useEffect(() => {
-      if (data?.data) {
-        setIsLike({
-          isLiked: data.data.likedBy.includes(userId) || false,
-          likeCount: data.data.likesCount || 0,
+      if (!hasMountedRef.current && data?.data && userId) {
+        const serverIsLiked =
+          Array.isArray(data.data.likedBy) &&
+          data.data.likedBy.includes(userId);
+        const serverIsDisliked =
+          Array.isArray(data.data.dislikedBy) &&
+          data.data.dislikedBy.includes(userId);
+        const serverLikesCount = data.data.likesCount ?? 0;
+
+        setLocalState({
+          isLiked: serverIsLiked,
+          isDisliked: serverIsDisliked,
+          likesCount: serverLikesCount,
         });
-        setIsDislike({
-          isDisliked: data.data.disLikedBy.includes(userId) || false,
-        });
+
+        hasMountedRef.current = true;
       }
     }, [data?.data, userId]);
 
     /** ========== MUTATIONS ========== */
 
+    // LIKE MUTATION
     const likeMutation = useMutation({
       mutationFn: () => toggleVideoLike(videoId),
-      onMutate: async () => {
-        await queryClient.cancelQueries(["video", videoId]);
-        const prevData = queryClient.getQueryData(["video", videoId]);
+      onMutate: () => {
+        setLocalState((prev) => {
+          const newIsLiked = !prev.isLiked;
+          const newLikesCount = newIsLiked
+            ? prev.likesCount + 1
+            : prev.likesCount - 1;
 
-
-        queryClient.setQueryData(["video", videoId], (old) => {
-          if (!old?.data) return old;
-          const alreadyLiked = old.data.likedBy.includes(userId);
           return {
-            ...old,
-            data: {
-              ...old.data,
-              likesCount: alreadyLiked
-                ? old.data.likesCount - 1
-                : old.data.likesCount + 1,
-              likedBy: alreadyLiked
-                ? old.data.likedBy.filter((id) => id !== userId)
-                : [...old.data.likedBy, userId],
-              disLikedBy: old.data.disLikedBy.filter((id) => id !== userId),
-            },
+            isLiked: newIsLiked,
+            isDisliked: newIsLiked ? false : prev.isDisliked,
+            likesCount: newLikesCount,
           };
         });
 
-        return { prevData };
+        queryClient.setQueryData(["video", videoId], (old) => {
+          if (!old?.data) return old;
+
+          const currentData = old.data;
+          const alreadyLiked = currentData.likedBy?.includes(userId) || false;
+          const newIsLiked = !alreadyLiked;
+          const newLikesCount = newIsLiked
+            ? currentData.likesCount + 1
+            : currentData.likesCount - 1;
+
+          return {
+            ...old,
+            data: {
+              ...currentData,
+              likesCount: newLikesCount,
+              likedBy: newIsLiked
+                ? [
+                    ...(currentData.likedBy?.filter((id) => id !== userId) ||
+                      []),
+                    userId,
+                  ]
+                : currentData.likedBy?.filter((id) => id !== userId) || [],
+              dislikedBy: newIsLiked
+                ? currentData.dislikedBy?.filter((id) => id !== userId) || []
+                : currentData.dislikedBy || [],
+            },
+          };
+        });
       },
-      onError: (_, __, context) => {
-        queryClient.setQueryData(["video", videoId], context.prevData);
-      },
-      onSettled: () => {
-        queryClient.invalidateQueries(["video", videoId]);
+
+      onError: () => {
+        setError("Failed to update like. Please check your connection.");
       },
     });
 
+    // DISLIKE MUTATION 
     const dislikeMutation = useMutation({
       mutationFn: () => toggleVideoDislike(videoId),
-      onMutate: async () => {
-        await queryClient.cancelQueries(["video", videoId]);
-        const prevData = queryClient.getQueryData(["video", videoId]);
 
-        
+      onMutate: () => {
+        setLocalState((prev) => {
+          const newIsDisliked = !prev.isDisliked;
+          const newLikesCount =
+            prev.isLiked && newIsDisliked
+              ? prev.likesCount - 1
+              : prev.likesCount;
+
+          return {
+            isLiked: newIsDisliked ? false : prev.isLiked,
+            isDisliked: newIsDisliked,
+            likesCount: newLikesCount,
+          };
+        });
+
         queryClient.setQueryData(["video", videoId], (old) => {
           if (!old?.data) return old;
-          const alreadyLiked = old.data.likedBy.includes(userId);
-          const alreadyDisliked = old.data.disLikedBy.includes(userId);
+
+          const currentData = old.data;
+          const alreadyDisliked =
+            currentData.dislikedBy?.includes(userId) || false;
+          const alreadyLiked = currentData.likedBy?.includes(userId) || false;
+          const newIsDisliked = !alreadyDisliked;
+          const newLikesCount =
+            alreadyLiked && newIsDisliked
+              ? currentData.likesCount - 1
+              : currentData.likesCount;
 
           return {
             ...old,
             data: {
-              ...old.data,
-              likesCount: alreadyLiked
-                ? old.data.likesCount - 1
-                : old.data.likesCount,
-              likedBy: old.data.likedBy.filter((id) => id !== userId),
-              disLikedBy: alreadyDisliked
-                ? old.data.disLikedBy.filter((id) => id !== userId)
-                : [...old.data.disLikedBy, userId],
+              ...currentData,
+              likesCount: newLikesCount,
+              dislikedBy: newIsDisliked
+                ? [
+                    ...(currentData.dislikedBy?.filter((id) => id !== userId) ||
+                      []),
+                    userId,
+                  ]
+                : currentData.dislikedBy?.filter((id) => id !== userId) || [],
+              likedBy: newIsDisliked
+                ? currentData.likedBy?.filter((id) => id !== userId) || []
+                : currentData.likedBy || [],
             },
           };
         });
-        return { prevData };
       },
-      onError: (_, __, context) => {
-        queryClient.setQueryData(["video", videoId], context.prevData);
-      },
-      onSettled: () => {
-        queryClient.invalidateQueries(["video", videoId]);
+
+      onError: () => {
+        setError("Failed to update dislike. Please check your connection.");
       },
     });
 
     /** ========== HANDLERS ========== */
-    const handleLikeClick = () => {
+    const handleLikeClick = useCallback(() => {
       if (!isAuthenticated) {
         setActiveAlertId(isLikeAlertOpen ? null : likeAlertId);
         return;
       }
-      likeMutation.mutate();
-    };
 
-    const handleDislikeClick = () => {
+      setError(null);
+      likeMutation.mutate();
+    }, [
+      isAuthenticated,
+      isLikeAlertOpen,
+      likeAlertId,
+      setActiveAlertId,
+      likeMutation,
+    ]);
+
+    const handleDislikeClick = useCallback(() => {
       if (!isAuthenticated) {
         setActiveAlertId(isDislikeAlertOpen ? null : dislikeAlertId);
         return;
       }
+
+      setError(null);
       dislikeMutation.mutate();
-    };
+    }, [
+      isAuthenticated,
+      isDislikeAlertOpen,
+      dislikeAlertId,
+      setActiveAlertId,
+      dislikeMutation,
+    ]);
 
-    const handleCloseAlert = () => {
+    const handleCloseAlert = useCallback(() => {
       setActiveAlertId(null);
-    };
+    }, [setActiveAlertId]);
 
-    /** ========== RENDER ========== */
+    const handleCloseError = useCallback(() => {
+      setError(null);
+    }, []);
+
     return (
       <>
+        {/* Error notification */}
+        <Snackbar
+          open={!!error}
+          autoHideDuration={3000}
+          onClose={handleCloseError}
+          anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        >
+          <Alert
+            onClose={handleCloseError}
+            severity="warning"
+            sx={{ width: "100%" }}
+          >
+            {error}
+          </Alert>
+        </Snackbar>
+
         {isSignIn && (
           <Box sx={{ zIndex: 9999, position: "fixed", top: 0, left: 0 }}>
             <Signin open={isSignIn} onClose={() => setIsSignIn(false)} />
           </Box>
         )}
+
         <Box sx={{ flexBasis: 0, mt: 1 }}>
           <Box
             sx={{
@@ -169,12 +265,11 @@ export const LikeDislikeButtons = React.memo(
                 disableInteractive
                 disableFocusListener
                 disableTouchListener
-                title={isLike.isLiked ? "Unlike" : "I like this"}
+                title={localState.isLiked ? "Unlike" : "I like this"}
               >
                 <Button
                   disableRipple
                   onClick={handleLikeClick}
-                  disabled={likeMutation.isLoading}
                   sx={{
                     px: "8px",
                     py: 0,
@@ -182,15 +277,16 @@ export const LikeDislikeButtons = React.memo(
                     height: "34px",
                     borderRadius: "50px 0 0 50px",
                     "&:hover": { background: "rgba(255,255,255,0.2)" },
+                    transition: "background-color 0.2s ease",
                   }}
                 >
-                  {isLike.isLiked ? (
+                  {localState.isLiked ? (
                     <ThumbUpAltIcon sx={{ color: "white", mr: "8px" }} />
                   ) : (
                     <ThumbUpOffAltIcon sx={{ color: "white", mr: "8px" }} />
                   )}
                   <span style={{ color: "white", paddingRight: "8px" }}>
-                    {isLike.likeCount}
+                    {localState.likesCount}
                   </span>
                 </Button>
               </Tooltip>
@@ -220,13 +316,12 @@ export const LikeDislikeButtons = React.memo(
                 disableFocusListener
                 disableTouchListener
                 title={
-                  isDislike.isDisliked ? "Remove dislike" : "I dislike this"
+                  localState.isDisliked ? "Remove dislike" : "I dislike this"
                 }
               >
                 <Button
                   disableRipple
                   onClick={handleDislikeClick}
-                  disabled={dislikeMutation.isLoading}
                   sx={{
                     px: "8px",
                     py: 0,
@@ -234,9 +329,10 @@ export const LikeDislikeButtons = React.memo(
                     height: "34px",
                     borderRadius: "0 50px 50px 0",
                     "&:hover": { background: "rgba(255,255,255,0.2)" },
+                    transition: "background-color 0.2s ease",
                   }}
                 >
-                  {isDislike.isDisliked ? (
+                  {localState.isDisliked ? (
                     <ThumbDownAltIcon sx={{ color: "white", mr: "8px" }} />
                   ) : (
                     <ThumbDownOffAltIcon sx={{ color: "white", mr: "8px" }} />
@@ -244,7 +340,7 @@ export const LikeDislikeButtons = React.memo(
                 </Button>
               </Tooltip>
               <SignInAlert
-                title="Don’t like this video?"
+                title="Don't like this video?"
                 desc="Sign in to make your opinion count"
                 isOpen={isDislikeAlertOpen}
                 setIsOpen={handleCloseAlert}

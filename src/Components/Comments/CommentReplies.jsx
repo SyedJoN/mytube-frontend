@@ -425,6 +425,8 @@ const {showMessage} = useSnackbar();
                 {isLike.isLiked ? (
                   <Tooltip title="Unlike">
                     <IconButton
+                        onClick={(e) => toggleLike(e, reply._id)}
+
                       sx={{
                         padding: 0,
                         width: "32px",
@@ -435,7 +437,6 @@ const {showMessage} = useSnackbar();
                       }}
                     >
                       <ThumbUpAltIcon
-                        onClick={(e) => toggleLike(e, reply._id)}
                         sx={{
                           cursor: "pointer",
                           color: "#f1f1f1",
@@ -447,6 +448,8 @@ const {showMessage} = useSnackbar();
                 ) : (
                   <Tooltip title="Like">
                     <IconButton
+                        onClick={(e) => toggleLike(e, reply._id)}
+
                       sx={{
                         padding: 0,
                         width: "32px",
@@ -457,7 +460,6 @@ const {showMessage} = useSnackbar();
                       }}
                     >
                       <ThumbUpOffAltIcon
-                        onClick={(e) => toggleLike(e, reply._id)}
                         sx={{
                           cursor: "pointer",
                           color: "#fff",
@@ -493,6 +495,8 @@ const {showMessage} = useSnackbar();
                 {isDislike.isDisliked ? (
                   <Tooltip title="Remove dislike">
                     <IconButton
+                        onClick={(e) => toggleDislike(e, reply._id)}
+
                       sx={{
                         padding: 0,
                         width: "32px",
@@ -503,7 +507,6 @@ const {showMessage} = useSnackbar();
                       }}
                     >
                       <ThumbDownAltIcon
-                        onClick={(e) => toggleDislike(e, reply._id)}
                         sx={{
                           cursor: "pointer",
                           color: "#fff",
@@ -515,6 +518,8 @@ const {showMessage} = useSnackbar();
                 ) : (
                   <Tooltip title="Dislike">
                     <IconButton
+                        onClick={(e) => toggleDislike(e, reply._id)}
+
                       sx={{
                         padding: 0,
                         width: "32px",
@@ -525,7 +530,6 @@ const {showMessage} = useSnackbar();
                       }}
                     >
                       <ThumbDownOffAltIcon
-                        onClick={(e) => toggleDislike(e, reply._id)}
                         sx={{
                           cursor: "pointer",
                           color: "#fff",

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useContext } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toggleSubscription } from "../../apis/subscriptionFn";
 import Button from "@mui/material/Button";
@@ -13,6 +13,7 @@ import { useSnackbar } from "../../Contexts/SnackbarContext";
 import Signin from "../Auth/Signin";
 import SignInAlert from "../Dialogs/SignInAlert";
 import { useMediaQuery } from "@mui/material";
+import { UserContext } from "../../Contexts/RootContexts";
 
 const rotateAnimation = keyframes`
   0% { transform: rotate(0deg); }
@@ -46,7 +47,8 @@ export const SubscribeButton = React.memo(
     const currentAlertId = `alert-${channelId}`;
     const paperOpen = activeAlertId === currentAlertId;
     const isTablet = useMediaQuery(theme.breakpoints.down("md"));
-
+    const { data: dataContext } = useContext(UserContext) ?? {};
+    const userId = dataContext?.data?._id;
     const { showMessage } = useSnackbar();
     const [isSubscribed, setIsSubscribed] = useState(initialSubscribed);
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -55,10 +57,12 @@ export const SubscribeButton = React.memo(
     const [shouldAnimate, setShouldAnimate] = useState(false);
     const [showGradient, setShowGradient] = useState(false);
     const [hasLoaded, setHasLoaded] = useState(false);
+    const [isOwner, setIsOwner] = useState(false);
 
     const buttonRef = useRef(null);
     const timeoutIdRef = useRef(null);
     const queryClient = useQueryClient();
+    const hasMountedRef = useRef(false);
 
     const buttonStyles = {
       base: {
@@ -156,18 +160,25 @@ export const SubscribeButton = React.memo(
     };
 
     useEffect(() => {
+      if (userData?.data?._id === userId) {
+        setIsOwner(true);
+      } else {
+        setIsOwner(false);
+      }
+    }, [userData]);
+    useEffect(() => {
       if (!userData?.data) return;
-
-      if (!hasLoaded) {
+      if (!hasMountedRef.current && !hasLoaded) {
         setHasLoaded(true);
+        setIsSubscribed(userData?.data.isSubscribedTo);
+        hasMountedRef.current = true;
       }
     }, [userData]);
 
     const { mutate, isLoading } = useMutation({
       mutationFn: () => toggleSubscription(channelId),
 
-      onMutate: async () => {
-        await queryClient.cancelQueries(["channelProfile", user]);
+      onMutate: () => {
         const prevData = queryClient.getQueryData(["channelProfile", user]);
         const isSubscribing = !prevData?.data?.isSubscribedTo;
 
@@ -206,18 +217,11 @@ export const SubscribeButton = React.memo(
         return { prevData };
       },
 
-      onError: (_, __, context) => {
-        setIsSubscribed(context.prevSubscribed);
-        setSubscriberCount(context.prevCount);
-      },
-
-      onSettled: () => {
-        queryClient.invalidateQueries(["channelProfile", user]);
-      },
-
-      onSuccess: (_, __, context) => {
+      onSuccess: (data) => {
         showMessage(
-          !context.prevData.data.isSubscribedTo ? "Subscription added" : "Subscription removed"
+          data.data.isSubscribedTo
+            ? "Subscription added"
+            : "Subscription removed"
         );
       },
     });
@@ -248,7 +252,7 @@ export const SubscribeButton = React.memo(
             mt: isTablet && channelProfile ? 1 : 0,
           }}
         >
-          {hasLoaded && (
+          {hasLoaded && !isOwner && (
             <Button
               ref={buttonRef}
               disabled={isLoading}

@@ -56,7 +56,6 @@ function WatchVideo({ videoId, playlistId }) {
   const [index, setIndex] = useState(0);
   const [activeAlertId, setActiveAlertId] = useState(null);
   const [shuffledVideos, setShuffledVideos] = useState([]);
-  const [aspectRatio, setAspectRatio] = useState(1);
   const [isMini, setIsMini] = useState(false);
   const [hideMini, setHideMini] = useState(false);
   const [isTheatre, setIsTheatre] = usePlayerSetting("theatreMode", false);
@@ -82,14 +81,12 @@ function WatchVideo({ videoId, playlistId }) {
     if (!headerEl) return;
 
     if (!isFullscreen) {
-      // 🔹 When fullscreen is OFF → reset to normal
       requestAnimationFrame(() => {
         headerEl.style.transform = "none";
       });
       return;
     }
 
-    // 🔹 When fullscreen is ON → start hidden
     headerEl.style.transform = "translateY(calc(-100% - 5px))";
 
     if (!fullScreenEl) return;
@@ -110,7 +107,6 @@ function WatchVideo({ videoId, playlistId }) {
 
     return () => {
       fullScreenEl.removeEventListener("scroll", onScroll);
-      // no need to reset here — already handled by !isFullscreen branch
     };
   }, [isFullscreen]);
 
@@ -129,51 +125,14 @@ function WatchVideo({ videoId, playlistId }) {
   const showMainSidebar =
     (isTheatre && isCustomWidth && !isFullscreen) || !isTheatre;
 
-  // Stable keys to prevent component re-mounting
-  const sidebarKey = useMemo(
-    () =>
-      `sidebar-${videoId}-${isTheatre ? "theatre" : "normal"}-${isFullscreen ? "fs" : "windowed"}`,
-    [videoId, isTheatre, isFullscreen]
-  );
-
   // Data fetching - Video
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["video", videoId],
     queryFn: () => fetchVideoById(videoId),
     refetchOnWindowFocus: false,
     enabled: !!videoId,
+    staleTime: 5 * 60 * 1000,
   });
-
-  // Storing aspect-ratio
-
-  useEffect(() => {
-    const video = videoRef.current;
-    const flexyWatchContainer = watchRef.current;
-    if (!video || flexyWatchContainer) return;
-    const updateAspectRatio = () => {
-      if (video.videoWidth && video.videoHeight) {
-        setAspectRatio(video.videoWidth / video.videoHeight);
-        flexyWatchContainer.style.setProperty(
-          "--flexy-vt-player-width",
-          video.videoWidth
-        );
-        flexyWatchContainer.style.setProperty(
-          "--flexy-vt-player-height",
-          video.videoHeight
-        );
-      }
-    };
-
-    // Listen for when metadata is loaded
-    video.addEventListener("loadedmetadata", updateAspectRatio);
-
-    // In case metadata is already loaded (cached video)
-    updateAspectRatio();
-
-    return () => {
-      video.removeEventListener("loadedmetadata", updateAspectRatio);
-    };
-  }, [isTheatre, data?.data?._id, isFullscreen, isMini]);
 
   // Data fetching - Videos list
   const {
@@ -185,6 +144,7 @@ function WatchVideo({ videoId, playlistId }) {
     queryKey: ["videos"],
     queryFn: fetchVideos,
     refetchOnWindowFocus: false,
+    staleTime: 5 * 60 * 1000,
   });
 
   // Extract video owner data
@@ -204,6 +164,7 @@ function WatchVideo({ videoId, playlistId }) {
     queryFn: () => getUserChannelProfile(user),
     refetchOnWindowFocus: false,
     enabled: !!user,
+    staleTime: 5 * 60 * 1000,
   });
 
   // Data fetching - Playlist
@@ -216,25 +177,26 @@ function WatchVideo({ videoId, playlistId }) {
     queryFn: () => fetchPlaylistById(playlistId),
     refetchOnWindowFocus: false,
     enabled: !!playlistId,
+    staleTime: 5 * 60 * 1000,
   });
 
   // Extracted data
   const playlistVideos = playlistData?.data?.videos || [];
   const videos = listVideoData?.data?.docs || [];
 
-  // Effect: Handle fullscreen changes
-
   // Effect: Shuffle videos for sidebar
   useEffect(() => {
     if (!videos || !videoId) return;
 
-    const filtered = videos.filter((video) => video._id !== videoId);
-    const shuffled = filtered.length > 0 ? shuffleArray(filtered) : [...videos];
+    setShuffledVideos((prev) => {
+      if (prev.length > 0) return prev;
+      const otherVideos = videos.filter((video) => video._id !== videoId);
 
-    startTransition(() => {
-      setShuffledVideos(shuffled);
+      const shuffled = otherVideos.length > 0 ? shuffleArray(otherVideos) : [];
+
+      return shuffled;
     });
-  }, [videoId, videos]);
+  }, [videos, videoId]);
 
   // Effect: Update subscriber count
   useEffect(() => {
@@ -260,6 +222,7 @@ function WatchVideo({ videoId, playlistId }) {
       queryClient.prefetchQuery({
         queryKey: ["video", playlistVideos[index + 1]._id],
         queryFn: () => fetchVideoById(playlistVideos[index + 1]._id),
+        staleTime: 5 * 60 * 1000,
       });
     }
   }, [playlistVideos, index, queryClient]);
@@ -303,7 +266,6 @@ function WatchVideo({ videoId, playlistId }) {
     hideMini,
     setHideMini,
     watchRef,
-    aspectRatio,
     playerMinHeight,
   };
 
@@ -377,8 +339,8 @@ function WatchVideo({ videoId, playlistId }) {
 
   // Memoized components to prevent re-mounting
   const MemoizedVideoSideBar = useMemo(
-    () => <VideoSideBar key={sidebarKey} data={data} {...videoSideBarProps} />,
-    [sidebarKey, videoSideBarProps]
+    () => <VideoSideBar data={data} {...videoSideBarProps} />,
+    [data, videoSideBarProps]
   );
 
   const MemoizedPlaylistContainer = useMemo(
@@ -463,12 +425,10 @@ function WatchVideo({ videoId, playlistId }) {
 
   // Style constants
   const gridMaxWidth = "var(--vtd-watch-flexy-max-player-width)";
-
   const gridMinWidth = "var(--vtd-watch-flexy-min-player-width)";
-
   const inverseHeaderTop = "calc(-1 * (var(--header-height)))";
-
   const margin6x = "var(--vtd-margin-6x)";
+
   return (
     <Grid
       ref={watchRef}
@@ -499,8 +459,7 @@ function WatchVideo({ videoId, playlistId }) {
           width: isWideLayout ? "100%!important" : "",
           flex: 1,
           background: "#0f0f0f",
-        boxSizing: "content-box",
-
+          boxSizing: "content-box",
         }}
       >
         {/* Video Player */}
@@ -565,7 +524,9 @@ function WatchVideo({ videoId, playlistId }) {
           size={{ xs: 12, sm: 12, md: 4 }}
           sx={{
             flexGrow: isCustomWidth ? "1" : "0",
-            width: isCustomWidth ? "100%!important" : "var(--vtd-watch-flexy-sidebar-width)!important",
+            width: isCustomWidth
+              ? "100%!important"
+              : "var(--vtd-watch-flexy-sidebar-width)!important",
             flex: 1,
             minWidth: "var(--vtd-watch-flexy-sidebar-min-width)",
             py: margin6x,
