@@ -13,6 +13,7 @@ import ButtonGroup from "@mui/material/ButtonGroup";
 import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
 import handleMouseDown from "../../helper/intertactionHelper";
 import Interaction from "../Utils/Interaction";
+import SideVideosList from "./SideVideosList";
 
 function VideoSideBar({
   shuffledVideos,
@@ -46,7 +47,7 @@ function VideoSideBar({
             <React.Fragment key={video._id}>
               {isCustomWidth ? (
                 <Grid size={gridSize}>
-                  <VideoCard
+                  <SideVideosList
                     owner={video?.owner?.username}
                     verifyInteraction={true}
                     videoId={video._id}
@@ -72,7 +73,7 @@ function VideoSideBar({
                     width: "100%",
                   }}
                 >
-                  <VideoCard
+                  <SideVideosList
                     verifyInteraction={true}
                     owner={video?.owner?.username}
                     videoId={video._id}

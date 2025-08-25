@@ -39,7 +39,7 @@ export const ProgressLists = ({
     isSeeking: false,
     playerWidth: 528,
     playerHeight: 297,
-    left: 0
+    left: 0,
   });
   const { thumbRef, prevVideoStateRef, sliderRef, rafId } = useRefReducer({
     thumbRef: state.progress || null,
@@ -163,8 +163,6 @@ export const ProgressLists = ({
       });
     };
   }, [throttledUpdate]);
-
-
 
   useEffect(() => {
     if (!vttUrl) return;
@@ -416,11 +414,7 @@ export const ProgressLists = ({
     Math.min(state.hoverX - half, state.BarWidth - previewWidth)
   );
 
-  function getBackgroundPosition(
-    cueText,
-    previewWidth = customFrameWidth,
-  
-  ) {
+  function getBackgroundPosition(cueText, previewWidth = customFrameWidth) {
     if (typeof cueText !== "string") return {};
     const [urlPart = "", frag = ""] = cueText.split("#");
     if (typeof frag !== "string" || !frag.startsWith("xywh=")) return {};
@@ -443,11 +437,7 @@ export const ProgressLists = ({
     };
   }
 
-  function getBackgroundPositionDefault(
-    cueText,
-    previewWidth = 240,
-
-  ) {
+  function getBackgroundPositionDefault(cueText, previewWidth = 240) {
     if (typeof cueText !== "string") return {};
     const [urlPart = "", frag = ""] = cueText.split("#");
     if (typeof frag !== "string" || !frag.startsWith("xywh=")) return {};
@@ -483,15 +473,15 @@ export const ProgressLists = ({
   );
 
   useEffect(() => {
-  if (videoRef.current) {
-    const rect = videoRef.current.getBoundingClientRect();
-  console.log(rect?.left)
+    if (videoRef.current) {
+      const rect = videoRef.current.getBoundingClientRect();
+      console.log(rect?.left);
 
-    updateState({
-      left: rect.left
-    }) // px from viewport left
-  }
-}, [vttUrl]);
+      updateState({
+        left: rect.left,
+      }); // px from viewport left
+    }
+  }, [vttUrl]);
 
   return (
     <Box
@@ -625,10 +615,11 @@ export const ProgressLists = ({
           sx={{
             position: "relative",
             transform:
-              state.isProgressEntered && !playsInline && isMini 
-                ? "scaleY(1.5)" :
-                state.isProgressEntered && !playsInline && !isMini ? "scaleY(1.2)"
-                : "scaleY(.6)",
+              state.isProgressEntered && !playsInline && isMini
+                ? "scaleY(1.5)"
+                : state.isProgressEntered && !playsInline && !isMini
+                  ? "scaleY(1.2)"
+                  : "scaleY(.6)",
             height: "100%",
             background: isMini ? "rgb(51,51,51)" : "rgba(255,255,255,0.2)",
             transition: "transform .3s cubic-bezier(1, 0, 0.4, 0.4)",
@@ -728,9 +719,7 @@ export const ProgressLists = ({
   );
 };
 
-export default React.memo(
-  ProgressLists,
-  (prev, next) => prev.vttUrl === next.vttUrl &&
-  prev.isMini === next.isMini &&
-  prev.playsInline === next.playsInline
-);
+export default React.memo(ProgressLists, (prevProps, nextProps) => {
+  const compareKeys = ["vttUrl", "isMini", "playsInline"];
+  return compareKeys.every((key) => prevProps[key] === nextProps[key]);
+});

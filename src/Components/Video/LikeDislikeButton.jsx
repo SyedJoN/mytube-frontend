@@ -33,6 +33,7 @@ export const LikeDislikeButtons = React.memo(
 
     const isTablet = useMediaQuery("(max-width:959px)");
     const isMobile = useMediaQuery("(max-width:526px)");
+    const isCustomWidth = useMediaQuery("(max-width:1014px)");
 
     const likeAlertId = `like-alert-${videoId}`;
     const dislikeAlertId = `dislike-alert-${videoId}`;
@@ -124,7 +125,7 @@ export const LikeDislikeButtons = React.memo(
       },
     });
 
-    // DISLIKE MUTATION 
+    // DISLIKE MUTATION
     const dislikeMutation = useMutation({
       mutationFn: () => toggleVideoDislike(videoId),
 
@@ -297,7 +298,8 @@ export const LikeDislikeButtons = React.memo(
                 setIsOpen={handleCloseAlert}
                 onConfirm={() => setIsSignIn(true)}
                 handleClose={handleCloseAlert}
-                leftVal={isTablet && !isMobile ? "-168px" : "0px"}
+                leftVal={isMobile ? "0px" : isCustomWidth ? "-150px" : "168px"}
+                width={isMobile ? "150px" : "250px"}
                 setActiveAlertId={setActiveAlertId}
               />
             </Box>
@@ -347,6 +349,7 @@ export const LikeDislikeButtons = React.memo(
                 onConfirm={() => setIsSignIn(true)}
                 handleClose={handleCloseAlert}
                 leftVal={isTablet && !isMobile ? "-168px" : "0px"}
+                width={isMobile ? "150px" : "250px"}
                 setActiveAlertId={setActiveAlertId}
               />
             </Box>

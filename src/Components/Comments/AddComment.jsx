@@ -7,7 +7,7 @@ import React, {
   useCallback,
   useContext,
 } from "react";
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, useMediaQuery, useTheme } from "@mui/material";
 import CardHeader from "@mui/material/CardHeader";
 import EmojiPickerWrapper from "../Utils/EmojiPickerWrapper";
 import SignInAlert from "../Dialogs/SignInAlert";
@@ -58,6 +58,8 @@ function AddComment({
   const queryClient = useQueryClient();
   const context = useContext(UserContext);
   let { data: userData } = context ?? {};
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const emojiPickerRef = useRef(null);
   const [addCommentBox, setAddComment] = useState(false);
@@ -148,12 +150,12 @@ function AddComment({
           <Signin open={isSignIn} onClose={() => setIsSignIn(false)} />
         </Box>
       )}
-      <Box sx={{marginTop: "24px"}} >
+      <Box sx={{ marginTop: "24px" }}>
         <Typography variant="h6" color="rgb(255,255,255)" fontWeight={600}>
-  {commentsData
-    ? `${commentsData.length} ${commentsData.length === 1 ? "Comment" : "Comments"}`
-    : "0 Comments"}
-</Typography>
+          {commentsData
+            ? `${commentsData.length} ${commentsData.length === 1 ? "Comment" : "Comments"}`
+            : "0 Comments"}
+        </Typography>
 
         <Box sx={{ display: "flex", alignItems: "center", marginTop: "-6px" }}>
           <CardHeader
@@ -171,7 +173,11 @@ function AddComment({
             }}
             avatar={
               <Avatar
-                src={userData?.data?.avatar?.url ? userData?.data?.avatar?.url : null}
+                src={
+                  userData?.data?.avatar?.url
+                    ? userData?.data?.avatar?.url
+                    : null
+                }
                 sx={{
                   bgcolor: userData
                     ? getColor(userData?.data?.fullName)
@@ -209,23 +215,24 @@ function AddComment({
               variant="standard"
             >
               <InputLabel
-              className="inputLabel-comment"
+                className="inputLabel-comment"
                 disabled={comment !== ""}
                 sx={{
                   color: "rgba(255,255,255,0.7)",
                   fontSize: "1.1rem",
                   transform: "translate(0, 23.5px) scale(0.75)",
                   ...(!isAuthenticated && {
-        "&.Mui-focused": {
-          color: "rgba(255,255,255,0.7)",
-        }, })
+                    "&.Mui-focused": {
+                      color: "rgba(255,255,255,0.7)",
+                    },
+                  }),
                 }}
                 htmlFor="standard-adornment-amount"
               >
                 Add a comment...
               </InputLabel>
               <Input
-                readOnly={!isAuthenticated} 
+                readOnly={!isAuthenticated}
                 multiline
                 value={comment}
                 onChange={handleInputChange}
@@ -236,11 +243,12 @@ function AddComment({
                     borderBottom: "1px solid #717171 !important",
                   },
                   "&::after": {
-                    borderBottom: isAuthenticated ? "2px solid rgb(255,255,255) !important" : "revert",
+                    borderBottom: isAuthenticated
+                      ? "2px solid rgb(255,255,255) !important"
+                      : "revert",
                   },
                   "& textarea": {
                     color: "rgb(255,255,255) !important",
-                    
                   },
                   "&input:-webkit-autofill": {
                     WebkitBoxShadow: "0 0 0px 1000px #0f0f0f inset",
@@ -256,7 +264,10 @@ function AddComment({
                 title="Sign in to continue"
                 isOpen={paperOpen}
                 handleClose={handleCloseAlert}
+                rightVal={"0"}
+                leftVal={""}
                 setActiveAlertId={setActiveAlertId}
+                width={isMobile ? "150px" : "250px"}
                 onConfirm={() => setIsSignIn(true)}
               />
             </FormControl>

@@ -89,6 +89,7 @@ const VideoControls = ({
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isXsMobile = useMediaQuery(theme.breakpoints.down("xs"));
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
   const isDesktop = useMediaQuery(theme.breakpoints.down("xl"));
   const isFullscreen = useFullscreen();
@@ -368,12 +369,8 @@ const VideoControls = ({
       updateState({ volumeSlider: volumeValue });
       setPreviousVolume(volumeValue);
     }
+  videoRef.current.volume = normalizedVolume;
   };
-
-  // updateState({
-  //   volume: newVolume <= 0 ? 0 : Number(newVolume * 40).toFixed(1),
-  // });
-
   const handleVolumeEnd = () => {
     window.removeEventListener("mousemove", handleVolumeMove);
     window.removeEventListener("mouseup", handleVolumeEnd);
@@ -650,7 +647,7 @@ const VideoControls = ({
               </Tooltip>
             </Box>
 
-            <IconButton disableRipple sx={{ cursor: "default" }}>
+            <IconButton disableRipple sx={{ display: isXsMobile ? "none" : "inline-flex", cursor: "default" }}>
               <Typography sx={{ color: "#f1f1f1" }} fontSize={"0.85rem"}>
                 {formatDuration(
                   Math.min(

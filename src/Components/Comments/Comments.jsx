@@ -89,6 +89,7 @@ const Comments = ({
   const [isSignIn, setIsSignIn] = useState(false);
 
   const { showMessage } = useSnackbar();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
 
   const [isLike, setIsLike] = useState({
     isLiked: comment?.LikedBy?.includes(userData?.data?._id) || false,
@@ -476,6 +477,8 @@ const Comments = ({
                   onConfirm={() => setIsSignIn(true)}
                   handleClose={handleCloseAlert}
                   leftVal="0px"
+                  width={isMobile ? "150px" : "250px"}
+
                 />
               </Box>
               {isLike.likeCount && (
@@ -493,8 +496,7 @@ const Comments = ({
                 {isDislike.isDisliked ? (
                   <Tooltip title="Remove dislike">
                     <IconButton
-                        onClick={() => toggleDislike(comment._id)}
-
+                      onClick={() => toggleDislike(comment._id)}
                       sx={{
                         padding: 0,
                         width: "32px",
@@ -516,8 +518,7 @@ const Comments = ({
                 ) : (
                   <Tooltip title="Dislike">
                     <IconButton
-                        onClick={() => toggleDislike(comment._id)}
-
+                      onClick={() => toggleDislike(comment._id)}
                       sx={{
                         padding: 0,
                         width: "32px",
@@ -546,6 +547,8 @@ const Comments = ({
                   onConfirm={() => setIsSignIn(true)}
                   handleClose={handleCloseAlert}
                   leftVal="0px"
+                  width={isMobile ? "150px" : "250px"}
+
                 />
               </Box>
               <Box sx={{ position: "relative", padding: 0, marginLeft: "8px" }}>
@@ -570,8 +573,11 @@ const Comments = ({
                   title="Sign in to continue"
                   isOpen={paperOpen}
                   handleClose={handleCloseAlert}
+                  rightVal={""}
+                  leftVal={"0"}
                   setActiveAlertId={setActiveAlertId}
                   onConfirm={() => setIsSignIn(true)}
+                  width={isMobile ? "150px" : "250px"}
                 />
               </Box>
             </ButtonGroup>

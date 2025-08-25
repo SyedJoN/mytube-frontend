@@ -953,9 +953,7 @@ function VideoPlayer(
 
         video.volume = newVol;
         newState.volume = newVol * 40;
-        newState.volumeSlider = !prev.isMuted ? newVol * 40 : 0;
-        setPreviousVolume((p) => (!prev.isMuted ? prev.volume : p));
-        console.log("prev.vol", prev.volume);
+        setPreviousVolume(newVol * 40);
 
         return newState;
       });
@@ -1309,9 +1307,10 @@ function VideoPlayer(
   }, [previousVolume]);
 
   const updateVolumeIconState = useCallback(() => {
+    const video = videoRef.current;
     const currentVolume = videoRef.current?.volume ?? 0;
 
-    if (currentVolume === 0) {
+    if (currentVolume === 0 || video.muted) {
       updateState({
         volumeMuted: true,
         volumeUp: false,
@@ -1462,11 +1461,13 @@ function VideoPlayer(
           });
         });
         handleVolumeToggle();
-        updateVolumeIconState();
-        if (volTimeoutRef.current) {
-          clearTimeout(volTimeoutRef.current);
+        requestAnimationFrame(() => {
+          updateVolumeIconState();
+        });
+        if (hideVolumeTimer.current) {
+          clearTimeout(hideVolumeTimer.current);
         }
-        volTimeoutRef.current = setTimeout(() => {
+        hideVolumeTimer.current = setTimeout(() => {
           updateState({ isVolumeChanged: false });
         }, 400);
       } else if (e.key.toLowerCase() === "t") {
@@ -1506,8 +1507,6 @@ function VideoPlayer(
       window.removeEventListener("keydown", handleKeyPress);
       window.removeEventListener("keyup", handleKeyUp);
       if (rafId) cancelAnimationFrame(rafId);
-      clearTimeout(volTimeoutRef.current);
-      volTimeoutRef.current = null;
     };
   }, [
     handleForwardSeek,
@@ -1575,15 +1574,17 @@ function VideoPlayer(
         className="player-inner"
         sx={{
           position: "relative",
-          height: isFullscreen ? "100%" : "",
+          height: isFullscreen && !isTheatre ? "100%" : "none",
           paddingTop:
-            isTheatre || isCustomWidth || isMobile || isFullscreen
+            isCustomWidth || isMobile
               ? ""
-              : "calc(var(--vtd-watch-flexy-player-height-ratio) / var(--vtd-watch-flexy-player-width-ratio) * 100%)",
+              : isFullscreen || isTheatre
+                ? "calc((9/16)*1px)"
+                : "calc(var(--vtd-watch-flexy-player-height-ratio) / var(--vtd-watch-flexy-player-width-ratio) * 100%)",
         }}
       >
         <Box
-          data-theatre={isTheatre}
+          data-theatre={isTheatre && !isFullscreen}
           data-fullbleed={isCustomWidth}
           data-fullscreen={isFullscreen}
           ref={containerRef}

@@ -67,7 +67,7 @@ function CommentReplies({
   const dislikeAlertId = `reply-dislike-${reply._id}`;
   const isLikeAlertOpen = activeAlertId === likeAlertId;
   const isDislikeAlertOpen = activeAlertId === dislikeAlertId;
-const {showMessage} = useSnackbar();
+  const { showMessage } = useSnackbar();
   const theme = useTheme();
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
   const queryClient = useQueryClient();
@@ -76,7 +76,7 @@ const {showMessage} = useSnackbar();
   const [addReply, setAddReply] = useState(null);
   const [replies, setReplies] = useState({});
   const [isSignIn, setIsSignIn] = useState(false);
-
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
   const [subReplies, setSubReplies] = useState({});
   const [deleteTargetId, setDeleteTargetId] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -425,8 +425,7 @@ const {showMessage} = useSnackbar();
                 {isLike.isLiked ? (
                   <Tooltip title="Unlike">
                     <IconButton
-                        onClick={(e) => toggleLike(e, reply._id)}
-
+                      onClick={(e) => toggleLike(e, reply._id)}
                       sx={{
                         padding: 0,
                         width: "32px",
@@ -448,8 +447,7 @@ const {showMessage} = useSnackbar();
                 ) : (
                   <Tooltip title="Like">
                     <IconButton
-                        onClick={(e) => toggleLike(e, reply._id)}
-
+                      onClick={(e) => toggleLike(e, reply._id)}
                       sx={{
                         padding: 0,
                         width: "32px",
@@ -477,7 +475,10 @@ const {showMessage} = useSnackbar();
                   setActiveAlertId={setActiveAlertId}
                   onConfirm={() => setIsSignIn(true)}
                   handleClose={handleCloseAlert}
-                  leftVal="0px"
+                  rightVal={""}
+                  leftVal={"0"}
+                  width={isMobile ? "150px" : "250px"}
+
                 />
               </Box>
               {isLike.likeCount && (
@@ -495,8 +496,7 @@ const {showMessage} = useSnackbar();
                 {isDislike.isDisliked ? (
                   <Tooltip title="Remove dislike">
                     <IconButton
-                        onClick={(e) => toggleDislike(e, reply._id)}
-
+                      onClick={(e) => toggleDislike(e, reply._id)}
                       sx={{
                         padding: 0,
                         width: "32px",
@@ -518,8 +518,7 @@ const {showMessage} = useSnackbar();
                 ) : (
                   <Tooltip title="Dislike">
                     <IconButton
-                        onClick={(e) => toggleDislike(e, reply._id)}
-
+                      onClick={(e) => toggleDislike(e, reply._id)}
                       sx={{
                         padding: 0,
                         width: "32px",
@@ -547,7 +546,10 @@ const {showMessage} = useSnackbar();
                   setActiveAlertId={setActiveAlertId}
                   onConfirm={() => setIsSignIn(true)}
                   handleClose={handleCloseAlert}
-                  leftVal="0px"
+                  rightVal={""}
+                  leftVal={"-66px"}
+                  width={isMobile ? "150px" : "250px"}
+
                 />
               </Box>
               <Box sx={{ position: "relative", padding: 0, marginLeft: "8px" }}>
@@ -573,6 +575,9 @@ const {showMessage} = useSnackbar();
                   isOpen={paperOpen}
                   handleClose={handleCloseAlert}
                   setActiveAlertId={setActiveAlertId}
+                  rightVal={""}
+                  leftVal={"0"}
+                  width={isMobile ? "150px" : "250px"}
                   onConfirm={() => setIsSignIn(true)}
                 />
               </Box>
@@ -581,7 +586,11 @@ const {showMessage} = useSnackbar();
               <>
                 <Box sx={{ display: "flex", alignItems: "center" }}>
                   <Avatar
-                    src={userData?.data?.avatar?.url ? userData?.data?.avatar?.url : null}
+                    src={
+                      userData?.data?.avatar?.url
+                        ? userData?.data?.avatar?.url
+                        : null
+                    }
                     sx={{
                       bgcolor: userData
                         ? getColor(userData?.data?.fullName)

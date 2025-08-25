@@ -64,6 +64,8 @@ export const SubscribeButton = React.memo(
     const queryClient = useQueryClient();
     const hasMountedRef = useRef(false);
 
+    const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
     const buttonStyles = {
       base: {
         position: "relative",
@@ -325,7 +327,9 @@ export const SubscribeButton = React.memo(
             handleClose={handleCloseAlert}
             onConfirm={() => setIsSignIn(true)}
             setActiveAlertId={setActiveAlertId}
-            leftVal="225px"
+            width={isMobile ? "150px" : "250px"}
+            leftVal=""
+            rightVal={"0"}
           />
         </Box>
       </>

@@ -133,7 +133,7 @@ function VideoCard({
   activeOptionsId,
   setActiveOptionsId,
   videoMd,
-  scrollContainerRef,
+
 }) {
   const navigate = useNavigate();
 
@@ -171,12 +171,12 @@ function VideoCard({
   });
 
   const context = React.useContext(UserInteractionContext);
+  const { setIsUserInteracted } = context ?? {};
   const userContext = React.useContext(UserContext);
   const { getTimeStamp, setTimeStamp } = React.useContext(TimeStampContext);
   const { data: dataContext } = userContext ?? {};
   const isAuthenticated = dataContext || null;
   const userId = dataContext?.data?._id || null;
-  const { setIsUserInteracted } = context ?? {};
 
   const playlistVideoId = playlist?.videos?.map((video) => {
     return video._id;
@@ -188,6 +188,8 @@ function VideoCard({
     refetchOnWindowFocus: false,
     queryFn: getWatchHistory,
     enabled: !!userId,
+    staleTime: 10 * 60 * 1000
+
   });
 
   React.useEffect(() => {
@@ -217,7 +219,14 @@ function VideoCard({
       isMounted = false;
     };
   }, [userId]);
-
+React.useEffect(() => {
+  console.log('Component re-rendered', {
+    thumbnail,
+    isHoverPlay,
+    isVideoPlaying,
+    searchParams
+  });
+});
   React.useEffect(() => {
     const video = hoverVideoRef?.current;
     const tracker = hoverTrackerRef.current;

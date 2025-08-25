@@ -6,12 +6,10 @@ import {
   useCallback,
   startTransition,
   useRef,
-  forwardRef,
 } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Grid, useMediaQuery, useTheme, Box } from "@mui/material";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { filter } from "lodash";
 
 // Components
 import VideoPlayer from "../Components/Video/VideoPlayer";
@@ -26,15 +24,10 @@ import { fetchPlaylistById } from "../apis/playlistFn";
 import { getUserChannelProfile } from "../apis/userFn";
 import { shuffleArray } from "../helper/shuffle";
 import { usePlayerSetting } from "../helper/usePlayerSettings";
-import {
-  DrawerContext,
-  UserContext,
-  UserInteractionContext,
-} from "../Contexts/RootContexts";
+import { DrawerContext, UserContext } from "../Contexts/RootContexts";
 import { useFullscreen } from "../Components/Utils/useFullScreen";
 
 function WatchVideo({ videoId, playlistId }) {
-  // Hooks and Context
   const navigate = useNavigate();
   const userContext = useContext(UserContext);
   const { open } = useContext(DrawerContext);
@@ -46,13 +39,12 @@ function WatchVideo({ videoId, playlistId }) {
   const fsRef = useRef(null);
   const videoRef = useRef(null);
 
-  // Responsive breakpoints
+  // Responsive
   const isCustomWidth = useMediaQuery("(max-width:1014px)");
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isDesktop = useMediaQuery(theme.breakpoints.down("xl"));
 
-  // State management
+  // State
   const { data: dataContext } = userContext ?? {};
-  const isAuthenticated = dataContext || null;
   const [index, setIndex] = useState(0);
   const [activeAlertId, setActiveAlertId] = useState(null);
   const [shuffledVideos, setShuffledVideos] = useState([]);
@@ -63,9 +55,8 @@ function WatchVideo({ videoId, playlistId }) {
   const [subscriberCount, setSubscriberCount] = useState(0);
   const isFullscreen = useFullscreen();
 
+  // fullscreen body attribute
   useEffect(() => {
-    const fullScreenEl = watchRef.current;
-    if (!fullScreenEl) return;
     if (isFullscreen) {
       document.body.setAttribute("fullscreen-mode", "");
     } else {
@@ -74,10 +65,10 @@ function WatchVideo({ videoId, playlistId }) {
     return () => document.body.removeAttribute("fullscreen-mode");
   }, [isFullscreen]);
 
+  // fullscreen header hide/show
   useEffect(() => {
     const fullScreenEl = fsRef.current;
     const headerEl = document.querySelector("#header");
-
     if (!headerEl) return;
 
     if (!isFullscreen) {
@@ -90,24 +81,18 @@ function WatchVideo({ videoId, playlistId }) {
     headerEl.style.transform = "translateY(calc(-100% - 5px))";
 
     if (!fullScreenEl) return;
-
     const onScroll = () => {
       const headerHeight = headerEl.offsetHeight || 56;
       const y = Math.min(fullScreenEl.scrollTop, headerHeight);
-
       const percent = -100 + (y / headerHeight) * 100;
       const px = -5 + 5 * (y / headerHeight);
-
       requestAnimationFrame(() => {
         headerEl.style.transform = `translateY(calc(${percent}% + ${px}px))`;
       });
     };
 
     fullScreenEl.addEventListener("scroll", onScroll);
-
-    return () => {
-      fullScreenEl.removeEventListener("scroll", onScroll);
-    };
+    return () => fullScreenEl.removeEventListener("scroll", onScroll);
   }, [isFullscreen]);
 
   useEffect(() => {
@@ -119,13 +104,9 @@ function WatchVideo({ videoId, playlistId }) {
     );
   }, [isCustomWidth]);
 
-  // Memoized layout calculations to prevent re-renders
   const isWideLayout = isCustomWidth || isTheatre || isFullscreen;
 
-  const showMainSidebar =
-    (isTheatre && isCustomWidth && !isFullscreen) || !isTheatre;
-
-  // Data fetching - Video
+  // Queries
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["video", videoId],
     queryFn: () => fetchVideoById(videoId),
@@ -134,32 +115,19 @@ function WatchVideo({ videoId, playlistId }) {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Data fetching - Videos list
-  const {
-    data: listVideoData,
-    isLoading: isLoadingList,
-    isError: isErrorList,
-    error: errorList,
-  } = useQuery({
+  const { data: listVideoData } = useQuery({
     queryKey: ["videos"],
     queryFn: fetchVideos,
     refetchOnWindowFocus: false,
     staleTime: 5 * 60 * 1000,
   });
 
-  // Extract video owner data
   const user = data?.data?.owner?.username;
   const channelId = data?.data?.owner?._id;
   const channelName = data?.data?.owner?.fullName;
   const owner = data?.data?.owner?.username;
 
-  // Data fetching - User profile
-  const {
-    data: userData,
-    isLoading: isUserLoading,
-    isError: isUserError,
-    error: userError,
-  } = useQuery({
+  const { data: userData } = useQuery({
     queryKey: ["channelProfile", user],
     queryFn: () => getUserChannelProfile(user),
     refetchOnWindowFocus: false,
@@ -167,12 +135,7 @@ function WatchVideo({ videoId, playlistId }) {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Data fetching - Playlist
-  const {
-    data: playlistData,
-    isLoading: isPlaylistLoading,
-    isError: isPlaylistError,
-  } = useQuery({
+  const { data: playlistData } = useQuery({
     queryKey: ["playlists", playlistId],
     queryFn: () => fetchPlaylistById(playlistId),
     refetchOnWindowFocus: false,
@@ -180,25 +143,19 @@ function WatchVideo({ videoId, playlistId }) {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Extracted data
   const playlistVideos = playlistData?.data?.videos || [];
   const videos = listVideoData?.data?.docs || [];
 
-  // Effect: Shuffle videos for sidebar
+  // shuffle
   useEffect(() => {
     if (!videos || !videoId) return;
-
-    setShuffledVideos((prev) => {
-      if (prev.length > 0) return prev;
-      const otherVideos = videos.filter((video) => video._id !== videoId);
-
-      const shuffled = otherVideos.length > 0 ? shuffleArray(otherVideos) : [];
-
-      return shuffled;
+    const filtered = videos.filter((video) => video._id !== videoId);
+    const shuffled = filtered.length > 0 ? shuffleArray(filtered) : [...videos];
+    startTransition(() => {
+      setShuffledVideos(shuffled);
     });
-  }, [videos, videoId]);
+  }, [videoId, videos]);
 
-  // Effect: Update subscriber count
   useEffect(() => {
     const newCount = userData?.data?.subscribersCount ?? 0;
     if (subscriberCount !== newCount) {
@@ -206,7 +163,6 @@ function WatchVideo({ videoId, playlistId }) {
     }
   }, [userData, subscriberCount]);
 
-  // Effect: Set playlist index
   useEffect(() => {
     const playIndex = playlistVideos?.findIndex(
       (video) => video._id === videoId
@@ -216,7 +172,6 @@ function WatchVideo({ videoId, playlistId }) {
     }
   }, [playlistVideos, videoId]);
 
-  // Effect: Prefetch next video
   useEffect(() => {
     if (playlistVideos[index + 1]) {
       queryClient.prefetchQuery({
@@ -227,7 +182,6 @@ function WatchVideo({ videoId, playlistId }) {
     }
   }, [playlistVideos, index, queryClient]);
 
-  // Handler: Next video navigation
   const handleNextVideo = useCallback(() => {
     if (!playlistId) {
       navigate({
@@ -246,14 +200,13 @@ function WatchVideo({ videoId, playlistId }) {
     }
   }, [playlistId, shuffledVideos, playlistVideos, index, navigate]);
 
-  // Memoized props objects to prevent unnecessary re-renders
+  // props
   const videoPlayerProps = {
     index,
     data,
     isLoading,
     isError,
     error,
-    isSubscribedTo: userData?.data?.isSubscribedTo,
     videoId,
     playlistId,
     playlistVideos,
@@ -269,75 +222,38 @@ function WatchVideo({ videoId, playlistId }) {
     playerMinHeight,
   };
 
-  const videoDetailsPanelProps = useMemo(
-    () => ({
-      videoId,
-      data,
-      userData,
-      user,
-      channelId,
-      channelName,
-      subscriberCount,
-      owner,
-      activeAlertId,
-      setActiveAlertId,
-    }),
-    [
-      videoId,
-      data,
-      userData,
-      user,
-      channelId,
-      channelName,
-      subscriberCount,
-      owner,
-      activeAlertId,
-      setActiveAlertId,
-    ]
-  );
+  const videoDetailsPanelProps = {
+    videoId,
+    data,
+    userData,
+    user,
+    channelId,
+    channelName,
+    subscriberCount,
+    owner,
+    activeAlertId,
+    setActiveAlertId,
+  };
 
-  const commentSectionProps = useMemo(
-    () => ({
-      videoId,
-      data,
-      activeAlertId,
-      setActiveAlertId,
-    }),
-    [videoId, data, activeAlertId, setActiveAlertId]
-  );
+  const commentSectionProps = {
+    videoId,
+    data,
+    activeAlertId,
+    setActiveAlertId,
+  };
 
-  const videoSideBarProps = useMemo(
-    () => ({
-      shuffledVideos,
-      videoId,
-      listVideoData,
-      isLoadingList,
-      isErrorList,
-      errorList,
-      scrollContainerRef: isFullscreen ? isFullscreen : null,
-    }),
-    [
-      shuffledVideos,
-      videoId,
-      listVideoData,
-      isLoadingList,
-      isErrorList,
-      errorList,
-      watchRef,
-      isFullscreen,
-    ]
-  );
+  const videoSideBarProps = {
+    shuffledVideos,
+    videoId,
+    listVideoData,
+  };
 
-  const playlistContainerProps = useMemo(
-    () => ({
-      playlistId,
-      playlistData,
-      videoId,
-    }),
-    [playlistId, playlistData, videoId]
-  );
+  const playlistContainerProps = {
+    playlistId,
+    playlistData,
+    videoId,
+  };
 
-  // Memoized components to prevent re-mounting
   const MemoizedVideoSideBar = useMemo(
     () => <VideoSideBar data={data} {...videoSideBarProps} />,
     [data, videoSideBarProps]
@@ -359,71 +275,13 @@ function WatchVideo({ videoId, playlistId }) {
     [commentSectionProps]
   );
 
-  // Memoized layout component to prevent recreation
-  const TwoColumnLayout = useCallback(
-    ({
-      leftContent,
-      rightContent,
-      leftSize = 7.5,
-      rightSize = 4.5,
-      paddingY = margin6x,
-      leftPaddingY = null,
-    }) => (
-      <Grid
-        container
-        direction="row"
-        spacing={0}
-        sx={{
-          flexWrap: "noWrap",
-          width: "100%",
-          justifyContent: !isCustomWidth ? "center" : "flex-start",
-          alignItems: isCustomWidth ? "center" : "flex-start",
-          flexGrow: 1,
-        }}
-      >
-        <Grid
-          size={{ xs: leftSize, sm: leftSize, md: leftSize }}
-          sx={{
-            flexGrow: isCustomWidth ? "1" : "0",
-            maxWidth: "100%",
-            minWidth: isCustomWidth ? "100%" : "300px!important",
-            py: leftPaddingY ?? paddingY,
-            px: isCustomWidth ? margin6x : 0,
-            pr: margin6x,
-          }}
-        >
-          {leftContent}
-        </Grid>
-        <Grid
-          size={{ xs: rightSize, sm: rightSize, md: rightSize }}
-          sx={{
-            flexGrow: isCustomWidth ? "1" : "0",
-            maxWidth: "402px",
-            minWidth: isCustomWidth ? "100%" : "300px!important",
-            py: margin6x,
-            px: isCustomWidth ? margin6x : 0,
-            pr: margin6x,
-          }}
-        >
-          {rightContent}
-        </Grid>
-      </Grid>
-    ),
-    [isCustomWidth]
-  );
+  // Single mode selector
+  const layoutMode = isFullscreen
+    ? "fullscreen"
+    : isTheatre
+      ? "theatre"
+      : "normal";
 
-  // Conditional rendering helpers to prevent unnecessary DOM updates
-  const shouldShowNormalDesktopDetails = useMemo(
-    () => !isCustomWidth && !isTheatre && !isFullscreen,
-    [isCustomWidth, isTheatre, isFullscreen]
-  );
-
-  const shouldShowTheatreMode = useMemo(
-    () => isTheatre && !isCustomWidth,
-    [isTheatre, isCustomWidth]
-  );
-
-  // Style constants
   const gridMaxWidth = "var(--vtd-watch-flexy-max-player-width)";
   const gridMinWidth = "var(--vtd-watch-flexy-min-player-width)";
   const inverseHeaderTop = "calc(-1 * (var(--header-height)))";
@@ -457,7 +315,7 @@ function WatchVideo({ videoId, playlistId }) {
           overflowY: isFullscreen ? "auto" : "visible",
           overflowX: "visible",
           width: isWideLayout ? "100%!important" : "",
-          flex: 1,
+          flexGrow: 1,
           background: "#0f0f0f",
           boxSizing: "content-box",
         }}
@@ -465,107 +323,99 @@ function WatchVideo({ videoId, playlistId }) {
         {/* Video Player */}
         <VideoPlayer {...videoPlayerProps} ref={videoRef} />
 
-        {/* Desktop Normal Mode - Video Details */}
-        {shouldShowNormalDesktopDetails && (
-          <Box sx={{ mt: 2 }}>
-            <Box marginTop={margin6x}>{MemoizedVideoDetailsPanel}</Box>
+        {/* Normal Mode */}
+        <Box sx={{ display: layoutMode === "normal" ? "block" : "none" }}>
+          <Box mt={2}>{MemoizedVideoDetailsPanel}</Box>
+          {MemoizedCommentSection}
+        </Box>
 
-            {/* Theatre Mode Content - Nested inside normal mode box */}
-            {shouldShowTheatreMode && (
-              <Box sx={{ width: "100%" }}>
-                <TwoColumnLayout
-                  leftContent={
-                    <>
-                      {MemoizedVideoDetailsPanel}
-                      {MemoizedCommentSection}
-                    </>
-                  }
-                  rightContent={
-                    <>
-                      {MemoizedPlaylistContainer}
-                      {MemoizedVideoSideBar}
-                    </>
-                  }
-                  paddingY={0}
-                />
-              </Box>
-            )}
-          </Box>
-        )}
+        {/* Theatre Mode */}
+        <Box sx={{ display: layoutMode === "theatre" ? "block" : "none" }}>
+          <Grid container sx={{ justifyContent: "center", paddingTop: "45px" }}>
+            <Grid
+              size={{ xs: 12, sm: 12, md: 6, lg: 7, xl: 8 }}
+              sx={{
+                marginLeft: margin6x,
+                paddingRight: margin6x,
+                flexGrow: isDesktop ? "1!important" : "0",
+              }}
+            >
+              {MemoizedVideoDetailsPanel}
+              {MemoizedCommentSection}
+            </Grid>
+            <Grid
+              size={{ xs: 12, sm: 12, md: 5, lg: 4, xl: 4 }}
+              sx={{
+                width: isCustomWidth
+                  ? "100%!important"
+                  : "var(--vtd-watch-flexy-sidebar-width)!important",
+                minWidth: !isCustomWidth
+                  ? "426px"
+                  : "var(--vtd-watch-flexy-sidebar-min-width)",
+                pl: isCustomWidth ? margin6x : 0,
+                paddingRight: margin6x,
+              }}
+            >
+              {MemoizedPlaylistContainer}
+              {MemoizedVideoSideBar}
+            </Grid>
+          </Grid>
+        </Box>
 
-        {/* Fullscreen Mode Content */}
-        {isFullscreen && (
-          <Box sx={{ width: "100%" }}>
-            <TwoColumnLayout
-              leftContent={
-                <>
-                  {MemoizedVideoDetailsPanel}
-                  {MemoizedCommentSection}
-                </>
-              }
-              rightContent={
-                <>
-                  {MemoizedPlaylistContainer}
-                  {MemoizedVideoSideBar}
-                </>
-              }
-              leftPaddingY={4}
-            />
-          </Box>
-        )}
-
-        {/* Desktop Normal Mode - Comments */}
-        {shouldShowNormalDesktopDetails && <Box>{MemoizedCommentSection}</Box>}
+        {/* Fullscreen Mode */}
+        <Box sx={{ display: layoutMode === "fullscreen" ? "block" : "none" }}>
+          <Grid container sx={{ justifyContent: "center", paddingTop: "45px" }}>
+            <Grid
+              size={{ xs: 12, sm: 12, md: 6, lg: 7, xl: 8 }}
+              sx={{
+                marginLeft: margin6x,
+                paddingRight: margin6x,
+                flexGrow: isDesktop ? "1!important" : "0",
+              }}
+            >
+              {MemoizedVideoDetailsPanel}
+              {MemoizedCommentSection}
+            </Grid>
+            <Grid
+              size={{ xs: 12, sm: 12, md: 5, lg: 4, xl: 4 }}
+              sx={{
+                width: isCustomWidth
+                  ? "100%!important"
+                  : "var(--vtd-watch-flexy-sidebar-width)!important",
+                minWidth: !isCustomWidth
+                  ? "426px"
+                  : "var(--vtd-watch-flexy-sidebar-min-width)",
+                pl: isCustomWidth ? margin6x : 0,
+                paddingRight: margin6x,
+              }}
+            >
+              {MemoizedPlaylistContainer}
+              {MemoizedVideoSideBar}
+            </Grid>
+          </Grid>
+        </Box>
       </Grid>
 
-      {/* Main Sidebar - Normal Desktop Mode */}
-      {showMainSidebar && (
-        <Grid
-          size={{ xs: 12, sm: 12, md: 4 }}
-          sx={{
-            flexGrow: isCustomWidth ? "1" : "0",
-            width: isCustomWidth
-              ? "100%!important"
-              : "var(--vtd-watch-flexy-sidebar-width)!important",
-            flex: 1,
-            minWidth: "var(--vtd-watch-flexy-sidebar-min-width)",
-            py: margin6x,
-            px: isCustomWidth ? margin6x : 0,
-            pr: margin6x,
-          }}
-        >
-          {MemoizedPlaylistContainer}
-
-          {isCustomWidth && MemoizedVideoDetailsPanel}
-
-          {MemoizedVideoSideBar}
-
-          {isCustomWidth && MemoizedCommentSection}
-        </Grid>
-      )}
-
-      {/* Theatre Mode Content - Bottom Section */}
-      {shouldShowTheatreMode && (
-        <Box sx={{ width: "100%" }}>
-          <TwoColumnLayout
-            leftContent={
-              <>
-                {MemoizedVideoDetailsPanel}
-                {MemoizedCommentSection}
-              </>
-            }
-            rightContent={
-              <>
-                {MemoizedPlaylistContainer}
-                {MemoizedVideoSideBar}
-              </>
-            }
-            leftSize={6}
-            rightSize={6}
-            leftPaddingY={4}
-          />
-        </Box>
-      )}
+      {/* Main Sidebar for Normal Mode */}
+      <Grid
+        size={{ xs: 12, sm: 12, md: 4 }}
+        sx={{
+          display: layoutMode === "normal" ? "block" : "none",
+          flexGrow: isCustomWidth ? "1" : "0",
+          width: isCustomWidth
+            ? "100%!important"
+            : "var(--vtd-watch-flexy-sidebar-width)!important",
+          minWidth: "var(--vtd-watch-flexy-sidebar-min-width)",
+          py: margin6x,
+          px: isCustomWidth ? margin6x : 0,
+          pr: margin6x,
+        }}
+      >
+        {MemoizedPlaylistContainer}
+        {/* {isCustomWidth && MemoizedVideoDetailsPanel} */}
+        {MemoizedVideoSideBar}
+        {isCustomWidth && MemoizedCommentSection}
+      </Grid>
     </Grid>
   );
 }

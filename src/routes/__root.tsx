@@ -137,7 +137,6 @@ function RouteComponent() {
     channel.onmessage = (event) => {
       if (event.data.type === "LOGIN") {
         setAuthenticated(true)
-        queryClient.invalidateQueries({ queryKey: [], exact: false }); 
 
       }
       if (event.data.type === "LOGOUT") {
@@ -146,6 +145,8 @@ function RouteComponent() {
         queryClient.clear();
         queryClient.setQueryData(["user"], null);
       }
+        queryClient.invalidateQueries({ queryKey: [], exact: false }); 
+
     };
 
     return () => {

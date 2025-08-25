@@ -5,7 +5,7 @@ import Paper from "@mui/material/Paper";
 import ClickAwayListener from "@mui/material/ClickAwayListener";
 
 function SignInAlert({
-  width = 375,
+  width = 250,
   height = 180,
   title,
   desc,
@@ -13,13 +13,14 @@ function SignInAlert({
   handleClose,
   onConfirm,
   leftVal,
+  rightVal,
   setActiveAlertId,
 }) {
   const theme = useTheme();
   const alertRef = useRef(null);
   const isCustomWidth = useMediaQuery("(max-width:1014px)");
-  const isTablet = useMediaQuery(theme.breakpoints.down("md"));
-  const isMobile = useMediaQuery(theme.breakpoints.down("xs"));
+  const isXsMobile = useMediaQuery(theme.breakpoints.down("xs"))
+  const isTablet = useMediaQuery(theme.breakpoints.down("md"))
   if (!isOpen) return null;
 
   return (
@@ -29,9 +30,9 @@ function SignInAlert({
         sx={{
           position: "absolute",
           top: "100%",
-          right: isCustomWidth ? 0 : "",
-          left: !isCustomWidth ? 0 : "",
-          width: isTablet ? "228px" : width,
+          right: isXsMobile ? rightVal : isCustomWidth ? 0 : "",
+          left: isCustomWidth ? leftVal :  "",
+          width: width,
           zIndex: 10,
         }}
       >
