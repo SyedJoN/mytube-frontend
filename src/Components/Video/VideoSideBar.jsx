@@ -15,137 +15,137 @@ import handleMouseDown from "../../helper/intertactionHelper";
 import Interaction from "../Utils/Interaction";
 import SideVideosList from "./SideVideosList";
 
+
 function VideoSideBar({
   shuffledVideos,
   isLoadingList,
   isErrorList,
   errorList,
-  scrollContainerRef
 }) {
   const [activeOptionsId, setActiveOptionsId] = React.useState(null);
-  const isCustomWidth = useMediaQuery("(max-width:1014px)");
+
+  const theme = useTheme();
+  const isCustomWidth = useMediaQuery(theme.breakpoints.down("custom"));
+
   const gridSize = {
-    xs: 12,
-    sm: 6,
-    md: 4,
-    lg: 3.8,
-    xl: open ? 3.88 : 2.89,
+      xs: 12,
+      sm: 6,
+      md: 4,
+      lg: 3.8,
+      xl: 2.89,
+    }
+
+  const videoList = React.useMemo(() => {
+    if (shuffledVideos.length === 0) return [];
+
+    return shuffledVideos.map((video) => ({
+      id: video._id,
+      owner: video?.owner?.username,
+      videoId: video._id,
+      thumbnail: video.thumbnail.url,
+      previewUrl: video.thumbnail.preview,
+      title: video.title,
+      fullName: video.owner.fullName,
+      views: video.views,
+      duration: video.duration,
+      createdAt: formatDate(video.createdAt),
+    }));
+  }, [shuffledVideos]);
+
+  const renderSideVideos = (videoData, index) => {
+    const commonProps = {
+      owner: videoData.owner,
+      verifyInteraction: true,
+      videoId: videoData.videoId,
+      thumbnail: videoData.thumbnail,
+      previewUrl: videoData.previewUrl,
+      title: videoData.title,
+      fullName: videoData.fullName,
+      views: videoData.views,
+      duration: videoData.duration,
+      createdAt: videoData.createdAt,
+      activeOptionsId,
+      setActiveOptionsId,
+    };
+
+    return (
+      <Grid
+        key={videoData.id}
+        size={isCustomWidth ? gridSize : { xs: 12 }}
+        sx={
+          !isCustomWidth
+            ? { marginBottom: 1, "& > *": { width: "100%" } }
+            : undefined
+        }
+      >
+        <SideVideosList
+          {...commonProps}
+          home={isCustomWidth}
+          videoMd={isCustomWidth}
+          video={!isCustomWidth}
+        />
+      </Grid>
+    );
   };
+
+  const skeletonItems = Array.from({ length: 12 }, (_, index) => (
+    <Grid key={index} size={{ xs: 12 }}>
+      <Box sx={{ display: "flex", marginBottom: 1 }}>
+        <Skeleton
+          variant="rectangular"
+          width={160}
+          height={100}
+          sx={{ bgcolor: "rgba(255,255,255,0.1)", borderRadius: "8px" }}
+        />
+        <Box sx={{ flex: 1, paddingLeft: "6px" }}>
+          <Skeleton
+            sx={{ bgcolor: "rgba(255,255,255,0.1)" }}
+            width="90%"
+            height={20}
+          />
+          <Skeleton
+            sx={{ bgcolor: "rgba(255,255,255,0.1)" }}
+            width="30%"
+            height={20}
+          />
+          <Box sx={{ marginTop: 2 }}>
+            <Skeleton
+              sx={{ bgcolor: "rgba(255,255,255,0.1)" }}
+              width="40%"
+              height={20}
+            />
+            <Skeleton
+              sx={{ bgcolor: "rgba(255,255,255,0.1)" }}
+              width="40%"
+              height={20}
+            />
+          </Box>
+        </Box>
+      </Box>
+    </Grid>
+  ));
+
+  // console.log("Parent rendering SideVideosList", {
+  //   isCustomWidth,
+  //   videoCount: videoList.length,
+  // });
+
   return (
     <>
       {isErrorList && <Typography>Error: {errorList.message}</Typography>}
 
-      {shuffledVideos.length > 0 ? (
-        <Grid
-          spacing={isCustomWidth ? 2 : 0}
-          container
-          sx={{
-            marginTop: isCustomWidth ? "16px" : "",
-          }}
-        >
-          {shuffledVideos.map((video) => (
-            <React.Fragment key={video._id}>
-              {isCustomWidth ? (
-                <Grid size={gridSize}>
-                  <SideVideosList
-                    owner={video?.owner?.username}
-                    verifyInteraction={true}
-                    videoId={video._id}
-                    thumbnail={video.thumbnail.url}
-                    previewUrl={video.thumbnail.preview}
-                    title={video.title}
-                    home={true}
-                    videoMd={true}
-                    fullName={video.owner.fullName}
-                    views={video.views}
-                    duration={video.duration}
-                    createdAt={formatDate(video.createdAt)}
-                    activeOptionsId={activeOptionsId}
-                    setActiveOptionsId={setActiveOptionsId}
-                    scrollContainerRef={scrollContainerRef}
-                  />
-                </Grid>
-              ) : (
-                <Box
-                  sx={{
-                    marginBottom: 1,
-                    flexGrow: "1!important",
-                    width: "100%",
-                  }}
-                >
-                  <SideVideosList
-                    verifyInteraction={true}
-                    owner={video?.owner?.username}
-                    videoId={video._id}
-                    thumbnail={video.thumbnail.url}
-                    previewUrl={video.thumbnail.preview}
-                    title={video.title}
-                    video={true}
-                    fullName={video.owner.fullName}
-                    views={video.views}
-                    duration={video.duration}
-                    createdAt={formatDate(video.createdAt)}
-                    activeOptionsId={activeOptionsId}
-                    setActiveOptionsId={setActiveOptionsId}
-                    scrollContainerRef={scrollContainerRef}
-                  />
-                </Box>
-              )}
-            </React.Fragment>
-          ))}
-        </Grid>
-      ) : (
-        isLoadingList &&
-        Array.from(new Array(12)).map((_, index) => (
-          <Box key={index}>
-            <Box sx={{ display: "flex" }}>
-              <Skeleton
-                variant="rectangular"
-                width={160}
-                height={100}
-                sx={{
-                  bgcolor: "rgba(255,255,255,0.1)",
-                  borderRadius: "8px",
-                  marginBottom: 1,
-                }}
-              />
-
-              <Box sx={{ flex: 1, paddingLeft: "6px" }}>
-                <Skeleton
-                  sx={{
-                    bgcolor: "rgba(255,255,255,0.1)",
-                  }}
-                  width="90%"
-                  height={20}
-                />
-                <Skeleton
-                  sx={{
-                    bgcolor: "rgba(255,255,255,0.1)",
-                  }}
-                  width="30%"
-                  height={20}
-                />
-                <Box sx={{ marginTop: 2 }}>
-                  <Skeleton
-                    sx={{
-                      bgcolor: "rgba(255,255,255,0.1)",
-                    }}
-                    width="40%"
-                    height={20}
-                  />
-                  <Skeleton
-                    sx={{
-                      bgcolor: "rgba(255,255,255,0.1)",
-                    }}
-                    width="40%"
-                    height={20}
-                  />
-                </Box>
-              </Box>
-            </Box>
-          </Box>
-        ))
-      )}
+      <Grid
+        container
+        spacing={isCustomWidth ? 2 : 0}
+        sx={{
+          width: "100%",
+          margin: 0,
+        }}
+      >
+        {videoList.length > 0
+          ? videoList.map(renderSideVideos)
+          : isLoadingList && skeletonItems}
+      </Grid>
     </>
   );
 }

@@ -40,10 +40,11 @@ overflow-y: hidden!important;
 }
 .flexy-video-grid-container {
   --vtd-margin-6x: 24px;
+  --vtd-watch-flexy-max-player-width-wide-screen: 1840px;
   --vtd-watch-flexy-space-below-player: 105px;
-  --vtd-watch-flexy-player-width-ratio: 1;
-  --vtd-watch-flexy-player-height-ratio: 0.75;
-  --vtd-watch-flexy-min-player-height: 480px;
+  --vtd-watch-flexy-player-width-ratio: 16;
+  --vtd-watch-flexy-player-height-ratio: 9;
+  --vtd-watch-flexy-min-player-height: 360px;
   --vtd-watch-flexy-sidebar-width: 402px;
   --vtd-watch-flexy-sidebar-min-width: 300px;
 

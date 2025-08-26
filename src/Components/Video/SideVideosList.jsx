@@ -92,7 +92,10 @@ function SideVideosList({
   const theme = useTheme();
   const [fetchedTime, setFetchedTime] = React.useState(0);
   const context = React.useContext(UserInteractionContext);
-  const isCustomWidth = useMediaQuery("(max-width:1014px)");
+  const isCustomWidth = useMediaQuery("(max-width:1014px)", {
+  noSsr: true, 
+  defaultMatches: false, 
+  })
   const { setIsUserInteracted } = context ?? {};
   const [isVolumeMuted, setIsVolumeMuted] = React.useState(true);
 
@@ -120,29 +123,16 @@ function SideVideosList({
   const searchParams = React.useMemo(() => ({ v: videoId }), [videoId]);
 
   // In SideVideosList, replace your current useEffect with this:
-  React.useEffect(() => {
-    console.log("SideVideosList re-rendered", {
-      videoId,
-      thumbnail,
-      isHoverPlay,
-      isVideoPlaying,
-      searchParams,
-    });
-  }, [videoId, thumbnail, isHoverPlay, isVideoPlaying, searchParams]); // Add dependencies
+  // React.useEffect(() => {
+  //   console.log("SideVideosList re-rendered", {
+  //     videoId,
+  //     thumbnail,
+  //     isHoverPlay,
+  //     isVideoPlaying,
+  //     searchParams,
+  //   });
+  // }, [videoId, thumbnail, isHoverPlay, isVideoPlaying, searchParams]); // Add dependencies
 
-  // Also add this to see what props changed:
-  React.useEffect(() => {
-    console.log("Props changed:", {
-      videoId,
-      thumbnail,
-      title,
-      fullName,
-      views,
-      duration,
-      createdAt,
-      activeOptionsId,
-    });
-  });
 
   const { refetch: refetchHistory } = useQuery({
     queryKey: ["userHistory"],
@@ -315,7 +305,7 @@ function SideVideosList({
         >
           <Link draggable="false" to="/watch" search={searchParams}>
             <Box height="100%" position="absolute" top="0" left="0">
-              <LazyLoad height={200} offset={200} once>
+             
                 <CardMedia
                   sx={{
                     flexGrow: "1!important",
@@ -353,7 +343,7 @@ function SideVideosList({
                     }}
                   ></video>
                 )}
-              </LazyLoad>
+            
 
               <Box
                 className={`progress-list ${fetchedTime > 0 ? "" : "hide"}`}

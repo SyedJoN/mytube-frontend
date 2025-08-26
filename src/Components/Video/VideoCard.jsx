@@ -219,14 +219,14 @@ function VideoCard({
       isMounted = false;
     };
   }, [userId]);
-React.useEffect(() => {
-  console.log('Component re-rendered', {
-    thumbnail,
-    isHoverPlay,
-    isVideoPlaying,
-    searchParams
-  });
-});
+// React.useEffect(() => {
+//   console.log('Component re-rendered', {
+//     thumbnail,
+//     isHoverPlay,
+//     isVideoPlaying,
+//     searchParams
+//   });
+// });
   React.useEffect(() => {
     const video = hoverVideoRef?.current;
     const tracker = hoverTrackerRef.current;

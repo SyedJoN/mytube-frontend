@@ -30,8 +30,9 @@ let theme = createTheme({
         xs: 400,   // Mobile screen
         sm: 600, // Small tablets
         md: 792, // Tablets
-        lg: 1284, // Laptops
+        lg: 1342, // Laptops
         xl: 1920, // Desktops
+        custom: 1014
       },
     },
       transitions: {
