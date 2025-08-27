@@ -48,6 +48,7 @@ function WatchVideo({ videoId, playlistId }) {
   const watchRef = useRef(null);
   const fsRef = useRef(null);
   const videoRef = useRef(null);
+  const isSkippingPrevious = useRef(false);
 
   // Responsive
   const isCustomWidth = useMediaQuery(theme.breakpoints.down("custom"));
@@ -308,6 +309,7 @@ function WatchVideo({ videoId, playlistId }) {
   const MemoizedVideoSideBar = useMemo(
     () => (
       <VideoSideBar
+        isSkippingPrevious={isSkippingPrevious}
         shuffledVideos={shuffledVideos}
         isLoadingList={isLoadingList}
         isErrorList={isErrorList}
@@ -382,7 +384,11 @@ function WatchVideo({ videoId, playlistId }) {
         }}
       >
         {/* Video Player */}
-        <VideoPlayer {...videoPlayerProps} ref={videoRef} />
+        <VideoPlayer
+          {...videoPlayerProps}
+          isSkippingPrevious={isSkippingPrevious}
+          ref={videoRef}
+        />
 
         {/* Normal Mode */}
         <Box sx={{ display: layoutMode === "normal" ? "block" : "none" }}>

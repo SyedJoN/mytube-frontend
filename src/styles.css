@@ -231,7 +231,7 @@ video {
 .hide-cursor {
   cursor: none;
 }
-.video-overlay {
+.video-overlay, .video-overlay-mobile {
   content: "";
   width: 100%;
   height: 100%;

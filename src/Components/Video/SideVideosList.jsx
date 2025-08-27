@@ -75,6 +75,7 @@ const colors = [red, blue, green, purple, orange, deepOrange, pink];
 
 function SideVideosList({
   videoId,
+  isSkippingPrevious,
   owner,
   thumbnail,
   previewUrl,
@@ -93,9 +94,9 @@ function SideVideosList({
   const [fetchedTime, setFetchedTime] = React.useState(0);
   const context = React.useContext(UserInteractionContext);
   const isCustomWidth = useMediaQuery("(max-width:1014px)", {
-  noSsr: true, 
-  defaultMatches: false, 
-  })
+    noSsr: true,
+    defaultMatches: false,
+  });
   const { setIsUserInteracted } = context ?? {};
   const [isVolumeMuted, setIsVolumeMuted] = React.useState(true);
 
@@ -132,7 +133,6 @@ function SideVideosList({
   //     searchParams,
   //   });
   // }, [videoId, thumbnail, isHoverPlay, isVideoPlaying, searchParams]); // Add dependencies
-
 
   const { refetch: refetchHistory } = useQuery({
     queryKey: ["userHistory"],
@@ -195,23 +195,25 @@ function SideVideosList({
     return () => clearTimeout(playTimeout);
   }, [isHoverPlay]);
 
-
-   const getColor = (name) => {
-      if (!name) return red[500];
-      const index = name.charCodeAt(0) % colors.length;
-      return colors[index][500];
-    };
+  const getColor = (name) => {
+    if (!name) return red[500];
+    const index = name.charCodeAt(0) % colors.length;
+    return colors[index][500];
+  };
 
   const handleToggleOptions = (id) => {
     setActiveOptionsId((prev) => (prev === id ? null : id));
   };
 
   const handleInteraction = () => {
+
+    isSkippingPrevious.current = false;
     requestAnimationFrame(() => {
+
       setIsUserInteracted(true);
     });
   };
-    const handleVolumeToggle = () => {
+  const handleVolumeToggle = () => {
     const tracker = hoverTrackerRef.current;
     const fromTime = parseFloat(hoverVideoRef.current.currentTime.toFixed(3));
     setIsVolumeMuted((prev) => !prev);
@@ -305,45 +307,43 @@ function SideVideosList({
         >
           <Link draggable="false" to="/watch" search={searchParams}>
             <Box height="100%" position="absolute" top="0" left="0">
-             
-                <CardMedia
-                  sx={{
-                    flexGrow: "1!important",
+              <CardMedia
+                sx={{
+                  flexGrow: "1!important",
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  aspectRatio: "16/9",
+                  borderRadius: 0,
+                  transition: "all 0.3s ease-in-out",
+                }}
+                loading="lazy"
+                component="img"
+                image={thumbnail}
+              />
+              {previewUrl && (
+                <video
+                  loop
+                  ref={previewRef}
+                  muted
+                  onPlaying={() => setIsVideoPlaying(true)}
+                  id="video-player"
+                  key={previewUrl}
+                  src={isHoverPlay ? previewUrl : undefined}
+                  className={`hover-interaction ${isHoverPlay ? "" : "hide"}`}
+                  crossOrigin="anonymous"
+                  style={{
+                    position: "absolute",
                     width: "100%",
                     height: "100%",
+                    left: 0,
+                    top: 0,
                     objectFit: "cover",
-                    aspectRatio: "16/9",
-                    borderRadius: 0,
-                    transition: "all 0.3s ease-in-out",
+                    opacity: isHoverPlay && isVideoPlaying ? 1 : 0,
+                    transition: "opacity 0.3s ease",
                   }}
-                  loading="lazy"
-                  component="img"
-                  image={thumbnail}
-                />
-                {previewUrl && (
-                  <video
-                    loop
-                    ref={previewRef}
-                    muted
-                    onPlaying={() => setIsVideoPlaying(true)}
-                    id="video-player"
-                    key={previewUrl}
-                    src={isHoverPlay ? previewUrl : undefined}
-                    className={`hover-interaction ${isHoverPlay ? "" : "hide"}`}
-                    crossOrigin="anonymous"
-                    style={{
-                      position: "absolute",
-                      width: "100%",
-                      height: "100%",
-                      left: 0,
-                      top: 0,
-                      objectFit: "cover",
-                      opacity: isHoverPlay && isVideoPlaying ? 1 : 0,
-                      transition: "opacity 0.3s ease",
-                    }}
-                  ></video>
-                )}
-            
+                ></video>
+              )}
 
               <Box
                 className={`progress-list ${fetchedTime > 0 ? "" : "hide"}`}

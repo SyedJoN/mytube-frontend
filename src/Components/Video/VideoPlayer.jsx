@@ -62,12 +62,17 @@ import useStateReducer from "../Utils/useStateReducer";
 import useRefReducer from "../Utils/useRefReducer";
 import { useFullscreen } from "../Utils/useFullScreen";
 import { useMobileOS } from "../Utils/useMobileOS";
+import { SkipPreviousSvg } from "../Utils/SkipPreviousSvg";
+import { SkipNextSvg } from "../Utils/SkipNextSvg";
+import LargePlayIcon from "../../Svgs/LargePlayIcon";
+import { PlayPauseSvg } from "../Utils/PlayPauseSvg";
 
 const VideoPlayer = React.forwardRef(
   (
     {
       videoId,
       isSubscribedTo,
+      isSkippingPrevious,
       playlistId,
       playlistVideos,
       index,
@@ -88,8 +93,9 @@ const VideoPlayer = React.forwardRef(
     ref
   ) => {
     const theme = useTheme();
+    const navigate = useNavigate();
     const isFullscreen = useFullscreen();
-console.log("Video Player rendered")
+    console.log("Video Player rendered");
     const userContext = useContext(UserContext);
     const drawerContext = useContext(DrawerContext);
     const userInteractionContext = useContext(UserInteractionContext);
@@ -162,6 +168,10 @@ console.log("Video Player rendered")
       titleOpacity: 0,
       showSettings: false,
       isPipActive: false,
+
+      // === Mobile Overlay & Playback Controls ===
+      mobileControlOpacity: 0,
+      controlOverlayOpacity: 0.6,
     });
 
     const {
@@ -186,7 +196,6 @@ console.log("Video Player rendered")
       trackerRef,
       isHolding,
       glowCanvasRef,
-      volTimeoutRef,
       lastKeyPress,
       hideVolumeTimer,
       statusRecordCheck,
@@ -194,6 +203,10 @@ console.log("Video Player rendered")
       isSpacePressed,
       isLongPressActiveMouse,
       isLongPressActiveKey,
+
+      // === Mobile Refs
+      urlStackIndex,
+      prevUrl,
     } = useRefReducer({
       isInside: null,
       videoPauseStatus: null,
@@ -216,7 +229,6 @@ console.log("Video Player rendered")
       trackerRef: new VideoTelemetryTimer(),
       isHolding: null,
       glowCanvasRef: null,
-      volTimeoutRef: null,
       lastKeyPress: null,
       hideVolumeTimer: null,
       statusRecordCheck: true,
@@ -224,6 +236,8 @@ console.log("Video Player rendered")
       isSpacePressed: null,
       isLongPressActiveMouse: false,
       isLongPressActiveKey: false,
+      urlStackIndex: 0,
+      prevUrl: null,
     });
 
     // Imperative Handler for videoRef
@@ -274,6 +288,16 @@ console.log("Video Player rendered")
       if (state.titleOpacity !== 0) updateState({ titleOpacity: 0 });
     };
 
+    const showMobileControls = () => {
+      if (state.mobileControlOpacity !== 1)
+        updateState({ mobileControlOpacity: 1 });
+    };
+
+    const hideMobileControls = () => {
+      if (state.mobileControlOpacity !== 0)
+        updateState({ mobileControlOpacity: 0 });
+    };
+
     const handleVideoCursorVisiblity = (prop) => {
       const container = containerRef.current;
       if (!container) return;
@@ -309,6 +333,7 @@ console.log("Video Player rendered")
     useEffect(() => {
       updateState({ videoReady: false });
       hideControls();
+      hideMobileControls();
     }, [videoId]);
 
     const {
@@ -560,6 +585,88 @@ console.log("Video Player rendered")
       }
     }, []);
 
+    // Mobile event listeners
+    // Controls Function
+    const handleMobileOverlayControls = (e) => {
+      e.stopPropagation();
+      const video = videoRef.current;
+      if (!video) return;
+      console.log("hit");
+      updateState((prev) => ({
+        ...prev,
+        mobileControlOpacity: prev.mobileControlOpacity === 0 ? 1 : 0,
+      }));
+    };
+
+    useEffect(() => {
+      if (isSkippingPrevious.current) return;
+      const pathName = location.pathname + location.searchStr;
+      if (pathName !== prevUrl.current) {
+        prevUrl.current = pathName;
+        urlStackIndex.current = urlStackIndex.current + 1;
+      }
+    }, [videoId]);
+
+    // SkipPrevious
+    const handleSkipPrevious = (e) => {
+      e.stopPropagation();
+
+      isSkippingPrevious.current = true;
+      if (playlistId && playlistVideos && index > 0) {
+        navigate({
+          to: "/watch",
+          search: {
+            v: playlistVideos[index - 1]._id,
+            list: playlistId,
+            index: index - 1,
+          },
+        });
+        return;
+      }
+
+      const canGoBack = urlStackIndex.current > 1;
+
+      if (canGoBack) {
+        urlStackIndex.current = urlStackIndex.current - 1;
+        window.history.back();
+      } else {
+        console.log("urlStackIndex", urlStackIndex.current);
+      }
+    };
+
+    // SkipNext
+    const handleSkipNext = (e) => {
+      e.stopPropagation();
+      isSkippingPrevious.current = false;
+      const isNextInPlaylist = playlistId && index < playlistVideos.length - 1;
+      const fallback = shuffledVideos?.[0]?._id ?? null;
+
+      navigate({
+        to: "/watch",
+        search: {
+          v: isNextInPlaylist ? playlistVideos[index + 1]?._id : fallback,
+          list: isNextInPlaylist ? playlistId : undefined,
+          index: isNextInPlaylist ? index + 2 : undefined,
+        },
+      });
+    };
+
+    // 2x Mobile 
+    const handleMobile2x = () => {
+      const video = videoRef.current;
+      if (!video) return;
+      
+      video.playbackRate = 2.0;
+      updateState({ isFastPlayback: true });
+    }
+
+    const handleMobile2xExit = () => {
+       const video = videoRef.current;
+      if (!video) return;
+      
+      video.playbackRate = 1.0;
+      updateState({ isFastPlayback: false });
+    }
     const handleMouseUp = (e) => {
       const video = videoRef.current;
       if (!video) return;
@@ -798,6 +905,8 @@ console.log("Video Player rendered")
       if (!container || !video || !fullScreenTitle || !isInsideRef) return;
 
       if (!state.isPlaying) {
+        showMobileControls();
+
         showControls();
         fullScreenTitle.classList.add("show");
         return;
@@ -822,6 +931,8 @@ console.log("Video Player rendered")
             !state.showSettings
           ) {
             hideControls();
+            hideMobileControls();
+
             handleVideoCursorVisiblity("hide");
           }
         }, 2000);
@@ -1190,6 +1301,7 @@ console.log("Video Player rendered")
 
       if (!isUserInteracted) {
         showControls();
+        showMobileControls();
       }
       try {
         if (isUserInteracted) {
@@ -1989,7 +2101,7 @@ console.log("Video Player rendered")
                 sx={{ userSelect: "none" }}
                 onMouseDown={!isUserInteracted ? undefined : DoubleSpeed}
                 onMouseUp={!isUserInteracted ? handleVideoOverlay : undefined}
-                className={`video-overlay ${os === "android" || os === "ios" ? "hide" : ""}`}
+                className={`video-overlay ${os === "android" || os === "ios" ? "hide" : "hide"}`}
               >
                 <Box
                   className="thumbnail-overlay"
@@ -2041,46 +2153,26 @@ console.log("Video Player rendered")
                       opacity: 1,
                     }}
                   >
-                    <svg
-                      height="100%"
-                      version="1.1"
-                      viewBox="0 0 68 48"
-                      width="100%"
-                    >
-                      <path
-                        className="large-play-btn"
-                        d="M66.52,7.74c-0.78-2.93-2.49-5.41-5.42-6.19C55.79,.13,34,0,34,0S12.21,.13,6.9,1.55 C3.97,2.33,2.27,4.81,1.48,7.74C0.06,13.05,0,24,0,24s0.06,10.95,1.48,16.26c0.78,2.93,2.49,5.41,5.42,6.19 C12.21,47.87,34,48,34,48s21.79-0.13,27.1-1.55c2.93-0.78,4.64-3.26,5.42-6.19C67.94,34.95,68,24,68,24S67.94,13.05,66.52,7.74z"
-                        fill="#212121"
-                        fillOpacity=".8"
-                      ></path>
-                      <path d="M 45,24 27,14 27,34" fill="#f1f1f1"></path>
-                    </svg>
+                    <LargePlayIcon />
                   </IconButton>
                 </Box>
               </Box>
+              //Mobile
               <Box
                 sx={{ userSelect: "none" }}
-                onMouseDown={!isUserInteracted ? undefined : DoubleSpeed}
-                onMouseUp={!isUserInteracted ? handleVideoOverlay : undefined}
-                className={`video-overlay ${os !== "android" && os !== "ios" ? "" : "hide"}`}
+                className={`video-overlay-mobile ${os !== "android" && os !== "ios" ? "" : ""}`}
               >
                 <Box
                   className="thumbnail-overlay"
                   sx={{
                     position: "absolute",
                     inset: 0,
-
                     justifyContent: "center",
                     alignItems: "center",
                     display: isUserInteracted || isMini ? "none" : "flex",
                     transition: "opacity .25s cubic-bezier(0,0,.2,1)",
-                    color: "#fff",
                     userSelect: "none",
                     pointerEvents: "all",
-                    "&:hover .large-play-btn": {
-                      fill: "#f03",
-                      fillOpacity: "1",
-                    },
                   }}
                 >
                   <Box
@@ -2099,36 +2191,74 @@ console.log("Video Player rendered")
                       backgroundSize: "cover",
                     }}
                   ></Box>
+                </Box>
+                <Box
+                  onPointerUp={handleMobileOverlayControls}
+                  onTouchStart={handleMobile2x}
+                  onTouchEnd={handleMobile2xExit}
+                  className="mobile-overlay"
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-around",
+                    alignItems: "center",
+                    position: "absolute",
+                    width: "100%",
+                    height: "100%",
+                    background: "rgba(15,15,15,0.5)",
+                    opacity: state.mobileControlOpacity,
+                    top: 0,
+                    left: 0,
+                  }}
+                >
                   <IconButton
                     disableRipple
-                    className="large-play-btn-container"
+                    disabled={urlStackIndex.current <= 1}
+                    onPointerUp={handleSkipPrevious}
                     sx={{
-                      position: "absolute",
-                      left: "50%",
-                      top: "50%",
-                      width: "68px",
-                      height: "48px",
-                      marginLeft: "-34px",
-                      marginTop: "-24px",
-                      padding: "0",
-                      display: isUserInteracted ? "none" : "inline-flex",
-                      opacity: 1,
+                      background: "rgba(15,15,15,0.5)",
+                      borderRadius: "50px",
+                      width: 50,
+                      height: 50,
+                      "&.Mui-disabled": {
+                        background: "rgba(15,15,15,0.5)",
+                      },
+                      "& svg": {
+                        opacity: 1,
+                      },
+                      "&.Mui-disabled svg": {
+                        opacity: 0.5,
+                      },
                     }}
+                    className="mobile-skip-backward-icon"
                   >
-                    <svg
-                      height="100%"
-                      version="1.1"
-                      viewBox="0 0 68 48"
-                      width="100%"
-                    >
-                      <path
-                        className="large-play-btn"
-                        d="M66.52,7.74c-0.78-2.93-2.49-5.41-5.42-6.19C55.79,.13,34,0,34,0S12.21,.13,6.9,1.55 C3.97,2.33,2.27,4.81,1.48,7.74C0.06,13.05,0,24,0,24s0.06,10.95,1.48,16.26c0.78,2.93,2.49,5.41,5.42,6.19 C12.21,47.87,34,48,34,48s21.79-0.13,27.1-1.55c2.93-0.78,4.64-3.26,5.42-6.19C67.94,34.95,68,24,68,24S67.94,13.05,66.52,7.74z"
-                        fill="#212121"
-                        fillOpacity=".8"
-                      ></path>
-                      <path d="M 45,24 27,14 27,34" fill="#f1f1f1"></path>
-                    </svg>
+                    <SkipPreviousSvg />
+                  </IconButton>
+                  <IconButton
+                    disableRipple
+                    onPointerUp={(e) => e.stopPropagation()}
+                    onTouchStart={togglePlayPause}
+                    sx={{
+                      background: "rgba(15,15,15,0.5)",
+                      borderRadius: "50px",
+                      width: 60,
+                      height: 60,
+                    }}
+                    className="playPause-icon"
+                  >
+                    <PlayPauseSvg isPlaying={state.isPlaying} />
+                  </IconButton>
+                  <IconButton
+                    disableRipple
+                    onPointerUp={handleSkipNext}
+                    sx={{
+                      background: "rgba(15,15,15,0.5)",
+                      borderRadius: "50px",
+                      width: 50,
+                      height: 50,
+                    }}
+                    className="mobile-skip-forward-icon"
+                  >
+                    <SkipNextSvg />
                   </IconButton>
                 </Box>
               </Box>

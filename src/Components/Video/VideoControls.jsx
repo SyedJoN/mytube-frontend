@@ -21,8 +21,6 @@ import {
   CardMedia,
   useMediaQuery,
   Switch,
-  Divider,
-  Input,
   Slider,
   Stack,
 } from "@mui/material";
@@ -1178,7 +1176,7 @@ const VideoControls = ({
                 className="control"
                 style={{ ...controlStyles }}
                 onClick={() => {
-                  updateState((prev) => ({ showSettings: !prev.showSettings }));
+                  updateState((prev) => ({ ...prev, showSettings: !prev.showSettings }));
                   setShowPlaybackMenu(false);
                 }}
               >

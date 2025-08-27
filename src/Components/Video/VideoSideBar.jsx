@@ -21,6 +21,7 @@ function VideoSideBar({
   isLoadingList,
   isErrorList,
   errorList,
+  isSkippingPrevious
 }) {
   const [activeOptionsId, setActiveOptionsId] = React.useState(null);
 
@@ -80,6 +81,7 @@ function VideoSideBar({
       >
         <SideVideosList
           {...commonProps}
+          isSkippingPrevious={isSkippingPrevious}
           home={isCustomWidth}
           videoMd={isCustomWidth}
           video={!isCustomWidth}
