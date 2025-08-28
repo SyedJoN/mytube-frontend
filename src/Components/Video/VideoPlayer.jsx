@@ -161,7 +161,6 @@ const VideoPlayer = React.forwardRef(
       videoHeight: 0,
       playerHeight: "0px",
       playerWidth: "0px",
-      aspectRatio: 0.75,
 
       // === UI CONTROLS & OPACITY ===
       controlOpacity: 0,
@@ -172,6 +171,8 @@ const VideoPlayer = React.forwardRef(
       // === Mobile Overlay & Playback Controls ===
       mobileControlOpacity: 0,
       controlOverlayOpacity: 0.6,
+      bottomPad: 0,
+      device: "",
     });
 
     const {
@@ -207,6 +208,8 @@ const VideoPlayer = React.forwardRef(
       // === Mobile Refs
       urlStackIndex,
       prevUrl,
+      pressTimerMobile,
+      isLongPress,
     } = useRefReducer({
       isInside: null,
       videoPauseStatus: null,
@@ -238,6 +241,8 @@ const VideoPlayer = React.forwardRef(
       isLongPressActiveKey: false,
       urlStackIndex: 0,
       prevUrl: null,
+      pressTimerMobile: null,
+      isLongPress: false,
     });
 
     // Imperative Handler for videoRef
@@ -249,7 +254,15 @@ const VideoPlayer = React.forwardRef(
     const isCustomWidth = useMediaQuery(theme.breakpoints.down("custom"));
 
     //Detecting OS
-    const os = useMobileOS();
+    const detectdOS = useMobileOS();
+
+    useEffect(() => {
+      if (detectdOS === "android" || detectdOS === "ios") {
+        updateState({ device: "mobile" });
+      } else {
+        updateState({ device: "windows" });
+      }
+    }, [detectdOS]);
 
     // Conditional Constants
 
@@ -274,7 +287,8 @@ const VideoPlayer = React.forwardRef(
     const playerTopOffset = state.topOffset;
     const playerLeftOffset = isMini ? 0 : state.leftOffset;
     const playerRightOffset = isMini ? "auto" : "";
-    const playerBorderRadius = isTheatre && !isMini ? "0" : "8px";
+    const playerBorderRadius =
+      (isTheatre && !isMini) || state.device === "mobile" ? "0" : "8px";
 
     /* Utility Functions */
     const showControls = () => {
@@ -303,7 +317,7 @@ const VideoPlayer = React.forwardRef(
       if (!container) return;
 
       container
-        .querySelectorAll(".video-overlay, .controls")
+        .querySelectorAll("#video-overlay, .controls")
         .forEach((el) =>
           prop === "hide"
             ? el.classList.add("hide-cursor")
@@ -408,7 +422,7 @@ const VideoPlayer = React.forwardRef(
 
     useEffect(() => {
       const container = containerRef.current;
-      if (isOpen || isFullscreen) return;
+      if (isOpen || isFullscreen || state.device === "mobile") return;
       if (!container) return;
       let threshold;
 
@@ -457,6 +471,7 @@ const VideoPlayer = React.forwardRef(
       state.canPlay,
       isOpen,
       isFullscreen,
+      state.device
     ]);
 
     useEffect(() => {
@@ -475,9 +490,10 @@ const VideoPlayer = React.forwardRef(
           !captureCanvas ||
           !glowCanvas ||
           !isAmbient ||
-          isCustomWidth ||
+          (isCustomWidth && state.device !== "mobile") ||
           video.readyState < 2
         ) {
+          console.log("RETUNING");
           return;
         }
 
@@ -535,7 +551,7 @@ const VideoPlayer = React.forwardRef(
       }, 500);
 
       return () => clearInterval(interval);
-    }, [isAmbient]);
+    }, [isAmbient, isCustomWidth, state.isMobile]);
 
     const handleEnterPiP = useCallback(() => {
       showControls();
@@ -586,18 +602,9 @@ const VideoPlayer = React.forwardRef(
     }, []);
 
     // Mobile event listeners
-    // Controls Function
-    const handleMobileOverlayControls = (e) => {
+    const cancelEventBubbling = (e) => {
       e.stopPropagation();
-      const video = videoRef.current;
-      if (!video) return;
-      console.log("hit");
-      updateState((prev) => ({
-        ...prev,
-        mobileControlOpacity: prev.mobileControlOpacity === 0 ? 1 : 0,
-      }));
     };
-
     useEffect(() => {
       if (isSkippingPrevious.current) return;
       const pathName = location.pathname + location.searchStr;
@@ -651,22 +658,47 @@ const VideoPlayer = React.forwardRef(
       });
     };
 
-    // 2x Mobile 
-    const handleMobile2x = () => {
+    // 2x Mobile
+    const handleMobile2x = (e) => {
       const video = videoRef.current;
       if (!video) return;
-      
-      video.playbackRate = 2.0;
-      updateState({ isFastPlayback: true });
-    }
 
-    const handleMobile2xExit = () => {
-       const video = videoRef.current;
+      if (pressTimerMobile.current) {
+        clearTimeout(pressTimerMobile.current);
+        pressTimerMobile.current = null;
+      }
+
+      pressTimerMobile.current = setTimeout(() => {
+        isLongPress.current = true;
+        if (!isUserInteracted) {
+          setIsUserInteracted(true);
+        }
+        updateState({ isFastPlayback: true, mobileControlOpacity: 0 });
+        if (video.paused) {
+          video.play();
+        }
+        video.playbackRate = 2.0;
+        pressTimerMobile.current = null;
+      }, 600);
+    };
+
+    const handleMobile2xExit = (e) => {
+      console.log("touched", pressTimerMobile.current);
+      const video = videoRef.current;
       if (!video) return;
-      
-      video.playbackRate = 1.0;
-      updateState({ isFastPlayback: false });
-    }
+      clearTimeout(pressTimerMobile.current);
+      pressTimerMobile.current = null;
+      if (isLongPress.current) {
+        isLongPress.current = false;
+        video.playbackRate = 1.0;
+        updateState({ isFastPlayback: false });
+      } else {
+        updateState((prev) => ({
+          ...prev,
+          mobileControlOpacity: prev.mobileControlOpacity === 1 ? 0 : 1,
+        }));
+      }
+    };
     const handleMouseUp = (e) => {
       const video = videoRef.current;
       if (!video) return;
@@ -1186,12 +1218,26 @@ const VideoPlayer = React.forwardRef(
       }
     };
 
+    const toggleMobilePlayPause = (e) => {
+      e.stopPropagation();
+      const video = videoRef.current;
+      if (!video) return;
+      if (video.paused || video.ended) {
+        video.play();
+        updateState({ isPlaying: true });
+      } else {
+        video.pause();
+        updateState({ isPlaying: false });
+      }
+    };
     const togglePlayPause = useCallback(() => {
       const video = videoRef.current;
       const container = containerRef.current;
       const tracker = trackerRef.current;
       if (!video || !container || !state.canPlay) return;
-      setIsUserInteracted(true);
+      if (!isUserInteracted) {
+        setIsUserInteracted(true);
+      }
 
       handleVideoCursorVisiblity("show");
 
@@ -1460,22 +1506,26 @@ const VideoPlayer = React.forwardRef(
         const targetAspectRatio = video.videoWidth / video.videoHeight;
         const widescreenAspect = 16 / 9;
 
-        let videoWidth = video.videoWidth;
-        let videoHeightLocal = video.videoHeight;
+        let videoWidth = containerWidth;
+        let videoHeightLocal = state.device === "mobile" ? video.videoHeight : Math.ceil(videoWidth / targetAspectRatio);
 
         if (videoHeightLocal > containerHeight) {
           videoHeightLocal = containerHeight;
           videoWidth = Math.floor(videoHeightLocal * targetAspectRatio);
         }
-
+        if (state.device === "mobile" && isFullscreen) {
+          ((videoHeightLocal = 309), (videoWidth = containerWidth));
+        }
         const fsWidth = containerHeight * targetAspectRatio;
 
-        const left = isFullscreen
-          ? Math.floor((containerWidth - fsWidth) / 2)
-          : Math.floor((containerWidth - videoWidth) / 2);
-        const top = isFullscreen
-          ? 0
-          : Math.floor((containerHeight - videoHeightLocal) / 2);
+        const left =
+          isFullscreen && state.device !== "mobile"
+            ? Math.floor((containerWidth - fsWidth) / 2)
+            : Math.floor((containerWidth - videoWidth) / 2);
+        const top =
+          isFullscreen && state.device !== "mobile"
+            ? 0
+            : Math.floor((containerHeight - videoHeightLocal) / 2);
 
         if (targetAspectRatio >= widescreenAspect) {
           flexyWatchContainer.style.setProperty(
@@ -1500,17 +1550,19 @@ const VideoPlayer = React.forwardRef(
         updateState({
           videoContainerWidth: containerWidth,
           videoHeight: videoHeightLocal,
-          playerWidth: isFullscreen
-            ? `${containerHeight * targetAspectRatio}px`
-            : `${videoWidth}px`,
-          playerHeight: isFullscreen
-            ? `${containerHeight}px`
-            : `${videoHeightLocal}px`,
+          playerWidth:
+            isFullscreen && state.device !== "mobile"
+              ? `${containerHeight * targetAspectRatio}px`
+              : `${videoWidth}px`,
+          playerHeight:
+            isFullscreen && state.device !== "mobile"
+              ? `${containerHeight}px`
+              : `${videoHeightLocal}px`,
           leftOffset: `${left}px`,
-          topOffset: isFullscreen ? 0 : `${top}px`,
+          topOffset: `${top}px`,
+          bottomPad: "309px",
         });
       };
-
       const container = containerRef.current;
       const observer = new ResizeObserver(updateSize);
       if (container) observer.observe(container);
@@ -1527,7 +1579,7 @@ const VideoPlayer = React.forwardRef(
         window.removeEventListener("resize", updateSize);
         video.removeEventListener("loadedmetadata", updateSize);
       };
-    }, [isTheatre, data?.data?._id, isFullscreen]);
+    }, [isTheatre, data?.data?._id, isFullscreen, state.device]);
 
     useEffect(() => {
       const video = videoRef.current;
@@ -1703,7 +1755,8 @@ const VideoPlayer = React.forwardRef(
           className="player-inner"
           sx={{
             position: "relative",
-            height: isFullscreen && !isTheatre ? "100%" : "none",
+            height: isFullscreen && !isTheatre ? "100%" : "unset",
+            paddingBottom: state.device === "mobile" ? "calc(var(--vtd-watch-flexy-player-height-ratio) / var(--vtd-watch-flexy-player-width-ratio) * 100%)" : "",
             paddingTop:
               isCustomWidth || isMobile
                 ? ""
@@ -1713,9 +1766,12 @@ const VideoPlayer = React.forwardRef(
           }}
         >
           <Box
-            data-theatre={isTheatre && !isFullscreen}
-            data-fullbleed={isCustomWidth}
+            data-theatre={
+              isTheatre && !isFullscreen && state.device !== "mobile"
+            }
+            data-fullbleed={isCustomWidth && state.device !== "mobile"}
             data-fullscreen={isFullscreen}
+            data-mobile={state.device === "mobile" && !isFullscreen}
             ref={containerRef}
             onMouseLeave={handleMouseOut}
             onMouseMove={handleContainerMouseMove}
@@ -1737,35 +1793,34 @@ const VideoPlayer = React.forwardRef(
               left: 0,
             }}
           >
-            {!isTheatre && (
+            <Box
+              sx={{
+                display: isMini || isTheatre ? "none" : "block",
+                height: state.videoHeight,
+              }}
+              className="ambient-wrapper"
+            >
               <Box
                 sx={{
-                  display: isMini ? "none" : "block",
-                  height: state.videoHeight,
+                  transform: isMobile ? "scale(1.5, 1.5)" : "scale(1.5, 1.3)",
                 }}
-                className="ambient-wrapper"
+                className="canvas-container"
               >
-                <Box
-                  sx={{
-                    transform: isMobile ? "scale(1.5, 1.5)" : "scale(1.5, 1.3)",
-                  }}
-                  className="canvas-container"
-                >
-                  <canvas
-                    ref={captureCanvasRef}
-                    width="110"
-                    height="75"
-                    className="hide"
-                  />
-                  <canvas
-                    ref={glowCanvasRef}
-                    width="110"
-                    height="75"
-                    className="glow-canvas"
-                  />
-                </Box>
+                <canvas
+                  ref={captureCanvasRef}
+                  width="110"
+                  height="75"
+                  className="hide"
+                />
+                <canvas
+                  ref={glowCanvasRef}
+                  width="110"
+                  height="75"
+                  className="glow-canvas"
+                />
               </Box>
-            )}
+            </Box>
+
             <Box
               sx={{
                 aspectRatio: containerAspectRatio,
@@ -1785,18 +1840,16 @@ const VideoPlayer = React.forwardRef(
                   position: "relative",
                   width: "100%",
                   height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  borderRadius: "8px",
                   overflow: "hidden",
                   top: 0,
                   left: 0,
+                  borderRadius: playerBorderRadius,
                 }}
               >
                 {data?.data?.videoFile.url && (
                   <video
                     src={data?.data?.videoFile.url}
-                    muted={state.isMuted}
+                    muted={state.isMuted || state.device === "mobile"}
                     key={data?.data?.videoFile.url}
                     ref={videoRef}
                     crossOrigin="anonymous"
@@ -1814,7 +1867,6 @@ const VideoPlayer = React.forwardRef(
                       left: playerLeftOffset,
                       top: playerTopOffset,
                       right: playerRightOffset,
-                      borderRadius: playerBorderRadius,
                     }}
                   ></video>
                 )}
@@ -2098,10 +2150,11 @@ const VideoPlayer = React.forwardRef(
                 </Box>
               </Box>
               <Box
+                id="video-overlay"
                 sx={{ userSelect: "none" }}
                 onMouseDown={!isUserInteracted ? undefined : DoubleSpeed}
                 onMouseUp={!isUserInteracted ? handleVideoOverlay : undefined}
-                className={`video-overlay ${os === "android" || os === "ios" ? "hide" : "hide"}`}
+                className={`${state.device === "mobile" ? "hide" : ""}`}
               >
                 <Box
                   className="thumbnail-overlay"
@@ -2153,17 +2206,18 @@ const VideoPlayer = React.forwardRef(
                       opacity: 1,
                     }}
                   >
-                    <LargePlayIcon />
+                    <LargePlayIcon scale={1.2} />
                   </IconButton>
                 </Box>
               </Box>
               //Mobile
               <Box
                 sx={{ userSelect: "none" }}
-                className={`video-overlay-mobile ${os !== "android" && os !== "ios" ? "" : ""}`}
+                id="video-overlay-mobile"
+                className={`${state.device === "windows" ? "hide" : ""}`}
               >
                 <Box
-                  className="thumbnail-overlay"
+                  id="thumbnail-overlay"
                   sx={{
                     position: "absolute",
                     inset: 0,
@@ -2176,7 +2230,7 @@ const VideoPlayer = React.forwardRef(
                   }}
                 >
                   <Box
-                    className="thumbnail-overlay-image"
+                    id="thumbnail-overlay-image"
                     sx={{
                       position: "absolute",
                       width: "100%",
@@ -2193,19 +2247,20 @@ const VideoPlayer = React.forwardRef(
                   ></Box>
                 </Box>
                 <Box
-                  onPointerUp={handleMobileOverlayControls}
+                  id="mobile-overlay-player-controls"
                   onTouchStart={handleMobile2x}
                   onTouchEnd={handleMobile2xExit}
-                  className="mobile-overlay"
                   sx={{
                     display: "flex",
-                    justifyContent: "space-around",
+                    justifyContent: "center",
+                    gap: "36px",
                     alignItems: "center",
                     position: "absolute",
                     width: "100%",
                     height: "100%",
                     background: "rgba(15,15,15,0.5)",
                     opacity: state.mobileControlOpacity,
+                    transition: "opacity 0.3s ease-in-out",
                     top: 0,
                     left: 0,
                   }}
@@ -2213,7 +2268,8 @@ const VideoPlayer = React.forwardRef(
                   <IconButton
                     disableRipple
                     disabled={urlStackIndex.current <= 1}
-                    onPointerUp={handleSkipPrevious}
+                    onTouchStart={cancelEventBubbling}
+                    onTouchEnd={handleSkipPrevious}
                     sx={{
                       background: "rgba(15,15,15,0.5)",
                       borderRadius: "50px",
@@ -2228,37 +2284,47 @@ const VideoPlayer = React.forwardRef(
                       "&.Mui-disabled svg": {
                         opacity: 0.5,
                       },
+                      pointerEvents: state.mobileControlOpacity
+                        ? "all"
+                        : "none",
                     }}
                     className="mobile-skip-backward-icon"
                   >
-                    <SkipPreviousSvg />
+                    <SkipPreviousSvg scale={1.5} />
                   </IconButton>
                   <IconButton
                     disableRipple
-                    onPointerUp={(e) => e.stopPropagation()}
-                    onTouchStart={togglePlayPause}
+                    onTouchStart={cancelEventBubbling}
+                    onTouchEnd={toggleMobilePlayPause}
                     sx={{
                       background: "rgba(15,15,15,0.5)",
                       borderRadius: "50px",
                       width: 60,
                       height: 60,
+                      pointerEvents: state.mobileControlOpacity
+                        ? "all"
+                        : "none",
                     }}
                     className="playPause-icon"
                   >
-                    <PlayPauseSvg isPlaying={state.isPlaying} />
+                    <PlayPauseSvg isPlaying={state.isPlaying} scale={1.5} />
                   </IconButton>
                   <IconButton
                     disableRipple
-                    onPointerUp={handleSkipNext}
+                    onTouchStart={cancelEventBubbling}
+                    onTouchEnd={handleSkipNext}
                     sx={{
                       background: "rgba(15,15,15,0.5)",
                       borderRadius: "50px",
                       width: 50,
                       height: 50,
+                      pointerEvents: state.mobileControlOpacity
+                        ? "all"
+                        : "none",
                     }}
                     className="mobile-skip-forward-icon"
                   >
-                    <SkipNextSvg />
+                    <SkipNextSvg scale={1.5} />
                   </IconButton>
                 </Box>
               </Box>

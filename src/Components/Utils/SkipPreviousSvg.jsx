@@ -1,9 +1,10 @@
 
 
-export const SkipPreviousSvg = () => {
+export const SkipPreviousSvg = ({scale}) => {
   return (
     <svg
       width="100%"
+      transform={`scale(${scale})`}
       height="100%"
       viewBox="0 0 36 36"
       fill="currentColor"

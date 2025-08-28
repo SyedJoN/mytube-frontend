@@ -1,12 +1,13 @@
 import React from "react";
 
-const LargePlayIcon = ({size=24, style = {}, ...props}) => {
+const LargePlayIcon = ({ size = "100%", style = {}, scale = 1, ...props }) => {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
       width={size}
       height={size}
       viewBox="0 0 68 48"
+      transform={`scale(${scale})`}
       style={{ display: "block", ...style }}
       {...props}
     >

@@ -26,6 +26,7 @@ import { shuffleArray } from "../helper/shuffle";
 import { usePlayerSetting } from "../helper/usePlayerSettings";
 import { DrawerContext, UserContext } from "../Contexts/RootContexts";
 import { useFullscreen } from "../Components/Utils/useFullScreen";
+import { useMobileOS } from "../Components/Utils/useMobileOS";
 
 // CSS Variables
 const cssVariables = {
@@ -62,7 +63,19 @@ function WatchVideo({ videoId, playlistId }) {
   const [hideMini, setHideMini] = useState(false);
   const [isTheatre, setIsTheatre] = usePlayerSetting("theatreMode", false);
   const [subscriberCount, setSubscriberCount] = useState(0);
+  const [device, setDevice] = useState("");
   const isFullscreen = useFullscreen();
+
+  // OS Detection
+  const detectdOS = useMobileOS();
+
+  useEffect(() => {
+    if (detectdOS === "android" || detectdOS === "ios") {
+      setDevice("mobile");
+    } else {
+      setDevice("windows");
+    }
+  }, [detectdOS]);
 
   // fullscreen body attribute
   useEffect(() => {
@@ -375,7 +388,10 @@ function WatchVideo({ videoId, playlistId }) {
           maxWidth: isWideLayout ? "100%" : gridMaxWidth,
           minWidth: isWideLayout ? "100%" : gridMinWidth,
           p: isWideLayout ? 0 : margin6x,
-          overflowY: isFullscreen ? "auto" : "visible",
+          overflowY:
+            isFullscreen && device !== "mobile"
+              ? "auto"
+              : "visible",
           overflowX: "visible",
           width: isWideLayout ? "100%!important" : "",
           flexGrow: "1!important",
