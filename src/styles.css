@@ -15,6 +15,7 @@
 html {
       scrollbar-width: auto;
       scrollbar-color: #aaa transparent;
+      font-family: Roboto, Arial, sans-serif;
 }
 body {
     background: #0f0f0f!important;

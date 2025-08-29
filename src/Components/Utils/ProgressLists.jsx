@@ -11,6 +11,7 @@ import useStateReducer from "./useStateReducer";
 var thumbWidth = 13;
 
 export const ProgressLists = ({
+  isMobileDevice,
   videoRef,
   isMini,
   showSettings,
@@ -193,18 +194,24 @@ export const ProgressLists = ({
 
   useEffect(() => {
     const video = videoRef.current;
-    if (!playsInline || !video) return;
+    if (!(playsInline && isMobileDevice) || !video) return;
     if (!state.isSeeking) {
       rafId.current = requestAnimationFrame(() => {
         if (thumbRef.current) {
-          const x = (progress / 100) * state.BarWidth;
+          const x = (state.progress / 100) * state.BarWidth;
           thumbRef.current.style.transform = `translate3d(${x}px, 0, 0)`;
         }
       });
     }
 
     return () => cancelAnimationFrame(rafId.current);
-  }, [state.progress, state.isSeeking, state.BarWidth, playsInline]);
+  }, [
+    state.progress,
+    state.isSeeking,
+    state.BarWidth,
+    playsInline,
+    isMobileDevice,
+  ]);
 
   const handleMouseMove = (e) => {
     const rect = sliderRef.current.getBoundingClientRect();
@@ -311,8 +318,8 @@ export const ProgressLists = ({
       isSeeking: false,
       hoveredCue: null,
     });
-    window.removeEventListener("mousemove", handleSeekMove);
-    window.removeEventListener("mouseup", handleSeekEnd);
+    window.removeEventListener("pointermove", handleSeekMove);
+    window.removeEventListener("pointerup", handleSeekEnd);
   };
 
   const handleSeekStart = (e) => {
@@ -326,16 +333,23 @@ export const ProgressLists = ({
     } else {
       prevVideoStateRef.current = "play";
     }
+    if (e.pointerType === "mouse") {
+      window.addEventListener("pointermove", handleSeekMove);
+      window.addEventListener("pointerup", handleSeekEnd);
+    } else if (e.pointerType === "touch" || e.pointerType === "pen") {
+    if (e.currentTarget.setPointerCapture) {
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+      } catch (err) {
+        console.log(err)
+        // or ignore
+      }
+    }
+    handleInlineSeekMove(e);
+  }
 
-    window.addEventListener(
-      "mousemove",
-      playsInline ? handleInlineSeekMove : handleSeekMove
-    );
-    window.addEventListener(
-      "mouseup",
-      playsInline ? handleInlineSeekEnd : handleSeekEnd
-    );
   };
+
   const handleInlineClickSeek = (e) => {
     if (!sliderRef?.current || !videoRef?.current) return;
 
@@ -348,7 +362,15 @@ export const ProgressLists = ({
       100
     );
 
-    const newTime = (newProgress * videoRef.current?.duration) / 100;
+    // For Mobile devices
+    if (isMobileDevice) {
+      updateState({
+        progress: newProgress,
+      });
+      const newTime = (newProgress * videoRef.current?.duration) / 100;
+
+      videoRef.current.currentTime = newTime;
+    }
 
     if (tracker && isFinite(videoRef.current.currentTime)) {
       tracker.trackSeek(videoRef.current, fromTime, newTime);
@@ -356,6 +378,7 @@ export const ProgressLists = ({
   };
 
   const handleClickSeek = (e) => {
+    console.log("seek");
     if (!sliderRef?.current || !videoRef?.current) return;
 
     const fromTime = videoRef.current.currentTime;
@@ -374,7 +397,9 @@ export const ProgressLists = ({
     videoRef.current.currentTime = newTime;
     if (!playsInline) {
       videoRef.current?.pause();
-      updateVideoState({ showIcon: false, isPlaying: false });
+      if (updateVideoState) {
+        updateVideoState({ showIcon: false, isPlaying: false });
+      }
     }
 
     if (!isUserInteracted) {
@@ -384,6 +409,8 @@ export const ProgressLists = ({
       tracker.trackSeek(videoRef.current, fromTime, newTime);
     }
   };
+
+  
   const isHoverDefault = playsInline && !state.isSeeking;
   const isHoverSeeking = playsInline && state.isSeeking;
   const isWatchDefault = !playsInline && !state.isSeeking;
@@ -495,17 +522,32 @@ export const ProgressLists = ({
             ? "36px"
             : isMini
               ? "-3px"
-              : playsInline
+              : playsInline && !isMobileDevice
                 ? "-2px"
-                : "48px",
+                : isMobileDevice
+                  ? "17px"
+                  : "48px",
         width: "100%",
         height: isMini ? "10px" : playsInline ? "6px" : "5px",
       }}
     >
       <Box
-        onMouseMove={state.isSeeking ? undefined : handleMouseMove}
-        onMouseLeave={state.isSeeking ? undefined : handleMouseLeave}
-        onMouseDown={playsInline ? handleInlineClickSeek : handleClickSeek}
+        onPointerDown={playsInline ? handleInlineClickSeek : handleClickSeek}
+        onPointerMove={(e) => {
+          if (e.pointerType !== "mouse") {
+            // mobile drag updates
+            handleInlineSeekMove(e);
+          } else if (!state.isSeeking) {
+            // normal hover
+            handleMouseMove(e);
+          }
+        }}
+        onPointerLeave={state.isSeeking ? undefined : handleMouseLeave}
+        onPointerUp={(e) => {
+          if (state.isSeeking && e.pointerType !== "mouse") {
+            handleInlineSeekEnd(e); // finish drag on mobile
+          }
+        }}
         ref={sliderRef}
         component={"div"}
         role="slider"
@@ -670,7 +712,7 @@ export const ProgressLists = ({
         </Box>
 
         <Box
-          onMouseDown={isMini ? undefined : handleSeekStart}
+          onPointerDown={isMini ? undefined : handleSeekStart}
           ref={thumbRef}
           className={`thumb-container ${isMini ? "hide" : ""}`}
           sx={{
@@ -688,11 +730,12 @@ export const ProgressLists = ({
             style={{
               width: `${thumbWidth}px`,
               height: `${thumbWidth}px`,
-              transform: playsInline
-                ? state.isProgressEntered || state.isSeeking
-                  ? "scale(1)"
-                  : "scale(0)"
-                : "scale(1)",
+              transform:
+                playsInline && !isMobileDevice
+                  ? state.isProgressEntered || state.isSeeking
+                    ? "scale(1)"
+                    : "scale(0)"
+                  : "scale(1)",
               borderRadius: "50px",
               zIndex: 253,
               transition:
@@ -702,7 +745,7 @@ export const ProgressLists = ({
         </Box>
 
         <Box
-          onMouseDown={isMini ? undefined : handleSeekStart}
+          onPointerDown={isMini ? undefined : handleSeekStart}
           onMouseMove={() => updateState({ isProgressEntered: true })}
           onMouseLeave={() => updateState({ isProgressEntered: false })}
           className="progress-offset"

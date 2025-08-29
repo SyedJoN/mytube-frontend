@@ -11,9 +11,10 @@ import React, {
 import { keyframes, useMediaQuery, useTheme } from "@mui/system";
 import { fetchVideoById } from "../../apis/videoFn";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import PauseIcon from "@mui/icons-material/Pause";
 import FastForwardIcon from "@mui/icons-material/FastForward";
-import { Box, IconButton, Typography } from "@mui/material";
+import { Box, IconButton, Switch, Typography } from "@mui/material";
 import CircularProgress from "@mui/material/CircularProgress";
 import CancelIcon from "@mui/icons-material/Cancel";
 
@@ -66,6 +67,8 @@ import { SkipPreviousSvg } from "../Utils/SkipPreviousSvg";
 import { SkipNextSvg } from "../Utils/SkipNextSvg";
 import LargePlayIcon from "../../Svgs/LargePlayIcon";
 import { PlayPauseSvg } from "../Utils/PlayPauseSvg";
+import { GearSvg } from "../Utils/GearSvg";
+import ProgressLists from "../Utils/ProgressLists";
 
 const VideoPlayer = React.forwardRef(
   (
@@ -125,6 +128,7 @@ const VideoPlayer = React.forwardRef(
       isReplay: false,
       resumeTime: 0,
       viewCounted: false,
+      isAutoplay: false,
 
       // === VOLUME CONTROL ===
       volume: 40,
@@ -173,6 +177,7 @@ const VideoPlayer = React.forwardRef(
       controlOverlayOpacity: 0.6,
       bottomPad: 0,
       device: "",
+      isMobileMuted: true,
     });
 
     const {
@@ -197,6 +202,7 @@ const VideoPlayer = React.forwardRef(
       trackerRef,
       isHolding,
       glowCanvasRef,
+      ambientIntervalRef,
       lastKeyPress,
       hideVolumeTimer,
       statusRecordCheck,
@@ -232,6 +238,7 @@ const VideoPlayer = React.forwardRef(
       trackerRef: new VideoTelemetryTimer(),
       isHolding: null,
       glowCanvasRef: null,
+      ambientIntervalRef: null,
       lastKeyPress: null,
       hideVolumeTimer: null,
       statusRecordCheck: true,
@@ -471,7 +478,7 @@ const VideoPlayer = React.forwardRef(
       state.canPlay,
       isOpen,
       isFullscreen,
-      state.device
+      state.device,
     ]);
 
     useEffect(() => {
@@ -479,24 +486,31 @@ const VideoPlayer = React.forwardRef(
       const height = 75;
       const centerX = width / 2;
       const centerY = height / 2;
+      const video = videoRef.current;
+      const captureCanvas = captureCanvasRef.current;
+      const glowCanvas = glowCanvasRef.current;
 
-      const interval = setInterval(() => {
-        const video = videoRef.current;
-        const captureCanvas = captureCanvasRef.current;
-        const glowCanvas = glowCanvasRef.current;
-
-        if (
-          !video ||
-          !captureCanvas ||
-          !glowCanvas ||
-          !isAmbient ||
-          (isCustomWidth && state.device !== "mobile") ||
-          video.readyState < 2
-        ) {
-          console.log("RETUNING");
-          return;
+      if (ambientIntervalRef.current) {
+        clearInterval(ambientIntervalRef.current);
+        ambientIntervalRef.current = null;
+      }
+      if (
+        !video ||
+        !captureCanvas ||
+        !glowCanvas ||
+        !isAmbient ||
+        (isCustomWidth && state.device !== "mobile") ||
+        video.readyState < 2
+      ) {
+        if (glowCanvas) {
+          const glowCtx = glowCanvas.getContext("2d");
+          glowCtx?.clearRect(0, 0, width, height);
         }
 
+        return;
+      }
+
+      ambientIntervalRef.current = setInterval(() => {
         const captureCtx = captureCanvas.getContext("2d", {
           willReadFrequently: true,
         });
@@ -550,7 +564,7 @@ const VideoPlayer = React.forwardRef(
         }
       }, 500);
 
-      return () => clearInterval(interval);
+      return () => clearInterval(ambientIntervalRef.current);
     }, [isAmbient, isCustomWidth, state.isMobile]);
 
     const handleEnterPiP = useCallback(() => {
@@ -1347,7 +1361,6 @@ const VideoPlayer = React.forwardRef(
 
       if (!isUserInteracted) {
         showControls();
-        showMobileControls();
       }
       try {
         if (isUserInteracted) {
@@ -1507,7 +1520,10 @@ const VideoPlayer = React.forwardRef(
         const widescreenAspect = 16 / 9;
 
         let videoWidth = containerWidth;
-        let videoHeightLocal = state.device === "mobile" ? video.videoHeight : Math.ceil(videoWidth / targetAspectRatio);
+        let videoHeightLocal =
+          state.device === "mobile"
+            ? video.videoHeight
+            : Math.ceil(videoWidth / targetAspectRatio);
 
         if (videoHeightLocal > containerHeight) {
           videoHeightLocal = containerHeight;
@@ -1756,7 +1772,10 @@ const VideoPlayer = React.forwardRef(
           sx={{
             position: "relative",
             height: isFullscreen && !isTheatre ? "100%" : "unset",
-            paddingBottom: state.device === "mobile" ? "calc(var(--vtd-watch-flexy-player-height-ratio) / var(--vtd-watch-flexy-player-width-ratio) * 100%)" : "",
+            paddingBottom:
+              state.device === "mobile"
+                ? "calc(var(--vtd-watch-flexy-player-height-ratio) / var(--vtd-watch-flexy-player-width-ratio) * 100%)"
+                : "",
             paddingTop:
               isCustomWidth || isMobile
                 ? ""
@@ -1848,8 +1867,12 @@ const VideoPlayer = React.forwardRef(
               >
                 {data?.data?.videoFile.url && (
                   <video
+                    autoPlay={state.device === "mobile"}
                     src={data?.data?.videoFile.url}
-                    muted={state.isMuted || state.device === "mobile"}
+                    muted={
+                      state.isMuted ||
+                      (state.device === "mobile" && state.isMobileMuted)
+                    }
                     key={data?.data?.videoFile.url}
                     ref={videoRef}
                     crossOrigin="anonymous"
@@ -1870,36 +1893,38 @@ const VideoPlayer = React.forwardRef(
                     }}
                   ></video>
                 )}
-                <VideoControls
-                  videoRef={videoRef}
-                  tracker={trackerRef.current}
-                  videoId={videoId}
-                  playlistId={playlistId}
-                  shuffledVideos={shuffledVideos}
-                  isLoading={isLoading}
-                  togglePlayPause={togglePlayPause}
-                  toggleFullScreen={toggleFullScreen}
-                  playlistVideos={playlistVideos}
-                  index={index}
-                  handleVolumeToggle={handleVolumeToggle}
-                  handleTogglePiP={handleTogglePiP}
-                  isTheatre={isTheatre}
-                  setIsTheatre={setIsTheatre}
-                  playbackSpeed={playbackSpeed}
-                  setPlaybackSpeed={setPlaybackSpeed}
-                  spriteUrl={data?.data?.sprite?.url}
-                  vttUrl={data?.data?.sprite?.vtt}
-                  isAmbient={isAmbient}
-                  setIsAmbient={setIsAmbient}
-                  setPreviousVolume={setPreviousVolume}
-                  playbackSliderSpeed={playbackSliderSpeed}
-                  setPlaybackSliderSpeed={setPlaybackSliderSpeed}
-                  customPlayback={state.customPlayback}
-                  isMini={isMini}
-                  setIsMini={setIsMini}
-                  {...state}
-                  updateState={updateState}
-                />
+                {state.device === "windows" && (
+                  <VideoControls
+                    videoRef={videoRef}
+                    tracker={trackerRef.current}
+                    videoId={videoId}
+                    playlistId={playlistId}
+                    shuffledVideos={shuffledVideos}
+                    isLoading={isLoading}
+                    togglePlayPause={togglePlayPause}
+                    toggleFullScreen={toggleFullScreen}
+                    playlistVideos={playlistVideos}
+                    index={index}
+                    handleVolumeToggle={handleVolumeToggle}
+                    handleTogglePiP={handleTogglePiP}
+                    isTheatre={isTheatre}
+                    setIsTheatre={setIsTheatre}
+                    playbackSpeed={playbackSpeed}
+                    setPlaybackSpeed={setPlaybackSpeed}
+                    spriteUrl={data?.data?.sprite?.url}
+                    vttUrl={data?.data?.sprite?.vtt}
+                    isAmbient={isAmbient}
+                    setIsAmbient={setIsAmbient}
+                    setPreviousVolume={setPreviousVolume}
+                    playbackSliderSpeed={playbackSliderSpeed}
+                    setPlaybackSliderSpeed={setPlaybackSliderSpeed}
+                    customPlayback={state.customPlayback}
+                    isMini={isMini}
+                    setIsMini={setIsMini}
+                    {...state}
+                    updateState={updateState}
+                  />
+                )}
               </Box>
               <Box
                 className={`${isFullscreen ? "title-background-overlay" : "hide"}`}
@@ -2206,126 +2231,272 @@ const VideoPlayer = React.forwardRef(
                       opacity: 1,
                     }}
                   >
-                    <LargePlayIcon scale={1.2} />
+                    <LargePlayIcon scale={1.1} />
                   </IconButton>
                 </Box>
               </Box>
-              //Mobile
+              {/* Mobile Overlay */}
               <Box
-                sx={{ userSelect: "none" }}
+                onTouchStart={handleMobile2x}
+                onTouchEnd={handleMobile2xExit}
+                sx={{ position: "relative", userSelect: "none" }}
                 id="video-overlay-mobile"
                 className={`${state.device === "windows" ? "hide" : ""}`}
               >
                 <Box
-                  id="thumbnail-overlay"
-                  sx={{
-                    position: "absolute",
-                    inset: 0,
-                    justifyContent: "center",
-                    alignItems: "center",
-                    display: isUserInteracted || isMini ? "none" : "flex",
-                    transition: "opacity .25s cubic-bezier(0,0,.2,1)",
-                    userSelect: "none",
-                    pointerEvents: "all",
-                  }}
-                >
-                  <Box
-                    id="thumbnail-overlay-image"
-                    sx={{
-                      position: "absolute",
-                      width: "100%",
-                      height: "100%",
-                      borderRadius: "8px",
-                      background: state.loadingVideo
-                        ? "rgba(0,0,0)"
-                        : "transparent",
-                      backgroundImage: `url(${data?.data?.thumbnail.url})`,
-                      backgroundRepeat: "no-repeat",
-                      backgroundPosition: "center",
-                      backgroundSize: "cover",
-                    }}
-                  ></Box>
-                </Box>
-                <Box
                   id="mobile-overlay-player-controls"
-                  onTouchStart={handleMobile2x}
-                  onTouchEnd={handleMobile2xExit}
                   sx={{
                     display: "flex",
                     justifyContent: "center",
-                    gap: "36px",
                     alignItems: "center",
+                    touchAction: "manipulation",
                     position: "absolute",
                     width: "100%",
                     height: "100%",
-                    background: "rgba(15,15,15,0.5)",
-                    opacity: state.mobileControlOpacity,
-                    transition: "opacity 0.3s ease-in-out",
                     top: 0,
                     left: 0,
                   }}
+                ></Box>
+                <Box
+                  id="player-background-overlay"
+                  sx={{
+                    position: "absolute",
+                    width: "100%",
+                    height: "100%",
+                    left: 0,
+                    top: 0,
+                    backgroundColor: state.mobileControlOpacity
+                      ? "rgba(15,15,15,0.6)"
+                      : "rgba(0,0,0,0)",
+                    transitionProperty: "background-color",
+                    transitionDuration: ".7s",
+                  }}
+                ></Box>
+                {/* Video Player Controls */}
+
+                <Box
+                  sx={{
+                    position: "absolute",
+                    width: "100%",
+                    height: "100%",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    top: 0,
+                    left: 0,
+                    pointerEvents: "all",
+                    zIndex: 1,
+                  }}
+                  id="player-controls"
                 >
-                  <IconButton
-                    disableRipple
-                    disabled={urlStackIndex.current <= 1}
-                    onTouchStart={cancelEventBubbling}
-                    onTouchEnd={handleSkipPrevious}
+                  {/* Controls Bar */}
+                  <Box
                     sx={{
-                      background: "rgba(15,15,15,0.5)",
-                      borderRadius: "50px",
-                      width: 50,
-                      height: 50,
-                      "&.Mui-disabled": {
+                      position: "relative",
+                      display: "flex",
+                      justifyContent: "flex-end",
+                      width: "100%",
+                    }}
+                    id="player-controls-top-container"
+                  >
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "flex-end",
+                        alignItems: "center",
+                        touchAction: "manipulation",
+                        opacity: state.mobileControlOpacity,
+                        top: 0,
+                        left: 0,
+                      }}
+                      id="player-controls-top"
+                    >
+                      <IconButton
+                        disableRipple
+                        onTouchStart={cancelEventBubbling}
+                        onTouchEnd={handleSkipPrevious}
+                        sx={{
+                          background: "transparent",
+                          borderRadius: "50px",
+                          width: 50,
+                          height: 50,
+                          opacity: 1,
+                          "&.Mui-disabled": {
+                            background: "transparent",
+                          },
+                          "& svg": {
+                            opacity: 1,
+                          },
+                          "&.Mui-disabled svg": {
+                            opacity: 0.5,
+                          },
+                          pointerEvents: state.mobileControlOpacity
+                            ? "all"
+                            : "none",
+                        }}
+                        id="autoplay-switch-icon"
+                      >
+                        <Switch
+                          disableRipple
+                          color="default"
+                          checked={state.isAutoplay}
+                          onChange={() =>
+                            updateState((prev) => ({
+                              ...prev,
+                              isAutoplay: !prev.isAutoplay,
+                            }))
+                          }
+                          sx={{
+                            "& .MuiSwitch-track": {
+                              backgroundColor: "rgba(255,255,255,0.5)",
+                              opacity: 1,
+                            },
+                            "&.Mui-checked .MuiSwitch-track": {
+                              backgroundColor: "rgba(255,255,255,0.5)",
+                              opacity: 1,
+                            },
+                          }}
+                          slots={{
+                            thumb: Box,
+                          }}
+                          slotProps={{
+                            thumb: {
+                              sx: {
+                                width: 20,
+                                height: 20,
+                                borderRadius: "50%",
+                                backgroundColor: "#747373", // ✅ fixed, won’t be overridden
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                ".Mui-checked &": {
+                                  backgroundColor: "#fff",
+                                },
+                              },
+                              children: state.isAutoplay ? (
+                                <PlayArrowIcon
+                                  fontSize="small"
+                                  sx={{ fontSize: 14, color: "#000" }}
+                                />
+                              ) : (
+                                <PauseIcon
+                                  fontSize="small"
+                                  sx={{ fontSize: 14, color: "#fff" }}
+                                />
+                              ),
+                            },
+                          }}
+                        />
+                      </IconButton>
+                      <IconButton
+                        disableRipple
+                        onTouchStart={cancelEventBubbling}
+                        onTouchEnd={handleSkipPrevious}
+                        sx={{
+                          background: "transparent",
+                          borderRadius: "50px",
+                          width: 50,
+                          height: 50,
+                          opacity: 1,
+                          "&.Mui-disabled": {
+                            background: "transparent",
+                          },
+                          "& svg": {
+                            opacity: 1,
+                          },
+                          "&.Mui-disabled svg": {
+                            opacity: 0.5,
+                          },
+                          pointerEvents: state.mobileControlOpacity
+                            ? "all"
+                            : "none",
+                        }}
+                        id="gear-icon"
+                      >
+                        <SettingsOutlinedIcon sx={{ color: "#f1f1f1" }} />
+                      </IconButton>
+                    </Box>
+                  </Box>
+                  {/* Playback Controls */}
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      top: "50%",
+                      left: "50%",
+                      right: "50%",
+                      transform: "translateY(-50%)",
+                      display: "flex",
+                      justifyContent: "center",
+                      gap: "36px",
+                      alignItems: "center",
+                      touchAction: "manipulation",
+                      opacity: state.mobileControlOpacity,
+                    }}
+                    id="player-controls-middle"
+                  >
+                    <IconButton
+                      disableRipple
+                      disabled={urlStackIndex.current <= 1}
+                      onTouchStart={cancelEventBubbling}
+                      onTouchEnd={handleSkipPrevious}
+                      sx={{
                         background: "rgba(15,15,15,0.5)",
-                      },
-                      "& svg": {
-                        opacity: 1,
-                      },
-                      "&.Mui-disabled svg": {
-                        opacity: 0.5,
-                      },
-                      pointerEvents: state.mobileControlOpacity
-                        ? "all"
-                        : "none",
-                    }}
-                    className="mobile-skip-backward-icon"
-                  >
-                    <SkipPreviousSvg scale={1.5} />
-                  </IconButton>
-                  <IconButton
-                    disableRipple
-                    onTouchStart={cancelEventBubbling}
-                    onTouchEnd={toggleMobilePlayPause}
-                    sx={{
-                      background: "rgba(15,15,15,0.5)",
-                      borderRadius: "50px",
-                      width: 60,
-                      height: 60,
-                      pointerEvents: state.mobileControlOpacity
-                        ? "all"
-                        : "none",
-                    }}
-                    className="playPause-icon"
-                  >
-                    <PlayPauseSvg isPlaying={state.isPlaying} scale={1.5} />
-                  </IconButton>
-                  <IconButton
-                    disableRipple
-                    onTouchStart={cancelEventBubbling}
-                    onTouchEnd={handleSkipNext}
-                    sx={{
-                      background: "rgba(15,15,15,0.5)",
-                      borderRadius: "50px",
-                      width: 50,
-                      height: 50,
-                      pointerEvents: state.mobileControlOpacity
-                        ? "all"
-                        : "none",
-                    }}
-                    className="mobile-skip-forward-icon"
-                  >
-                    <SkipNextSvg scale={1.5} />
-                  </IconButton>
+                        borderRadius: "50px",
+                        width: 50,
+                        height: 50,
+                        "&.Mui-disabled": {
+                          background: "rgba(15,15,15,0.5)",
+                        },
+                        "& svg": {
+                          opacity: 1,
+                        },
+                        "&.Mui-disabled svg": {
+                          opacity: 0.5,
+                        },
+                        pointerEvents: state.mobileControlOpacity
+                          ? "all"
+                          : "none",
+                      }}
+                      id="mobile-skip-backward-icon"
+                    >
+                      <SkipPreviousSvg scale={1.5} />
+                    </IconButton>
+                    <IconButton
+                      disableRipple
+                      onTouchStart={cancelEventBubbling}
+                      onTouchEnd={toggleMobilePlayPause}
+                      sx={{
+                        background: "rgba(15,15,15,0.5)",
+                        borderRadius: "50px",
+                        width: 60,
+                        height: 60,
+                        pointerEvents: state.mobileControlOpacity
+                          ? "all"
+                          : "none",
+                      }}
+                      id="playPause-icon"
+                    >
+                      <PlayPauseSvg isPlaying={state.isPlaying} scale={1.5} />
+                    </IconButton>
+                    <IconButton
+                      disableRipple
+                      onTouchStart={cancelEventBubbling}
+                      onTouchEnd={handleSkipNext}
+                      sx={{
+                        background: "rgba(15,15,15,0.5)",
+                        borderRadius: "50px",
+                        width: 50,
+                        height: 50,
+                        pointerEvents: state.mobileControlOpacity
+                          ? "all"
+                          : "none",
+                      }}
+                      id="mobile-skip-forward-icon"
+                    >
+                      <SkipNextSvg scale={1.5} />
+                    </IconButton>
+                  </Box>
                 </Box>
               </Box>
               <IconButton
@@ -2379,6 +2550,104 @@ const VideoPlayer = React.forwardRef(
                   {data?.data?.title}
                 </Typography>
               </Box>
+              
+              <Box
+                sx={{
+                  display: state.device === "mobile" ? "block" : "none",
+                  position: "absolute",
+                  width: "100%",
+                  height: "100%",
+                  top: 0,
+                  left: 0,
+                  zIndex: state.isMobileMuted ? 3 : 0,
+                  overflow: "hidden",
+                }}
+                onClick={() => updateState({ isMobileMuted: false })}
+                id="initial-btn"
+              >
+                <Box
+                  id="unmute-btn-container"
+                  sx={{
+                    position: "absolute",
+                    top: "12px",
+                    left: "12px",
+                    overflow: "hidden",
+                  }}
+                >
+                  <IconButton
+                    id="unmute-btn-icon"
+                    size="medium"
+                    onClick={() => updateState({ isMobileMuted: false })}
+                    sx={{
+                      position: "relative",
+                      display: state.isMobileMuted ? "inline-flex" : "none",
+                      width: 50,
+                      height: 50,
+                      background: "#fff",
+                      fontWeight: "bolder",
+                      fontSize: 12,
+                      overflow: "hidden",
+                      zIndex: 1,
+                      borderRadius: "2px",
+                    }}
+                  >
+                    {state.isMobileMuted && (
+                      <VolumeOffIcon
+                        sx={{ width: 30, height: 30, color: "#000" }}
+                      />
+                    )}
+                  </IconButton>
+                  <IconButton
+                    id="unmute-btn-text"
+                    size="medium"
+                    sx={{
+                      position: "relative",
+                      display: state.isMobileMuted ? "inline-flex" : "none",
+                      transform: state.videoReady
+                        ? "translateX(-270px)"
+                        : "translateX(-8px)",
+                      borderRadius: "2px",
+                      background: "#fff",
+                      color: "#000",
+                      fontWeight: 500,
+                      fontSize: "82%",
+                      pr: "10px",
+                      height: 50,
+                      zIndex: 0,
+                      transition: "transform 0.4s ease-in 3s",
+                    }}
+                  >
+                    TAP TO UNMUTE
+                  </IconButton>
+                </Box>
+              </Box>
+              {/* Progress + Timestamp + FullScreen */}
+              {state.device === "mobile" &&
+               <Box
+                sx={{
+                  display: "flex",
+                  position: "absolute",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  touchAction: "manipulation",
+                  opacity: state.mobileControlOpacity,
+                  right: 30,
+                  left: 30,
+                  bottom: 0,
+                  height: "44px",
+                  zIndex: 10,
+                  pointerEvents: state.mobileControlOpacity ? "auto" : "none",
+                }}
+                id="player-controls-bottom"
+              >
+                <ProgressLists
+                  isMobileDevice={true}
+                  videoRef={videoRef}
+                  vttUrl={data?.data?.sprite?.vtt}
+                  playsInline={true}
+                />
+              </Box>}
+             
             </Box>
           </Box>
         </Box>
