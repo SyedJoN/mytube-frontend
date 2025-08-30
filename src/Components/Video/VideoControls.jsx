@@ -393,6 +393,7 @@ const VideoControls = ({
       volume: newVolume <= 0 ? 0 : Number(newVolume * 40).toFixed(1),
     });
   };
+  console.log("Video controls")
 
   const handleVolumeHover = (e) => {
     setShowVolumePanel(true);

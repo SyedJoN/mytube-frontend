@@ -11,6 +11,7 @@ import useStateReducer from "./useStateReducer";
 var thumbWidth = 13;
 
 export const ProgressLists = ({
+  resetTimeout,
   isMobileDevice,
   videoRef,
   isMini,
@@ -194,7 +195,7 @@ export const ProgressLists = ({
 
   useEffect(() => {
     const video = videoRef.current;
-    if (!(playsInline && isMobileDevice) || !video) return;
+    if (!playsInline || !video) return;
     if (!state.isSeeking) {
       rafId.current = requestAnimationFrame(() => {
         if (thumbRef.current) {
@@ -205,13 +206,7 @@ export const ProgressLists = ({
     }
 
     return () => cancelAnimationFrame(rafId.current);
-  }, [
-    state.progress,
-    state.isSeeking,
-    state.BarWidth,
-    playsInline,
-    isMobileDevice,
-  ]);
+  }, [state.progress, state.isSeeking, state.BarWidth, playsInline]);
 
   const handleMouseMove = (e) => {
     const rect = sliderRef.current.getBoundingClientRect();
@@ -256,6 +251,9 @@ export const ProgressLists = ({
     const foundCue = state.cueMap.find(
       (cue) => timeOnHover >= cue.startTime && timeOnHover <= cue.endTime
     );
+    if (typeof resetTimeout === "function") {
+      resetTimeout();
+    }
 
     updateState({
       isSeeking: true,
@@ -334,20 +332,24 @@ export const ProgressLists = ({
       prevVideoStateRef.current = "play";
     }
     if (e.pointerType === "mouse") {
-      window.addEventListener("pointermove", handleSeekMove);
-      window.addEventListener("pointerup", handleSeekEnd);
-    } else if (e.pointerType === "touch" || e.pointerType === "pen") {
-    if (e.currentTarget.setPointerCapture) {
-      try {
-        e.currentTarget.setPointerCapture(e.pointerId);
-      } catch (err) {
-        console.log(err)
-        // or ignore
+      if (playsInline) {
+        window.addEventListener("pointermove", handleInlineSeekMove);
+        window.addEventListener("pointerup", handleInlineSeekEnd);
+      } else {
+        window.addEventListener("pointermove", handleSeekMove);
+        window.addEventListener("pointerup", handleSeekEnd);
       }
+    } else if (e.pointerType === "touch" || e.pointerType === "pen") {
+      if (e.currentTarget.setPointerCapture) {
+        try {
+          e.currentTarget.setPointerCapture(e.pointerId);
+        } catch (err) {
+          console.log(err);
+          // or ignore
+        }
+      }
+      handleInlineSeekMove(e);
     }
-    handleInlineSeekMove(e);
-  }
-
   };
 
   const handleInlineClickSeek = (e) => {
@@ -361,13 +363,13 @@ export const ProgressLists = ({
       Math.max((offsetX / rect.width) * 100, 0),
       100
     );
+    const newTime = (newProgress * videoRef.current?.duration) / 100;
 
     // For Mobile devices
     if (isMobileDevice) {
       updateState({
         progress: newProgress,
       });
-      const newTime = (newProgress * videoRef.current?.duration) / 100;
 
       videoRef.current.currentTime = newTime;
     }
@@ -410,7 +412,6 @@ export const ProgressLists = ({
     }
   };
 
-  
   const isHoverDefault = playsInline && !state.isSeeking;
   const isHoverSeeking = playsInline && state.isSeeking;
   const isWatchDefault = !playsInline && !state.isSeeking;
@@ -509,6 +510,7 @@ export const ProgressLists = ({
       }); // px from viewport left
     }
   }, [vttUrl]);
+  // console.log('Progress update:', state.progress, 'isSeeking:', state.isSeeking);
 
   return (
     <Box
@@ -535,17 +537,15 @@ export const ProgressLists = ({
         onPointerDown={playsInline ? handleInlineClickSeek : handleClickSeek}
         onPointerMove={(e) => {
           if (e.pointerType !== "mouse") {
-            // mobile drag updates
             handleInlineSeekMove(e);
           } else if (!state.isSeeking) {
-            // normal hover
             handleMouseMove(e);
           }
         }}
         onPointerLeave={state.isSeeking ? undefined : handleMouseLeave}
         onPointerUp={(e) => {
           if (state.isSeeking && e.pointerType !== "mouse") {
-            handleInlineSeekEnd(e); // finish drag on mobile
+            handleInlineSeekEnd(e);
           }
         }}
         ref={sliderRef}
@@ -738,8 +738,7 @@ export const ProgressLists = ({
                   : "scale(1)",
               borderRadius: "50px",
               zIndex: 253,
-              transition:
-                "all .1s cubic-bezier(.4,0,1,1), -webkit-transform .1s cubic-bezier(.4,0,1,1)",
+              transition: "all .1s cubic-bezier(.4,0,1,1)",
             }}
           ></div>
         </Box>
