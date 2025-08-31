@@ -18,6 +18,7 @@ export const ProgressLists = ({
   showSettings,
   vttUrl,
   playsInline,
+  controlOpacity = 1,
   tracker,
   updateState: updateVideoState,
 }) => {
@@ -56,7 +57,19 @@ export const ProgressLists = ({
   const ariaValueMax = videoRef.current
     ? Math.round(videoRef.current.duration)
     : 0;
-
+  // Hover Detection
+  const handleProgressEnter = () => {
+    if (updateVideoState) {
+      updateVideoState({ isControlHovered: true });
+    }
+    updateState({ isProgressEntered: true });
+  };
+  const handleProgressLeave = () => {
+    if (updateVideoState) {
+      updateVideoState({ isControlHovered: false });
+    }
+    updateState({ isProgressEntered: false });
+  };
   const progressUpdate = useCallback(() => {
     const video = videoRef.current;
 
@@ -745,8 +758,8 @@ export const ProgressLists = ({
 
         <Box
           onPointerDown={isMini ? undefined : handleSeekStart}
-          onMouseMove={() => updateState({ isProgressEntered: true })}
-          onMouseLeave={() => updateState({ isProgressEntered: false })}
+          onMouseEnter={handleProgressEnter}
+          onMouseLeave={handleProgressLeave}
           className="progress-offset"
           sx={{
             position: "absolute",
@@ -754,6 +767,7 @@ export const ProgressLists = ({
             height: "16px",
             bottom: 0,
             zIndex: 250,
+            pointerEvents: controlOpacity ? "auto" : "none",
           }}
         ></Box>
       </Box>

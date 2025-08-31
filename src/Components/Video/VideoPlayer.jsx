@@ -104,7 +104,6 @@ const VideoPlayer = React.forwardRef(
     const theme = useTheme();
     const navigate = useNavigate();
     const isFullscreen = useFullscreen();
-    console.log("Video Player rendered");
     const userContext = useContext(UserContext);
     const drawerContext = useContext(DrawerContext);
     const userInteractionContext = useContext(UserInteractionContext);
@@ -177,13 +176,13 @@ const VideoPlayer = React.forwardRef(
       titleOpacity: 0,
       showSettings: false,
       isPipActive: false,
-      isTimeoutFreeze: false,
 
       // === Mobile Overlay & Playback Controls ===
       controlOverlayOpacity: 0.6,
       bottomPad: 0,
       device: "",
       isMobileMuted: true,
+      isControlHovered: false,
     });
 
     const {
@@ -196,7 +195,7 @@ const VideoPlayer = React.forwardRef(
       savedVideoRef,
       timeoutRef,
       pressTimer,
-      fullScreenTitleRef,
+      isTimeoutFreeze,
       clickTimeout,
       clickCount,
       animateTimeoutRef,
@@ -206,7 +205,6 @@ const VideoPlayer = React.forwardRef(
       prevVolumeRef,
       exitingPiPViaOurUIButtonRef,
       trackerRef,
-      isHolding,
       glowCanvasRef,
       ambientIntervalRef,
       lastKeyPress,
@@ -232,7 +230,7 @@ const VideoPlayer = React.forwardRef(
       savedVideoRef: null,
       timeoutRef: null,
       pressTimer: null,
-      fullScreenTitleRef: null,
+      isTimeoutFreeze: false,
       clickTimeout: null,
       clickCount: 0,
       animateTimeoutRef: null,
@@ -242,7 +240,6 @@ const VideoPlayer = React.forwardRef(
       prevVolumeRef: 0.5,
       exitingPiPViaOurUIButtonRef: null,
       trackerRef: new VideoTelemetryTimer(),
-      isHolding: null,
       glowCanvasRef: null,
       ambientIntervalRef: null,
       lastKeyPress: null,
@@ -334,19 +331,50 @@ const VideoPlayer = React.forwardRef(
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
+
       timeoutRef.current = setTimeout(() => {
+        console.log("HIDE TRIGGERED after timeout"); // <-- should see this now
         hideControls();
         handleVideoCursorVisiblity("hide");
       }, HIDE_TIMEOUT);
-    }, [hideControls]);
+    }, [hideControls, handleVideoCursorVisiblity]);
 
     const freezeTimeout = useCallback(() => {
-      console.log("timeout freezing..");
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
-        updateState({ isTimeoutFreeze: true });
+        showControls();
       }
-    }, []);
+    }, [showControls]);
+
+    useEffect(() => {
+      const video = videoRef.current;
+      const container = containerRef.current;
+      if (!video || !container) return;
+      const shouldFreeze =
+        state.isReplay ||
+        !state.isPlaying ||
+        state.isControlHovered ||
+        state.showSettings;
+
+      if (shouldFreeze && !isTimeoutFreeze.current) {
+        console.log("timeout freezing..");
+        isTimeoutFreeze.current = true;
+        freezeTimeout();
+      }
+
+      if (!shouldFreeze && isTimeoutFreeze.current) {
+        console.log("unfreezing, resetting timeout..");
+        isTimeoutFreeze.current = false;
+        resetTimeout();
+      }
+    }, [
+      state.isPlaying,
+      state.isReplay,
+      state.showSettings,
+      state.isControlHovered,
+      resetTimeout,
+      freezeTimeout,
+    ]);
 
     useEffect(() => {
       if (state.isMuted) {
@@ -369,20 +397,8 @@ const VideoPlayer = React.forwardRef(
 
     useEffect(() => {
       updateState({ videoReady: false });
-      hideControls();
+      // hideControls();
     }, [videoId]);
-
-    useEffect(() => {
-      const video = videoRef.current;
-
-      if (!video || !state.isPlaying || state.isTimeoutFreeze) return;
-
-      resetTimeout();
-
-      return () => {
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      };
-    }, [state.isPlaying, showControls]);
 
     const {
       data: userHistory,
@@ -416,7 +432,6 @@ const VideoPlayer = React.forwardRef(
       } catch (err) {
         updateState({ isPlaying: false });
         if (tracker?.telemetryTimer) {
-          console.log("STOPPP");
           tracker.stop();
           tracker.telemetryTimer = null;
         }
@@ -437,13 +452,11 @@ const VideoPlayer = React.forwardRef(
         if (tracker) tracker.reset();
 
         if (!video || !tracker) {
-          console.log("No video or tracker at unmount");
           return;
         }
 
         const telemetryData = tracker.end(video, isSubscribedTo ? 1 : 0);
         if (telemetryData) {
-          console.log("Sending telemetry");
           sendYouTubeStyleTelemetry(
             videoId,
             video,
@@ -595,9 +608,8 @@ const VideoPlayer = React.forwardRef(
     }, [isAmbient, isCustomWidth, state.device]);
 
     const handleEnterPiP = useCallback(() => {
-      showControls();
       updateState({ isPipActive: true });
-    }, [showControls]);
+    }, []);
 
     const handleLeavePiP = useCallback(() => {
       requestAnimationFrame(() => {
@@ -646,7 +658,8 @@ const VideoPlayer = React.forwardRef(
       const video = videoRef.current;
       if (!video) return;
       const isKeyboard = e.type === "keyup";
-
+      
+ 
       if (!isKeyboard && currentInteractionType.current !== "mouse") {
         clickCount.current = -1;
         return;
@@ -673,10 +686,8 @@ const VideoPlayer = React.forwardRef(
         if (state.isReplay) return;
 
         clickCount.current += 1;
-        console.log("After increment, clickCount:", clickCount.current);
-
+        // Fullscreen logic
         if (clickCount.current === 2 && !isKeyboard) {
-          console.log("Double click detected!");
           clearTimeout(clickTimeout.current);
           clickTimeout.current = null;
           clearTimeout(pressTimer.current);
@@ -698,9 +709,8 @@ const VideoPlayer = React.forwardRef(
             video.play();
           }
         } else if (clickCount.current === 1) {
-          console.log("Setting single click timer");
-
           if (state.isLongPress) {
+            console.log("true");
             exitDoubleSpeed(e);
             isLongPressActiveMouse.current = false;
             isLongPressActiveKey.current = false;
@@ -722,8 +732,6 @@ const VideoPlayer = React.forwardRef(
       if (!isKeyboard) {
         window.removeEventListener("mousemove", handleMouseMove);
         window.removeEventListener("mouseup", handleMouseUp);
-        window.removeEventListener("touchend", handleMouseUp);
-        window.removeEventListener("touchcancel", handleMouseUp);
       }
     };
 
@@ -739,10 +747,8 @@ const VideoPlayer = React.forwardRef(
       currentInteractionType.current = isKeyboard ? "keyboard" : "mouse";
 
       if (isMouse && e.button === 2) return;
-      if (isHolding.current) return;
 
       const video = videoRef.current;
-      console.log(isKeyboard ? "keydown - space" : "mousedown - doublespeed");
 
       if (!video) return;
 
@@ -757,38 +763,51 @@ const VideoPlayer = React.forwardRef(
         statusRecordCheck.current = false;
       }
 
+      if (isKeyboard) {
+        showControls();
+      }
       pressTimer.current = setTimeout(() => {
         isLongPressActiveKey.current = isKeyboard ? true : false;
         isLongPressActiveMouse.current = isMouse ? true : false;
         updateState({ isLongPress: true, showIcon: false });
-        hideControls();
-
+        // resetTimeout();
         if (video.paused) {
           video.play();
           updateState({ isPlaying: true });
         }
-        video.playbackRate = 2.0;
         if (!isUserInteracted) {
           setIsUserInteracted(true);
         }
         updateState({ isFastPlayback: true });
         pressTimer.current = null;
+        updateState({ controlOpacity: 0 });
+        console.log("HIDING CONTROLS");
+        video.playbackRate = 2.0;
       }, 600);
       if (isMouse) {
         window.addEventListener("mousemove", handleMouseMove);
         window.addEventListener("mouseup", handleMouseUp);
-        window.addEventListener("touchend", handleMouseUp);
-        window.addEventListener("touchcancel", handleMouseUp);
       }
+      resetTimeout();
     };
 
     const exitDoubleSpeed = (e) => {
       if (e.button === 2) return;
+      console.log("EXIT");
 
       const video = videoRef.current;
       if (!video) return;
+      const isKeyboard = e.type === "keyup";
+      updateState({
+        showIcon: true,
+        showVolumeIcon: false,
+        isLongPress: false,
+        isFastPlayback: false,
+      });
 
-      updateState({ showIcon: true, showVolumeIcon: false });
+      clearTimeout(pressTimer.current);
+      pressTimer.current = null;
+      isTimeoutFreeze.current = false;
 
       if (
         currentInteractionType.current &&
@@ -797,46 +816,39 @@ const VideoPlayer = React.forwardRef(
         if (videoPauseStatus.current) {
           video.pause();
           updateState({ isPlaying: false });
-          showControls();
           video.playbackRate = playbackSpeed;
         } else {
           video.play();
-
-          showControls();
           updateState({ isPlaying: true });
         }
         currentInteractionType.current = null;
       }
-
       updateState({
         controlOpacity:
-          isInside.current && prevOpacityRef.current === 1
+          (isKeyboard ? true : isInside.current) && prevOpacityRef.current === 1
             ? prevOpacityRef.current
             : 0,
         titleOpacity:
-          isInside.current && prevOpacityRef.current === 1
+          (isKeyboard ? true : isInside.current) && prevOpacityRef.current === 1
             ? prevOpacityRef.current
             : 0,
       });
 
-      clearTimeout(pressTimer.current);
-      pressTimer.current = setTimeout(() => {
-        updateState({ isLongPress: false });
-        pressTimer.current = null;
-      }, 200);
-      updateState({ isFastPlayback: false });
-
       video.playbackRate = playbackSpeed;
+      resetTimeout();
     };
     const handleContainerMouseMove = () => {
       const container = containerRef.current;
       if (!container) return;
-      if (!state.isLongPress) {
-        handleVideoCursorVisiblity("show");
+      if (state.isLongPress || !state.isPlaying || state.isControlHovered)
+        return;
 
-        isInside.current = true;
-        showControls();
-      }
+      showControls();
+      handleVideoCursorVisiblity("show");
+
+      isInside.current = true;
+      isTimeoutFreeze.current = false;
+      resetTimeout();
     };
     const handleContainerMouseEnter = () => {
       if (!state.isLongPress) {
@@ -845,7 +857,6 @@ const VideoPlayer = React.forwardRef(
       }
     };
     const handleMouseMove = (e) => {
-      const container = containerRef.current;
       const video = videoRef.current;
 
       const rect = video.getBoundingClientRect();
@@ -854,7 +865,7 @@ const VideoPlayer = React.forwardRef(
       const inside =
         x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
 
-      if (videoPauseStatus.current) return;
+      if (videoPauseStatus.current || state.isReplay) return;
       isInside.current = inside;
 
       handleVideoCursorVisiblity("show");
@@ -862,69 +873,59 @@ const VideoPlayer = React.forwardRef(
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
 
-      const controls = container.getElementsByClassName("MuiPopper-root");
-      if (controls.length) {
-        freezeTimeout();
-      }
+      if (!state.isPlaying || state.isControlHovered || state.showSettings)
+        return;
 
-      if (
-        state.isPlaying &&
-        !controls.length &&
-        !state.isReplay &&
-        !isHolding.current &&
-        !state.showSettings
-      ) {
-        resetTimeout();
-      }
+      isTimeoutFreeze.current = false;
+      resetTimeout();
     };
 
-    useEffect(() => {
-      const container = containerRef.current;
-      const fullScreenTitle = fullScreenTitleRef.current;
-      const isInsideRef = isInside.current;
-      const video = videoRef.current;
+    // useEffect(() => {
+    //   const container = containerRef.current;
+    //   const fullScreenTitle = fullScreenTitleRef.current;
+    //   const isInsideRef = isInside.current;
+    //   const video = videoRef.current;
 
-      if (!container || !video || !fullScreenTitle || !isInsideRef) return;
+    //   if (!container || !video || !fullScreenTitle || !isInsideRef) return;
 
-      if (!state.isPlaying) {
-        showControls();
-        fullScreenTitle.classList.add("show");
-        return;
-      }
+    //   // if (!state.isPlaying) {
+    //   //   showControls();
+    //   //   fullScreenTitle.classList.add("show");
+    //   // }
 
-      const handleMouseMove = () => {
-        let lastCall = 0;
-        const throttleMs = 100;
+    //   // const handleMouseMove = () => {
+    //   //   let lastCall = 0;
+    //   //   const throttleMs = 100;
 
-        const now = Date.now();
-        if (now - lastCall < throttleMs) return;
-        lastCall = now;
+    //   //   const now = Date.now();
+    //   //   if (now - lastCall < throttleMs) return;
+    //   //   lastCall = now;
 
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    //   //   if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
-        timeoutRef.current = setTimeout(() => {
-          const currentControls =
-            container.getElementsByClassName("MuiPopper-root");
-          if (
-            !currentControls.length &&
-            !isHolding.current &&
-            !state.showSettings
-          ) {
-            hideControls();
-            handleVideoCursorVisiblity("hide");
-          }
-        }, 2000);
-      };
+    //   //   // timeoutRef.current = setTimeout(() => {
+    //   //   //   const currentControls =
+    //   //   //     container.getElementsByClassName("MuiPopper-root");
+    //   //   //   if (
+    //   //   //     !currentControls.length &&
+    //   //   //     !isHolding.current &&
+    //   //   //     !state.showSettings
+    //   //   //   ) {
+    //   //   //     hideControls();
+    //   //   //     handleVideoCursorVisiblity("hide");
+    //   //   //   }
+    //   //   // }, 2000);
+    //   // };
 
-      container.addEventListener("mousemove", handleMouseMove);
+    //   // container.addEventListener("mousemove", handleMouseMove);
 
-      handleMouseMove();
+    //   // handleMouseMove();
 
-      return () => {
-        container.removeEventListener("mousemove", handleMouseMove);
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      };
-    }, [state.isPlaying, hideControls, state.isLongPress, state.showSettings]);
+    //   return () => {
+    //     container.removeEventListener("mousemove", handleMouseMove);
+    //     if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    //   };
+    // }, [state.isPlaying, hideControls, state.isLongPress, state.showSettings]);
     const handleMouseOut = () => {
       const container = containerRef.current;
       const video = videoRef.current;
@@ -1181,6 +1182,7 @@ const VideoPlayer = React.forwardRef(
         video.play();
         updateState({ isPlaying: true });
       } else {
+        showControls();
         video.pause();
         updateState({ isPlaying: false });
       }
@@ -1188,8 +1190,7 @@ const VideoPlayer = React.forwardRef(
       if (tracker && video.currentTime !== 0) {
         tracker.trackVideoState(video, fromTime, setTimeStamp);
       }
-      showControls();
-    }, []);
+    }, [showControls]);
 
     useEffect(() => {
       const video = videoRef.current;
@@ -1541,7 +1542,6 @@ const VideoPlayer = React.forwardRef(
         } else if (e.code === "Space") {
           e.preventDefault();
           if (isSpacePressed.current) return;
-
           isSpacePressed.current = true;
           DoubleSpeed(e);
         } else if (e.shiftKey && e.key.toLowerCase() === "n") {
@@ -1627,9 +1627,11 @@ const VideoPlayer = React.forwardRef(
       togglePlayPause,
       handleNextVideo,
       playbackSliderSpeed,
+      updateVolumeIconState,
       playbackSpeed,
       handleVolumeToggle,
       handleMouseUp,
+      DoubleSpeed,
     ]);
 
     const { mutate } = useMutation({
@@ -1668,7 +1670,7 @@ const VideoPlayer = React.forwardRef(
 
     const handleVideoEnd = () => {
       updateState({ canPlay: false, isReplay: true });
-
+      showControls();
       if (!playlistVideos || index >= playlistVideos.length - 1) return;
 
       navigate({
@@ -1710,7 +1712,6 @@ const VideoPlayer = React.forwardRef(
             ref={containerRef}
             onMouseLeave={handleMouseOut}
             onMouseMove={handleContainerMouseMove}
-            onMouseEnter={handleContainerMouseEnter}
             id="video-container"
             component="div"
             sx={{
@@ -1727,7 +1728,7 @@ const VideoPlayer = React.forwardRef(
               sx={{
                 display: isMini || isTheatre ? "none" : "block",
                 height: state.videoHeight,
-                overflow: "hidden",
+                // overflow: "hidden",
               }}
               className="ambient-wrapper"
             >
@@ -1830,7 +1831,6 @@ const VideoPlayer = React.forwardRef(
                     setPreviousVolume={setPreviousVolume}
                     playbackSliderSpeed={playbackSliderSpeed}
                     setPlaybackSliderSpeed={setPlaybackSliderSpeed}
-                    customPlayback={state.customPlayback}
                     isMini={isMini}
                     setIsMini={setIsMini}
                     {...state}

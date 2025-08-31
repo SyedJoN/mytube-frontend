@@ -82,6 +82,7 @@ const VideoControls = ({
   isAmbient,
   setIsAmbient,
   updateState,
+  isControlHovered,
   playerWidth,
   playerHeight,
 }) => {
@@ -174,7 +175,6 @@ const VideoControls = ({
       position: "absolute",
       opacity: controlOpacity,
       display: videoReady ? "block" : "none",
-      PointerEvent: controlOpacity,
       width: isMini ? "480px" : videoContainerWidth - 24,
       transition: "opacity 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
       bottom: 0,
@@ -313,6 +313,14 @@ const VideoControls = ({
     );
   }, [nextVideo, isMobile]);
 
+  // Controls Detection
+  const handleControlEnter = () => {
+    updateState({ isControlHovered: true });
+  };
+  const handleControlLeave = () => {
+    updateState({ isControlHovered: false });
+  };
+
   const handlePrevPlaylist = () => {
     if (index <= 0) return;
     navigate({
@@ -367,7 +375,7 @@ const VideoControls = ({
       updateState({ volumeSlider: volumeValue });
       setPreviousVolume(volumeValue);
     }
-  videoRef.current.volume = normalizedVolume;
+    videoRef.current.volume = normalizedVolume;
   };
   const handleVolumeEnd = () => {
     window.removeEventListener("mousemove", handleVolumeMove);
@@ -393,10 +401,15 @@ const VideoControls = ({
       volume: newVolume <= 0 ? 0 : Number(newVolume * 40).toFixed(1),
     });
   };
-  console.log("Video controls")
 
   const handleVolumeHover = (e) => {
     setShowVolumePanel(true);
+    updateState({isControlHovered: true})
+  };
+
+   const handleVolumeOut = (e) => {
+    setShowVolumePanel(false);
+    updateState({isControlHovered: false})
   };
 
   const handleTheatreToggle = () => {
@@ -426,6 +439,7 @@ const VideoControls = ({
             display: "flex",
             justifyContent: "space-between",
             height: "100%",
+            pointerEvents: controlOpacity ? "auto" : "none",
           }}
         >
           <Box
@@ -453,6 +467,8 @@ const VideoControls = ({
                   className="control"
                   style={controlStyles}
                   onClick={handlePrevPlaylist}
+                  onMouseEnter={handleControlEnter}
+                  onMouseLeave={handleControlLeave}
                 >
                   <SkipPreviousSvg />
                 </a>
@@ -479,6 +495,8 @@ const VideoControls = ({
                 <a
                   className="control"
                   style={controlStyles}
+                  onMouseEnter={handleControlEnter}
+                  onMouseLeave={handleControlLeave}
                   onClick={() => {
                     togglePlayPause();
                     updateState({ showIcon: false });
@@ -508,6 +526,8 @@ const VideoControls = ({
                 <a
                   className="control"
                   style={controlStyles}
+                                    onMouseEnter={handleControlEnter}
+                  onMouseLeave={handleControlLeave}
                   onClick={() => {
                     togglePlayPause();
                     updateState({ showIcon: false });
@@ -540,15 +560,18 @@ const VideoControls = ({
                 className="control"
                 style={controlStyles}
                 to="/watch"
+                                  onMouseEnter={handleControlEnter}
+                  onMouseLeave={handleControlLeave}
                 search={nextSearch}
               >
-                <SkipNextSvg />h
+                <SkipNextSvg />
               </Link>
             </Tooltip>
 
             <Box
               onMouseEnter={handleVolumeHover}
-              onMouseLeave={() => setShowVolumePanel(false)}
+              
+              onMouseLeave={handleVolumeOut}
               component={"div"}
               className="volume-container"
               sx={{ display: "flex" }}
@@ -570,7 +593,7 @@ const VideoControls = ({
                   },
                 }}
               >
-                <a style={controlStyles} onClick={handleVolumeToggle}>
+                <a style={controlStyles} onClick={handleVolumeToggle} onMouseEnter={handleControlEnter} onMouseLeave={handleControlLeave}>
                   <MorphingVolIcon
                     volume={volume / 40}
                     muted={isMuted}
@@ -599,6 +622,7 @@ const VideoControls = ({
                 <Box
                   ref={volumeSliderRef}
                   onMouseDown={handleVolumeClick}
+                  onMouseEnter={handleControlEnter} onMouseLeave={handleControlLeave}
                   className="volume-panel control"
                   sx={{
                     width: showVolumePanel ? "52px" : 0,
@@ -646,7 +670,14 @@ const VideoControls = ({
               </Tooltip>
             </Box>
 
-            <IconButton disableRipple sx={{ display: isXsMobile ? "none" : "inline-flex", cursor: "default" }}>
+            <IconButton
+              disableRipple
+              onMouseEnter={handleControlEnter} onMouseLeave={handleControlLeave}
+              sx={{
+                display: isXsMobile ? "none" : "inline-flex",
+                cursor: "default",
+              }}
+            >
               <Typography sx={{ color: "#f1f1f1" }} fontSize={"0.85rem"}>
                 {formatDuration(
                   Math.min(
@@ -1177,9 +1208,14 @@ const VideoControls = ({
                 className="control"
                 style={{ ...controlStyles }}
                 onClick={() => {
-                  updateState((prev) => ({ ...prev, showSettings: !prev.showSettings }));
+                  updateState((prev) => ({
+                    ...prev,
+                    showSettings: !prev.showSettings,
+                  }));
                   setShowPlaybackMenu(false);
                 }}
+                onMouseEnter={handleControlEnter}
+                 onMouseLeave={handleControlLeave}
               >
                 <GearSvg showSettings={showSettings} />
               </a>
@@ -1205,6 +1241,8 @@ const VideoControls = ({
                   className="control"
                   style={controlStyles}
                   onClick={handleTogglePiP}
+                  onMouseEnter={handleControlEnter}
+                   onMouseLeave={handleControlLeave}
                 >
                   <PiPSvg />
                 </a>
@@ -1231,6 +1269,8 @@ const VideoControls = ({
                   className="control"
                   style={controlStyles}
                   onClick={handleTheatreToggle}
+                  onMouseEnter={handleControlEnter}
+                   onMouseLeave={handleControlLeave}
                 >
                   <TheatreSvg isTheatre={isTheatre} />
                 </a>
@@ -1256,6 +1296,8 @@ const VideoControls = ({
                 className="full-screen-btn control"
                 style={controlStyles}
                 onClick={toggleFullScreen}
+                onMouseEnter={handleControlEnter}
+                onMouseLeave={handleControlLeave}
               >
                 <FullScreenSvg isFullscreen={isFullscreen} />
               </a>
@@ -1270,9 +1312,9 @@ const VideoControls = ({
           isTheatre={isTheatre}
           isMini={isMini}
           vttUrl={vttUrl}
+          controlOpacity={controlOpacity}
           updateState={updateState}
-          playerWidth={playerWidth}
-          playerHeight={playerHeight}
+
         />
       </Box>
     </>
