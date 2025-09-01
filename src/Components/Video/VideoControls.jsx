@@ -497,8 +497,8 @@ const VideoControls = ({
                   style={controlStyles}
                   onMouseEnter={handleControlEnter}
                   onMouseLeave={handleControlLeave}
-                  onClick={() => {
-                    togglePlayPause();
+                  onClick={(e) => {
+                    togglePlayPause(e);
                     updateState({ showIcon: false });
                   }}
                 >
@@ -528,8 +528,8 @@ const VideoControls = ({
                   style={controlStyles}
                                     onMouseEnter={handleControlEnter}
                   onMouseLeave={handleControlLeave}
-                  onClick={() => {
-                    togglePlayPause();
+                  onClick={(e) => {
+                    togglePlayPause(e);
                     updateState({ showIcon: false });
                   }}
                 >

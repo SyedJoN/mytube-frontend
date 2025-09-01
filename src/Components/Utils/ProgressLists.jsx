@@ -767,7 +767,7 @@ export const ProgressLists = ({
             height: "16px",
             bottom: 0,
             zIndex: 250,
-            pointerEvents: controlOpacity ? "auto" : "none",
+
           }}
         ></Box>
       </Box>
