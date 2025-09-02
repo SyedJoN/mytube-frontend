@@ -498,6 +498,7 @@ const VideoControls = ({
                   onMouseEnter={handleControlEnter}
                   onMouseLeave={handleControlLeave}
                   onClick={(e) => {
+                    console.log("play")
                     togglePlayPause(e);
                     updateState({ showIcon: false });
                   }}

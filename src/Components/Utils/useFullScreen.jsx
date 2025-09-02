@@ -1,21 +1,31 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 export const useFullscreen = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     const checkFullscreen = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      const fullscreenEl =
+        document.fullscreenElement ||
+        document.webkitFullscreenElement ||
+        document.mozFullScreenElement ||
+        document.msFullscreenElement;
+      setIsFullscreen(!!fullscreenEl);
     };
 
+    document.addEventListener("fullscreenchange", checkFullscreen);
+    document.addEventListener("webkitfullscreenchange", checkFullscreen);
+    document.addEventListener("mozfullscreenchange", checkFullscreen);
+    document.addEventListener("MSFullscreenChange", checkFullscreen);
+
+    // Initial check
     checkFullscreen();
 
-    document.addEventListener('fullscreenchange', checkFullscreen);
-
-
     return () => {
-      document.removeEventListener('fullscreenchange', checkFullscreen);
-
+      document.removeEventListener("fullscreenchange", checkFullscreen);
+      document.removeEventListener("webkitfullscreenchange", checkFullscreen);
+      document.removeEventListener("mozfullscreenchange", checkFullscreen);
+      document.removeEventListener("MSFullscreenChange", checkFullscreen);
     };
   }, []);
 
