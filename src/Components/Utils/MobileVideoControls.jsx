@@ -51,7 +51,6 @@ const MobileVideoControls = ({
   isSkippingPrevious,
   updateState,
 }) => {
-  const theme = useTheme();
   const isFullscreen = useFullscreen();
   const [controlOpacity, setControlOpacity] = useState(0);
   const [isAutoplay, setIsAutoplay] = useState(false);
@@ -60,9 +59,6 @@ const MobileVideoControls = ({
   const urlStackIndex = useRef(null);
   const prevUrl = useRef(null);
   const isLongPress = useRef(null);
-  const showControls = () => {
-    if (controlOpacity !== 1) setControlOpacity(1);
-  };
 
   const hideControls = () => {
     if (controlOpacity !== 0) setControlOpacity(0);
@@ -73,77 +69,7 @@ const MobileVideoControls = ({
     hideControls();
   }, [videoId]);
 
-  const nextVideoStyles = useMemo(
-    () => ({
-      whiteSpace: "nowrap",
-      backgroundColor: "rgb(27,26,27)",
-      fontSize: "0.75rem",
-      borderRadius: "16px",
-      padding: "0",
-    }),
-    []
-  );
-
-  const popperModifiers = [
-    {
-      name: "offset",
-      options: {
-        offset: [0, 5],
-      },
-    },
-  ];
-  const nextVideoModifiers = useMemo(
-    () => [
-      {
-        name: "offset",
-        options: {
-          offset: [60, 0],
-        },
-      },
-      {
-        name: "flip",
-        enabled: false,
-      },
-      {
-        name: "preventOverflow",
-        enabled: false,
-      },
-      {
-        name: "hide",
-        enabled: false,
-      },
-    ],
-    []
-  );
   const navigate = useNavigate();
-  const volumeSliderRef = useRef(null);
-
-  // const handleNext = () => {
-  //   setIsUserInteracted(true);
-
-  //   navigate({
-  //     to: "/watch",
-  //     search: { v: shuffledVideos[0]?._id },
-  //   });
-  // };
-  // const handleNextPlaylist = () => {
-  //   if (index >= playlistVideos.length - 1) return;
-  //   setIsUserInteracted(true);
-
-  //   navigate({
-  //     to: "/watch",
-  //     search: {
-  //       v: playlistVideos[index + 1]._id,
-  //       list: playlistId,
-  //       index: index + 2,
-  //     },
-  //   });
-  // };
-  // const handlePrev = () => {
-  //   if (!videoRef.current) return;
-  //   videoRef.current.currentTime -= 5;
-  //   videoRef.current.play();
-  // };
 
   const resetTimeout = useCallback(() => {
     if (timeoutRef.current) {

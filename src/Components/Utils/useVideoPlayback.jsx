@@ -8,7 +8,6 @@ const useVideoPlayback = ({
   state,
   updateState,
   showControls,
-  handleVideoCursorVisiblity,
   setIsUserInteracted,
   isUserInteracted,
   pressTimer,
@@ -16,8 +15,10 @@ const useVideoPlayback = ({
   isLongPressActiveMouse,
   isLongPressActiveKey,
   setTimeStamp,
+  handleVideoCursorVisiblity,
   resetTimeout,
   freezeTimeout,
+  playbackSpeed,
 }) => {
   // Toggle play/pause
   const togglePlayPause = useCallback(
@@ -111,9 +112,11 @@ const useVideoPlayback = ({
     if (pressTimer.current) {
       clearTimeout(pressTimer.current);
     }
-    showControls();
+    if (video.playbackRate === 2.0) {
+      video.playbackRate = playbackSpeed;
+    }
     freezeTimeout();
-    handleVideoCursorVisiblity("show")
+
     updateState({ isForwardSeek: true, isFastPlayback: false });
 
     video.currentTime += 5;
@@ -122,12 +125,12 @@ const useVideoPlayback = ({
       video.play();
       updateState({ isPlaying: true });
     }
+    resetTimeout();
 
     setTimeout(() => {
       updateState({ isForwardSeek: false });
-      resetTimeout();
     }, 300);
-  }, [resetTimeout, freezeTimeout, showControls, handleVideoCursorVisiblity]);
+  }, [resetTimeout, freezeTimeout, playbackSpeed]);
 
   // Handle backward seek (skip 5 seconds backward)
   const handleBackwardSeek = useCallback(() => {
@@ -137,10 +140,11 @@ const useVideoPlayback = ({
     if (pressTimer.current) {
       clearTimeout(pressTimer.current);
     }
+    if (video.playbackRate === 2.0) {
+      video.playbackRate = playbackSpeed;
+    }
 
-    showControls();
     freezeTimeout();
-    handleVideoCursorVisiblity("show")
 
     updateState({ isFastPlayback: false });
 
@@ -160,18 +164,18 @@ const useVideoPlayback = ({
     if (!video.paused) {
       updateState({ isPlaying: true });
     }
+    resetTimeout();
 
     setTimeout(() => {
       updateState({ isBackwardSeek: false });
-      resetTimeout();
     }, 300);
-  }, [state.isReplay, showControls, freezeTimeout, resetTimeout, handleVideoCursorVisiblity]);
+  }, [state.isReplay, freezeTimeout, resetTimeout, playbackSpeed]);
 
   // Handle video end
   const handleVideoEnd = useCallback(() => {
     updateState({ canPlay: false, isReplay: true });
-    showControls();
-  }, [showControls]);
+    freezeTimeout();
+  }, [freezeTimeout]);
 
   // Handle loaded metadata (when video is ready to play)
   const handleLoadedMetadata = useCallback(async () => {

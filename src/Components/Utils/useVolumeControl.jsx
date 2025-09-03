@@ -16,19 +16,16 @@ const useVolumeControl = ({
   showControls,
   freezeTimeout,
   resetTimeout,
-handleVideoCursorVisiblity
 }) => {
-  // Handle volume up/down via keyboard
   const handleVolume = useCallback(
     (key) => {
       const video = videoRef.current;
       if (!video) return;
       clearTimeout(pressTimer.current);
-      video.playbackRate = playbackSpeed;
-      clearTimeout(hideVolumeTimer.current);
-      showControls();
-freezeTimeout();
-handleVideoCursorVisiblity("show")
+      if (video.playbackRate === 2.0) {
+        video.playbackRate = playbackSpeed;
+      }
+      freezeTimeout();
       const step = 0.05;
       let newVol =
         key === "Up"
@@ -71,14 +68,21 @@ handleVideoCursorVisiblity("show")
         icon.classList.remove("pressed");
         requestAnimationFrame(() => icon.classList.add("pressed"));
       }
-
       // Auto-hide
+      resetTimeout();
+      clearTimeout(hideVolumeTimer.current);
       hideVolumeTimer.current = setTimeout(() => {
         updateState({ isVolumeChanged: false });
-        resetTimeout();
       }, 500);
     },
-    [playbackSpeed, updateState, setPreviousVolume, showControls, freezeTimeout, resetTimeout, handleVideoCursorVisiblity]
+    [
+      playbackSpeed,
+      updateState,
+      setPreviousVolume,
+      showControls,
+      freezeTimeout,
+      resetTimeout,
+    ]
   );
 
   // Handle mute/unmute toggle
@@ -88,6 +92,10 @@ handleVideoCursorVisiblity("show")
       const tracker = trackerRef.current;
       if (!video) return prev;
 
+      freezeTimeout();
+      if (video.playbackRate === 2.0) {
+        video.playbackRate = playbackSpeed;
+      }
       const fromTime = parseFloat(video.currentTime.toFixed(3));
 
       if (!prev.isMuted) {
@@ -112,7 +120,8 @@ handleVideoCursorVisiblity("show")
         return { ...prev, isMuted: false, volume: previousVolume };
       }
     });
-  }, [previousVolume]);
+    resetTimeout();
+  }, [previousVolume, freezeTimeout, resetTimeout, playbackSpeed]);
 
   // Update volume icon states based on current volume
   const updateVolumeIconStates = useCallback((volume) => {

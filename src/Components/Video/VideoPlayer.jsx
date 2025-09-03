@@ -107,7 +107,7 @@ const VideoPlayer = React.forwardRef(
     const [playbackSliderSpeed, setPlaybackSliderSpeed] = useState(1);
     const location = useLocation();
     const { getTimeStamp, setTimeStamp } = useContext(TimeStampContext);
-    const detectdOS = useMobileOS();
+    const detectedOS = useMobileOS();
     const isCustomWidth = useMediaQuery(theme.breakpoints.down("custom"));
 
     // State management
@@ -247,6 +247,7 @@ const VideoPlayer = React.forwardRef(
     const hideControls = useCallback(() => {
       if (state.controlOpacity !== 0) updateState({ controlOpacity: 0 });
       if (state.titleOpacity !== 0) updateState({ titleOpacity: 0 });
+      console.log("HIDING CONTROLS");
     }, [state.controlOpacity, state.titleOpacity]);
 
     const handleVideoCursorVisiblity = useCallback(
@@ -272,17 +273,19 @@ const VideoPlayer = React.forwardRef(
 
       timeoutRef.current = setTimeout(() => {
         hideControls();
-
         handleVideoCursorVisiblity("hide");
+        console.log("RESET TIMEOUT");
       }, HIDE_TIMEOUT);
     }, [hideControls, handleVideoCursorVisiblity]);
 
     const freezeTimeout = useCallback(() => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
-        showControls();
       }
-    }, [showControls]);
+      showControls();
+      handleVideoCursorVisiblity("show");
+      console.log("FREEZE TIMEOUT");
+    }, [showControls, handleVideoCursorVisiblity]);
 
     // ===== FULLSCREEN =====
     const toggleFullScreen = useCallback(() => {
@@ -500,7 +503,6 @@ const VideoPlayer = React.forwardRef(
       showControls,
       freezeTimeout,
       resetTimeout,
-handleVideoCursorVisiblity
     });
 
     // Video Playback Hook
@@ -522,6 +524,7 @@ handleVideoCursorVisiblity
       setTimeStamp,
       freezeTimeout,
       resetTimeout,
+      playbackSpeed
     });
 
     // Mouse Interactions Hook
@@ -586,12 +589,12 @@ handleVideoCursorVisiblity
     // Device detection
 
     useEffect(() => {
-      if (detectdOS === "android" || detectdOS === "ios") {
+      if (detectedOS === "android" || detectedOS === "ios") {
         updateState({ device: "mobile" });
       } else {
         updateState({ device: "windows" });
       }
-    }, [detectdOS]);
+    }, [detectedOS]);
 
     // Controls timeout management
     useEffect(() => {
@@ -630,6 +633,7 @@ handleVideoCursorVisiblity
     useEffect(() => {
       updateState({ videoReady: false });
       showControls();
+      handleVideoCursorVisiblity("show");
     }, [videoId]);
 
     // Ambient lighting effect
@@ -950,13 +954,13 @@ handleVideoCursorVisiblity
       ? "calc((var(--vtd-watch-flexy-player-width-ratio) / var(--vtd-watch-flexy-player-height-ratio)))"
       : "";
     const containerPosition =
-      isTheatre && !isMini ? "relative" : isMini ? "fixed" : "absolute";
+      isTheatre && !isMini && state.device === "windows" ? "relative" : isMini || state.device === "mobile" ? "fixed" : "absolute";
     const containerWidth = isMini ? "480px" : "100%";
-    const containerHeight = isMini ? "auto" : "100%";
-    const containerTopOffset = isMini ? "15px" : 0;
+    const containerHeight = isMini ? "auto" : state.device === "mobile" ? state.playerHeight : "100%";
+    const containerTopOffset = state.device === "mobile" ? "var(--header-height)" : isMini ? "15px" : 0;
     const containerLeftOffset = isMini ? "15px" : 0;
     const containerRightOffset = isMini ? "auto" : "";
-    const containerZindex = isMini ? 9999 : 0;
+    const containerZindex = isMini || state.device === "mobile" ? 9999 : 0;
 
     const playerVisiblity = state.videoReady ? "visible" : "hidden";
     const playerAspectRatio = containerAspectRatio;
@@ -1069,7 +1073,7 @@ handleVideoCursorVisiblity
     if (isError) return <Typography>Error: {error.message}</Typography>;
 
     return (
-      <>
+      <Box id="player-container">
         <Box
           className="player-inner"
           sx={{
@@ -1140,6 +1144,7 @@ handleVideoCursorVisiblity
 
             {/* Main Video Container */}
             <Box
+            id="main-video-container"
               sx={{
                 aspectRatio: containerAspectRatio,
                 position: containerPosition,
@@ -1611,7 +1616,7 @@ handleVideoCursorVisiblity
             </Box>
           </Box>
         </Box>
-      </>
+      </Box>
     );
   }
 );
