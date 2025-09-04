@@ -41,6 +41,7 @@ import CustomSlide from "./Slide";
 import { DrawerContext, UserContext } from "../../Contexts/RootContexts";
 import { useFullscreen } from "../Utils/useFullScreen";
 import { usePlayerSetting } from "../../helper/usePlayerSettings";
+import { DeviceContext } from "../../Contexts/DeviceContext";
 
 const getListItemButtonStyles = (isExpanded, isUserMenu = false) => {
   return {
@@ -263,7 +264,7 @@ function Header({ ...props }) {
   const isLaptop = useMediaQuery(theme.breakpoints.down("lg"));
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  
+
   const isSmallScreen = useMediaQuery("(max-width:430px)");
   const drawerWidth = "var(--drawer-width)";
   const miniDrawerWidth = "var(--mini-drawer-width)";
@@ -275,6 +276,7 @@ function Header({ ...props }) {
   const { window: windowProp } = props;
   const [opacity, setOpacity] = useState(0);
   const navigate = useNavigate();
+  const { device } = React.useContext(DeviceContext);
 
   const toggleDrawer = useCallback(() => {
     if (setOpen) {
@@ -299,9 +301,9 @@ function Header({ ...props }) {
     setOpacity(stepsArray[stepIndex]);
   }, [open]);
 
-React.useEffect(()=> {
-  console.log("isTheatre", isTheatre)
-}, [isTheatre])
+  React.useEffect(() => {
+    console.log("isTheatre", isTheatre);
+  }, [isTheatre]);
 
   React.useEffect(() => {
     if (home || search || userProfile || isFullscreen || isTheatre) return;
@@ -446,149 +448,161 @@ React.useEffect(()=> {
           background: isFullscreen || isTheatre ? "#0f0f0f" : "none",
         }}
       >
-        {!searchMenu ? (
-          <Toolbar
-            sx={{
+        <Toolbar
+          sx={{
+            display: searchMenu ? "none" : "block",
+            paddingLeft: "16px",
+            paddingRight: "16px",
+            minHeight: "var(--header-height)",
+            "@media (min-width:600px)": {
               paddingLeft: "16px",
               paddingRight: "16px",
               minHeight: "var(--header-height)",
-              "@media (min-width:600px)": {
-                paddingLeft: "16px",
-                paddingRight: "16px",
-                minHeight: "var(--header-height)",
-              },
+            },
+          }}
+        >
+          <Box
+            className="header-content"
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              minHeight: "var(--header-height)",
+              flex: 1,
+              minWidth: 0,
             }}
           >
             <Box
-              className="header-content"
               sx={{
                 display: "flex",
+                justifyContent: "center",
                 alignItems: "center",
-                justifyContent: "space-between",
-                flex: 1,
-                minWidth: 0,
               }}
+              className="start"
+            >
+              <IconButton
+                disableRipple
+                size="medium"
+                edge="start"
+                color="inherit"
+                aria-label="menu"
+                onClick={toggleDrawer}
+                sx={{
+                  width: "40px",
+                  height: "40px",
+                  m: 0,
+                  borderRadius: "50px",
+                  "&:hover": {
+                    background: "rgba(255,255,255,0.1)",
+                  },
+                }}
+              >
+                <MenuIcon />
+              </IconButton>
+              <Link
+                style={{
+                  display: "inline-block",
+                  verticalAlign: "middle",
+                  color: "#fff",
+                  textDecoration: "none",
+                  paddingLeft: "8px",
+                  flexGrow: 1,
+                }}
+                to="/"
+              >
+                <Typography variant="h6" noWrap component="div">
+                  VTube
+                </Typography>
+              </Link>
+            </Box>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                flex: "0 1 732px",
+              }}
+              className="middle"
             >
               <Box
                 sx={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
+                  flex: 1,
+                  display: !isMobile ? "inline-flex" : "none",
                 }}
-                className="start"
               >
-                <IconButton
-                  disableRipple
-                  size="medium"
-                  edge="start"
-                  color="inherit"
-                  aria-label="menu"
-                  onClick={toggleDrawer}
-                  sx={{
-                    width: "40px",
-                    height: "40px",
-                    m: 0,
-                    borderRadius: "50px",
-                    "&:hover": {
-                      background: "rgba(255,255,255,0.1)",
-                    },
-                  }}
-                >
-                  <MenuIcon />
-                </IconButton>
-                <Link
-                  style={{
-                    display: "inline-block",
-                    verticalAlign: "middle",
-                    color: "#fff",
-                    textDecoration: "none",
-                    paddingLeft: "8px",
-                    flexGrow: 1,
-                  }}
-                  to="/"
-                >
-                  <Typography variant="h6" noWrap component="div">
-                    VTube
-                  </Typography>
-                </Link>
+                <Search
+                device={device}
+                  handleSearch={handleSearch}
+                  searchQuery={searchQuery || ""}
+                  setSearchQuery={setSearchQuery}
+                />
               </Box>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  flex: "0 1 732px",
-                }}
-                className="middle"
-              >
-                {!isMobile ? (
-                  <Search
-                    handleSearch={handleSearch}
-                    searchQuery={searchQuery || ""}
-                    setSearchQuery={setSearchQuery}
-                  />
-                ) : (
-                  <IconButton
-                    disableRipple
-                    onClick={() => setSearchMenu(true)}
-                    type="button"
-                    sx={{
-                      borderRadius: "50px",
-                      color: "#fff",
-                      backgroundColor: "none",
-                      "&:hover": {
-                        backgroundColor: "hsla(0,0%,100%,.08)",
-                      },
-                    }}
-                    aria-label="search"
-                  >
-                    <SearchIcon />
-                  </IconButton>
-                )}
 
-                <IconButton
-                  disableRipple
-                  sx={{
-                    display: isSmallScreen ? "none" : "inline-flex",
-                    padding: "10px",
-                    borderRadius: "50px",
-                    backgroundColor: "hsla(0,0%,100%,.08)",
-                    marginLeft: 1,
-                    marginRight: "0",
-                    "&:hover": {
-                      backgroundColor: "hsl(0,0%,18.82%)",
-                    },
-                  }}
-                >
-                  <MicOutlinedIcon sx={{ color: "#fff" }} />
-                </IconButton>
-              </Box>
-              <Box
+              <IconButton
+                disableRipple
+                onClick={() => setSearchMenu(true)}
+                type="button"
                 sx={{
-                  display: "flex",
-                  justifyContent:
-                    isSmallScreen && isAuthenticated
-                      ? "flex-start"
-                      : "flex-end",
-                  alignItems: "center",
-                  flex: "none",
-                  minWidth: isSmallScreen ? 0 : "225px",
+                  display: isMobile ? "inline-flex" : "none",
+                  borderRadius: "50px",
+                  color: "#fff",
+                  backgroundColor: "none",
+                  "&:hover": {
+                    backgroundColor: "hsla(0,0%,100%,.08)",
+                  },
                 }}
-                className="end"
+                aria-label="search"
               >
-                <AccountMenu />
-              </Box>
+                <SearchIcon />
+              </IconButton>
+
+              <IconButton
+                disableRipple
+                sx={{
+                  display: isSmallScreen ? "none" : "inline-flex",
+                  padding: "10px",
+                  borderRadius: "50px",
+                  backgroundColor: "hsla(0,0%,100%,.08)",
+                  marginLeft: 1,
+                  marginRight: "0",
+                  "&:hover": {
+                    backgroundColor: "hsl(0,0%,18.82%)",
+                  },
+                }}
+              >
+                <MicOutlinedIcon sx={{ color: "#fff" }} />
+              </IconButton>
             </Box>
-          </Toolbar>
-        ) : (
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent:
+                  isSmallScreen && isAuthenticated ? "flex-start" : "flex-end",
+                alignItems: "center",
+                flex: "none",
+                minWidth: isSmallScreen ? 0 : "225px",
+              }}
+              className="end"
+            >
+              <AccountMenu />
+            </Box>
+          </Box>
+        </Toolbar>
+        <Box
+          sx={{
+            display: searchMenu ? "block" : "none",
+          }}
+        >
           <Search
             setSearchMenu={setSearchMenu}
-            isMobile={isMobile}
+            isMobileScreen={isMobile}
+            device={device}
             handleSearch={handleSearch}
             searchQuery={searchQuery || ""}
             setSearchQuery={setSearchQuery}
           />
-        )}
+        </Box>
+
         <Box
           sx={{
             background: "#0f0f0f",

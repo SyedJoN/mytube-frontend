@@ -22,6 +22,10 @@ import {
 import { getCurrentUserWithAutoRefresh } from "../helper/getCurrentUserWithAutoRefresh";
 import { TimeStampProvider } from "../Contexts/TimeStampProvider";
 import { useExitFullscreenOnRouteChange } from "../Components/Utils/ExitFs";
+import MobileHeader from "../Components/Header/MobileHeader";
+import { useMobileOS } from "../Components/Utils/useMobileOS";
+import { DeviceContext } from "../Contexts/DeviceContext";
+import { useStateList } from "react-use";
 
 const NotFoundComponent = () => (
   <Box sx={{ textAlign: "center", mt: 5 }}>
@@ -37,6 +41,8 @@ export const Route = createRootRoute({
 function useBodyScrollLock(open: boolean, isLaptop: boolean, watch: boolean) {
   const scrollYRef = useRef(0);
   const prevScrollRef = useRef(0);
+  const isMobileWidthDevice = useMediaQuery("(max-width: 414px)")
+
 
   const handleScroll = useCallback(
     throttle(() => {
@@ -58,7 +64,7 @@ function useBodyScrollLock(open: boolean, isLaptop: boolean, watch: boolean) {
   useEffect(() => {
     const body = document.body;
     if ((open && isLaptop) || (open && watch)) {
-      body.style.position = "fixed";
+      body.style.position = isMobileWidthDevice ? "relative" : "fixed";
       body.style.top = `-${scrollYRef.current}px`;
       body.style.left = "0";
       body.style.right = "0";
@@ -70,7 +76,7 @@ function useBodyScrollLock(open: boolean, isLaptop: boolean, watch: boolean) {
         document.documentElement.scrollHeight - window.innerHeight;
       window.scrollTo(0, Math.min(scrollYRef.current, maxScroll));
     }
-  }, [open, isLaptop, watch]);
+  }, [open, isLaptop, watch, isMobileWidthDevice]);
 
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -91,6 +97,8 @@ function RouteComponent() {
   const theme = useTheme();
   const isLaptop = useMediaQuery(theme.breakpoints.down("lg"));
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
+  const isMobileWidthDevice = useMediaQuery("(max-width: 414px)")
+
   const queryClient = useQueryClient();
   const channel = new BroadcastChannel("auth_channel");
 
@@ -98,6 +106,27 @@ function RouteComponent() {
   const [open, setOpen] = useState(false);
   const [isUserInteracted, setIsUserInteracted] = useState(false);
   const [isAuthenticated, setAuthenticated] = useState(false);
+  const [device, setDevice] = useState<string | undefined>("windows");
+  const detectedOS = useMobileOS();
+
+  // Device detection
+  useEffect(() => {
+    if (detectedOS === "android" || detectedOS === "ios") {
+      setDevice("mobile");
+    } else {
+      setDevice("windows");
+    }
+  }, [detectedOS, isMobileWidthDevice]);
+
+  // Responsive Header Height
+  useEffect(() => {
+    const root = document.documentElement;
+    if (device === "mobile") {
+      root.style.setProperty("--header-height", "48px");
+    } else {
+      root.style.setProperty("--header-height", "56px");
+    }
+  }, [device]);
 
   useEffect(() => {
     requestAnimationFrame(() => setOpen(shouldBeOpen));
@@ -136,8 +165,7 @@ function RouteComponent() {
 
     channel.onmessage = (event) => {
       if (event.data.type === "LOGIN") {
-        setAuthenticated(true)
-
+        setAuthenticated(true);
       }
       if (event.data.type === "LOGOUT") {
         setData(null);
@@ -145,8 +173,7 @@ function RouteComponent() {
         queryClient.clear();
         queryClient.setQueryData(["user"], null);
       }
-        queryClient.invalidateQueries({ queryKey: [], exact: false }); 
-
+      queryClient.invalidateQueries({ queryKey: [], exact: false });
     };
 
     return () => {
@@ -183,6 +210,13 @@ function RouteComponent() {
     () => ({ isUserInteracted, setIsUserInteracted }),
     [isUserInteracted]
   );
+  const deviceValue = useMemo(
+    () => ({
+      device,
+      setDevice,
+    }),
+    [device]
+  );
 
   const rootStyles = useMemo(() => {
     const leftMargin =
@@ -205,7 +239,7 @@ function RouteComponent() {
       backgroundColor: theme.palette.primary.main,
     };
   }, [isTablet, watch, isLaptop, open, home, search, userProfile]);
-  
+
   // Exiting Fullscreen on route change
   useExitFullscreenOnRouteChange();
 
@@ -214,14 +248,16 @@ function RouteComponent() {
       <UserInteractionContext.Provider value={userInteractionValue}>
         <UserContext.Provider value={userValue}>
           <DrawerContext.Provider value={drawerValue}>
-            <TimeStampProvider>
-              <CssBaseline />
-              <Header />
-              <Box component="main" sx={rootStyles}>
-                <ProgressBar />
-                <Outlet />
-              </Box>
-            </TimeStampProvider>
+            <DeviceContext.Provider value={deviceValue}>
+              <TimeStampProvider>
+                <CssBaseline />
+                {device === "mobile" || isMobileWidthDevice ? <MobileHeader /> : <Header />}
+                <Box component="main" sx={rootStyles}>
+                  <ProgressBar />
+                  <Outlet />
+                </Box>
+              </TimeStampProvider>
+            </DeviceContext.Provider>
           </DrawerContext.Provider>
         </UserContext.Provider>
       </UserInteractionContext.Provider>

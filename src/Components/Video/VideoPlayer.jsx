@@ -47,6 +47,8 @@ import useKeyboardShortcuts from "../Utils/useKeyboardShortcuts";
 import useMouseInteractions from "../Utils/useMouseInteractions";
 import useVolumeControl from "../Utils/useVolumeControl";
 import useVideoPlayback from "../Utils/useVideoPlayback";
+import { DeviceContext } from "../../Contexts/DeviceContext";
+import { useAmbientEffect } from "./useCinematicAmbient";
 
 // Constants
 const HIDE_TIMEOUT = 2000;
@@ -91,6 +93,8 @@ const VideoPlayer = React.forwardRef(
     const userContext = useContext(UserContext);
     const drawerContext = useContext(DrawerContext);
     const userInteractionContext = useContext(UserInteractionContext);
+    // Device detection
+    const { device } = useContext(DeviceContext);
     const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
     const { open: isOpen } = drawerContext ?? {};
     const { data: dataContext } = userContext ?? {};
@@ -99,7 +103,7 @@ const VideoPlayer = React.forwardRef(
     const { isUserInteracted, setIsUserInteracted } =
       userInteractionContext ?? {};
 
-    const [isAmbient, setIsAmbient] = usePlayerSetting("ambientMode", false);
+    const [isAmbient, setIsAmbient] = usePlayerSetting("ambientMode", true);
     const [playbackSpeed, setPlaybackSpeed] = usePlayerSetting(
       "playbackSpeed",
       1.0
@@ -167,7 +171,6 @@ const VideoPlayer = React.forwardRef(
       // === Mobile & Device ===
       controlOverlayOpacity: 0.6,
       bottomPad: 0,
-      device: "",
       isMobileMuted: true,
       isControlHovered: false,
     });
@@ -524,7 +527,7 @@ const VideoPlayer = React.forwardRef(
       setTimeStamp,
       freezeTimeout,
       resetTimeout,
-      playbackSpeed
+      playbackSpeed,
     });
 
     // Mouse Interactions Hook
@@ -586,16 +589,6 @@ const VideoPlayer = React.forwardRef(
 
     // ===== EFFECTS =====
 
-    // Device detection
-
-    useEffect(() => {
-      if (detectedOS === "android" || detectedOS === "ios") {
-        updateState({ device: "mobile" });
-      } else {
-        updateState({ device: "windows" });
-      }
-    }, [detectedOS]);
-
     // Controls timeout management
     useEffect(() => {
       const video = videoRef.current;
@@ -637,90 +630,14 @@ const VideoPlayer = React.forwardRef(
     }, [videoId]);
 
     // Ambient lighting effect
-    useEffect(() => {
-      const width = 110;
-      const height = 75;
-      const centerX = width / 2;
-      const centerY = height / 2;
-      const video = videoRef.current;
-      const captureCanvas = captureCanvasRef.current;
-      const glowCanvas = glowCanvasRef.current;
-
-      if (ambientIntervalRef.current) {
-        clearInterval(ambientIntervalRef.current);
-        ambientIntervalRef.current = null;
-      }
-
-      if (
-        !video ||
-        !captureCanvas ||
-        !glowCanvas ||
-        !isAmbient ||
-        isCustomWidth ||
-        video.readyState < 2
-      ) {
-        if (glowCanvas) {
-          const glowCtx = glowCanvas.getContext("2d");
-          glowCtx?.clearRect(0, 0, width, height);
-        }
-        return;
-      }
-
-      ambientIntervalRef.current = setInterval(() => {
-        const captureCtx = captureCanvas.getContext("2d", {
-          willReadFrequently: true,
-        });
-        const glowCtx = glowCanvas.getContext("2d", {
-          willReadFrequently: true,
-        });
-
-        if (!captureCtx || !glowCtx) return;
-
-        try {
-          captureCtx.drawImage(video, 0, 0, width, height);
-          const frame = captureCtx.getImageData(0, 0, width, height).data;
-
-          let r = 0,
-            g = 0,
-            b = 0,
-            count = 0;
-
-          for (let i = 0; i < frame.length; i += 64) {
-            r += frame[i];
-            g += frame[i + 1];
-            b += frame[i + 2];
-            count++;
-          }
-
-          if (count === 0) return;
-
-          r = Math.round(r / count);
-          g = Math.round(g / count);
-          b = Math.round(b / count);
-
-          const color = `rgb(${r}, ${g}, ${b})`;
-
-          glowCtx.clearRect(0, 0, width, height);
-          const gradient = glowCtx.createRadialGradient(
-            centerX,
-            centerY,
-            5,
-            centerX,
-            centerY,
-            70
-          );
-          gradient.addColorStop(0, color);
-          gradient.addColorStop(1, "transparent");
-
-          glowCtx.fillStyle = gradient;
-          glowCtx.fillRect(0, 0, width, height);
-        } catch (e) {
-          console.warn("Glow error:", e);
-        }
-      }, 500);
-
-      return () => clearInterval(ambientIntervalRef.current);
-    }, [isAmbient, isCustomWidth, state.device]);
+    useAmbientEffect(
+      videoRef,
+      videoId,
+      glowCanvasRef,
+      state.isPlaying,
+      isAmbient,
+      isTheatre
+    );
 
     // PiP event listeners
     useEffect(() => {
@@ -804,7 +721,7 @@ const VideoPlayer = React.forwardRef(
     // Mini player scroll detection
     useEffect(() => {
       const container = containerRef.current;
-      if (isOpen || isFullscreen || state.device === "mobile") return;
+      if (isOpen || isFullscreen || device === "mobile") return;
       if (!container) return;
       let threshold;
 
@@ -852,7 +769,7 @@ const VideoPlayer = React.forwardRef(
       state.canPlay,
       isOpen,
       isFullscreen,
-      state.device,
+      device,
     ]);
 
     // Cleanup telemetry on unmount
@@ -954,13 +871,22 @@ const VideoPlayer = React.forwardRef(
       ? "calc((var(--vtd-watch-flexy-player-width-ratio) / var(--vtd-watch-flexy-player-height-ratio)))"
       : "";
     const containerPosition =
-      isTheatre && !isMini && state.device === "windows" ? "relative" : isMini || state.device === "mobile" ? "fixed" : "absolute";
+      isTheatre && !isMini && device === "windows"
+        ? "relative"
+        : isMini || device === "mobile"
+          ? "fixed"
+          : "absolute";
     const containerWidth = isMini ? "480px" : "100%";
-    const containerHeight = isMini ? "auto" : state.device === "mobile" ? state.playerHeight : "100%";
-    const containerTopOffset = state.device === "mobile" ? "var(--header-height)" : isMini ? "15px" : 0;
+    const containerHeight = isMini
+      ? "auto"
+      : device === "mobile"
+        ? state.playerHeight
+        : "100%";
+    const containerTopOffset =
+      device === "mobile" ? "var(--header-height)" : isMini ? "15px" : 0;
     const containerLeftOffset = isMini ? "15px" : 0;
     const containerRightOffset = isMini ? "auto" : "";
-    const containerZindex = isMini || state.device === "mobile" ? 9999 : 0;
+    const containerZindex = isMini || device === "mobile" ? 9999 : 0;
 
     const playerVisiblity = state.videoReady ? "visible" : "hidden";
     const playerAspectRatio = containerAspectRatio;
@@ -970,7 +896,7 @@ const VideoPlayer = React.forwardRef(
     const playerLeftOffset = isMini ? 0 : state.leftOffset;
     const playerRightOffset = isMini ? "auto" : "";
     const playerBorderRadius =
-      (isTheatre && !isMini) || state.device === "mobile" ? "0" : "8px";
+      (isTheatre && !isMini) || device === "mobile" ? "0" : "8px";
 
     // Video container layout effect
     useEffect(() => {
@@ -990,7 +916,7 @@ const VideoPlayer = React.forwardRef(
 
         let videoWidth = containerWidth;
         let videoHeightLocal =
-          state.device === "mobile"
+          device === "mobile"
             ? video.videoHeight
             : Math.ceil(videoWidth / targetAspectRatio);
 
@@ -998,17 +924,17 @@ const VideoPlayer = React.forwardRef(
           videoHeightLocal = containerHeight;
           videoWidth = Math.floor(videoHeightLocal * targetAspectRatio);
         }
-        if (state.device === "mobile" && isFullscreen) {
+        if (device === "mobile" && isFullscreen) {
           ((videoHeightLocal = 309), (videoWidth = containerWidth));
         }
         const fsWidth = containerHeight * targetAspectRatio;
 
         const left =
-          isFullscreen && state.device !== "mobile"
+          isFullscreen && device !== "mobile"
             ? Math.floor((containerWidth - fsWidth) / 2)
             : Math.floor((containerWidth - videoWidth) / 2);
         const top =
-          isFullscreen && state.device !== "mobile"
+          isFullscreen && device !== "mobile"
             ? 0
             : Math.floor((containerHeight - videoHeightLocal) / 2);
 
@@ -1036,11 +962,11 @@ const VideoPlayer = React.forwardRef(
           videoContainerWidth: containerWidth,
           videoHeight: videoHeightLocal,
           playerWidth:
-            isFullscreen && state.device !== "mobile"
+            isFullscreen && device !== "mobile"
               ? `${containerHeight * targetAspectRatio}px`
               : `${videoWidth}px`,
           playerHeight:
-            isFullscreen && state.device !== "mobile"
+            isFullscreen && device !== "mobile"
               ? `${containerHeight}px`
               : `${videoHeightLocal}px`,
           leftOffset: `${left}px`,
@@ -1065,7 +991,7 @@ const VideoPlayer = React.forwardRef(
         window.removeEventListener("resize", updateSize);
         video.removeEventListener("loadedmetadata", updateSize);
       };
-    }, [isTheatre, data?.data?._id, isFullscreen, state.device]);
+    }, [isTheatre, data?.data?._id, isFullscreen, device]);
 
     // ===== RENDER =====
 
@@ -1080,24 +1006,18 @@ const VideoPlayer = React.forwardRef(
             position: "relative",
             height: isFullscreen && !isTheatre ? "100%" : "unset",
             paddingBottom:
-              state.device === "mobile"
-                ? "calc(var(--vtd-watch-flexy-player-height-ratio) / var(--vtd-watch-flexy-player-width-ratio) * 100%)"
-                : "",
-            paddingTop:
-              isCustomWidth || isMobile
+              ((isCustomWidth || isMobile || isTheatre) && device === "windows") 
                 ? ""
-                : isFullscreen || isTheatre
-                  ? "calc((9/16)*1px)"
+                : isFullscreen
+                  ? "calc((9/16)*100%)"
                   : "calc(var(--vtd-watch-flexy-player-height-ratio) / var(--vtd-watch-flexy-player-width-ratio) * 100%)",
           }}
         >
           <Box
-            data-theatre={
-              isTheatre && !isFullscreen && state.device !== "mobile"
-            }
-            data-fullbleed={isCustomWidth && state.device !== "mobile"}
+            data-theatre={isTheatre && !isFullscreen && device !== "mobile"}
+            data-fullbleed={isCustomWidth && device !== "mobile"}
             data-fullscreen={isFullscreen}
-            data-mobile={state.device === "mobile" && !isFullscreen}
+            data-mobile={device === "mobile" && !isFullscreen}
             ref={containerRef}
             onMouseLeave={mouseHandlers.handleMouseOut}
             onMouseMove={mouseHandlers.handleContainerMouseMove}
@@ -1123,18 +1043,22 @@ const VideoPlayer = React.forwardRef(
             >
               <Box
                 sx={{
-                  transform: isMobile ? "scale(1.5, 1.5)" : "scale(1.5, 1.3)",
+                  transform:
+                    isMobile || device === "mobile"
+                      ? "scale(1, 1.5)"
+                      : "scale(1.5, 2)",
+        
                 }}
                 className="canvas-container"
               >
                 <canvas
-                  ref={captureCanvasRef}
+                  ref={captureCanvasRef} 
                   width="110"
                   height="75"
                   className="hide"
                 />
                 <canvas
-                  ref={glowCanvasRef}
+                  ref={glowCanvasRef} 
                   width="110"
                   height="75"
                   className="glow-canvas"
@@ -1144,7 +1068,7 @@ const VideoPlayer = React.forwardRef(
 
             {/* Main Video Container */}
             <Box
-            id="main-video-container"
+              id="main-video-container"
               sx={{
                 aspectRatio: containerAspectRatio,
                 position: containerPosition,
@@ -1171,11 +1095,11 @@ const VideoPlayer = React.forwardRef(
                 {/* Video Element */}
                 {data?.data?.videoFile.url && (
                   <video
-                    autoPlay={state.device === "mobile"}
+                    autoPlay={device === "mobile"}
                     src={data?.data?.videoFile.url}
                     muted={
                       state.isMuted ||
-                      (state.device === "mobile" && state.isMobileMuted)
+                      (device === "mobile" && state.isMobileMuted)
                     }
                     key={data?.data?.videoFile.url}
                     ref={videoRef}
@@ -1198,7 +1122,7 @@ const VideoPlayer = React.forwardRef(
                     }}
                   />
                 )}
-                {state.device === "windows" && (
+                {device === "windows" && (
                   <>
                     <IconButton
                       className={`cancel-mini-btn ${isMini ? "" : "hide"}`}
@@ -1254,7 +1178,7 @@ const VideoPlayer = React.forwardRef(
                   </>
                 )}
                 {/* Desktop Controls */}
-                {state.device === "windows" && (
+                {device === "windows" && (
                   <VideoControls
                     videoRef={videoRef}
                     tracker={trackerRef.current}
@@ -1539,7 +1463,7 @@ const VideoPlayer = React.forwardRef(
                     ? mouseHandlers.handleVideoOverlay
                     : undefined
                 }
-                className={`${state.device === "mobile" ? "hide" : ""}`}
+                className={`${device === "mobile" ? "hide" : ""}`}
               >
                 {/* Thumbnail Overlay (shown before first interaction) */}
                 <Box
@@ -1598,7 +1522,7 @@ const VideoPlayer = React.forwardRef(
               </Box>
 
               {/* Mobile Controls */}
-              {state.device === "mobile" && (
+              {device === "mobile" && (
                 <MobileVideoControls
                   videoRef={videoRef}
                   data={data}
