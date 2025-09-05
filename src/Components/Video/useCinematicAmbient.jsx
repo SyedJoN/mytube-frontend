@@ -35,7 +35,7 @@ export const useAmbientEffect = (
    const ctx = glowCanvas.getContext("2d");
 ctx.clearRect(0, 0, glowCanvas.width, glowCanvas.height);
 
-ctx.globalAlpha = 0.25;
+ctx.globalAlpha = 3;
 ctx.filter = "blur(8px)";
 
 const padding = 12; 

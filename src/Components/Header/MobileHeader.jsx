@@ -4,6 +4,7 @@ import PropTypes from "prop-types";
 import AppBar from "@mui/material/AppBar";
 import {
   Box,
+  ClickAwayListener,
   CssBaseline,
   IconButton,
   Toolbar,
@@ -25,6 +26,7 @@ import { DrawerContext, UserContext } from "../../Contexts/RootContexts";
 import { useFullscreen } from "../Utils/useFullScreen";
 import { usePlayerSetting } from "../../helper/usePlayerSettings";
 import { DeviceContext } from "../../Contexts/DeviceContext";
+import MobileFullScreenDialog from "../Dialogs/MobileDialog";
 
 function MobileHeader({ ...props }) {
   const location = useLocation();
@@ -41,24 +43,23 @@ function MobileHeader({ ...props }) {
   const [searchMenu, setSearchMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [opacity, setOpacity] = useState(1);
+  const [showOptions, setShowOptions] = useState(false);
   const navigate = useNavigate();
 
-   const handleScroll = useCallback(() => {
-  
-      const scrollY = Math.max(0, window.scrollY);
-      const maxScroll = 31;
-      const stepsArray = [0, 0.3, 0.6, 1];
-      const stepSize = maxScroll / stepsArray.length;
-      const stepIndex = Math.min(
-        stepsArray.length - 1,
-        Math.floor(scrollY / stepSize)
-      );
-  
-      setOpacity(stepsArray[stepIndex]);
-    }, []);
+  const handleScroll = useCallback(() => {
+    const scrollY = Math.max(0, window.scrollY);
+    const maxScroll = 31;
+    const stepsArray = [0, 0.3, 0.6, 1];
+    const stepSize = maxScroll / stepsArray.length;
+    const stepIndex = Math.min(
+      stepsArray.length - 1,
+      Math.floor(scrollY / stepSize)
+    );
 
-      React.useEffect(() => {
+    setOpacity(stepsArray[stepIndex]);
+  }, []);
 
+  React.useEffect(() => {
     const throttledHandleScroll = throttle(handleScroll, 100);
     window.addEventListener("scroll", throttledHandleScroll);
     return () => window.removeEventListener("scroll", throttledHandleScroll);
@@ -80,6 +81,10 @@ function MobileHeader({ ...props }) {
     }
   }, [isMobile]);
 
+  const handleOptions = (showOptions) => {
+    setShowOptions(showOptions);
+  };
+
   return (
     <>
       <CssBaseline />
@@ -96,7 +101,6 @@ function MobileHeader({ ...props }) {
         <Toolbar
           sx={{
             display: !searchMenu ? "block" : "none",
-
             paddingLeft: "8px",
             paddingRight: "8px",
             minHeight: "var(--header-height)",
@@ -147,7 +151,7 @@ function MobileHeader({ ...props }) {
             >
               <IconButton
                 disableRipple
-                onClick={() => setSearchMenu(true)}
+                onTouchEnd={(e) => {e.stopPropagation(); setSearchMenu(true)}}
                 type="button"
                 sx={{
                   borderRadius: "50px",
@@ -163,6 +167,7 @@ function MobileHeader({ ...props }) {
               </IconButton>
 
               <IconButton
+                onTouchEnd={() => handleOptions(true)}
                 disableRipple
                 sx={{
                   display: "inline-flex",
@@ -203,6 +208,10 @@ function MobileHeader({ ...props }) {
           id="background"
         ></Box>
       </AppBar>
+      <MobileFullScreenDialog
+        open={showOptions}
+        onClose={() => handleOptions(false)}
+      />
     </>
   );
 }

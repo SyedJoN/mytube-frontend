@@ -1045,7 +1045,7 @@ const VideoPlayer = React.forwardRef(
                 sx={{
                   transform:
                     isMobile || device === "mobile"
-                      ? "scale(1, 1.5)"
+                      ? "scale(1.5, 2.5)"
                       : "scale(1.5, 2)",
         
                 }}

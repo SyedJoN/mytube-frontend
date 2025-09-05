@@ -604,7 +604,7 @@ const MobileVideoControls = ({
           zIndex: isMobileMuted ? 3 : 0,
           overflow: "hidden",
         }}
-        onClick={() => updateState({ isMobileMuted: false })}
+        onTouchEnd={() => updateState({ isMobileMuted: false })}
         id="initial-btn"
       >
         <Box
@@ -619,7 +619,7 @@ const MobileVideoControls = ({
           <IconButton
             id="unmute-btn-icon"
             size="medium"
-            onClick={() => updateState({ isMobileMuted: false })}
+            onTouchEnd={() => updateState({ isMobileMuted: false })}
             sx={{
               position: "relative",
               display: isMobileMuted ? "inline-flex" : "none",

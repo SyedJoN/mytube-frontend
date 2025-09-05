@@ -123,8 +123,10 @@ function RouteComponent() {
     const root = document.documentElement;
     if (device === "mobile") {
       root.style.setProperty("--header-height", "48px");
+      root.style.setProperty("--scrollbar-color", "rgb(255,255,255,0.6)");
     } else {
       root.style.setProperty("--header-height", "56px");
+      root.style.setProperty("--scrollbar-color", "#aaa");
     }
   }, [device]);
 

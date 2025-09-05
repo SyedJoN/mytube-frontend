@@ -4,6 +4,7 @@
 }
 :root {
   --drawer-width: 240px;
+  --scrollbar-color: #aaa,
   --mini-drawer-width: 72px;
   --header-height: 56px;
   --base-background: #181818;
@@ -14,13 +15,14 @@
 
 html {
       scrollbar-width: auto;
-      scrollbar-color: #aaa transparent;
+      scrollbar-color: var(--scrollbar-color) transparent;
       font-family: Roboto, Arial, sans-serif;
+      
 }
 body {
     background: #0f0f0f!important;
     margin: 0!important;
-    overflow-y: scroll!important;
+    overflow-y: scroll;
     overflow-x: hidden;
     height: 100%;
 
